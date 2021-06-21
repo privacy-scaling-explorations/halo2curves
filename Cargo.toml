@@ -1,0 +1,26 @@
+[package]
+name = "masta_curves"
+version = "0.1.0"
+authors = [
+  "Sean Bowe <sean@electriccoin.co>",
+  "Ying Tong Lai <yingtong@electriccoin.co>",
+  "Daira Hopwood <daira@electriccoin.co>",
+  "Jack Grigg <jack@electriccoin.co>",
+  "kilic <kiliconu@itu.edu.tr>",
+]
+edition = "2018"
+repository = "https://github.com/kilic/masta_curves"
+readme = "README.md"
+
+[dev-dependencies]
+criterion = "0.3"
+rand_xorshift = "0.3"
+
+[dependencies]
+subtle = "2.3"
+ff = "0.10"
+group = "0.10"
+rand = "0.8"
+blake2b_simd = "0.5"
+lazy_static = "1.4.0"
+static_assertions = "1.1.0"
