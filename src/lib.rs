@@ -1,8 +1,10 @@
 #[macro_use]
 mod macros;
 mod curves;
-mod fields;
+mod bn256;
 
 pub mod arithmetic;
 pub use curves::*;
-pub use fields::*;
+pub use bn256::*;
+
+
