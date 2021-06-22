@@ -57,6 +57,15 @@ macro_rules! impl_sub_binop_specify_output {
                 &self - &rhs
             }
         }
+
+        impl<'a> ::core::ops::Neg for &'a $lhs {
+            type Output = $output;
+
+            #[inline]
+            fn neg(self) -> $output {
+                self.neg()
+            }
+        }
     };
 }
 

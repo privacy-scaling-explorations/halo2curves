@@ -1,12 +1,11 @@
-use super::fq::{Fq, FROBENIUS_COEFF_FQ2_C1, NEGATIVE_ONE};
+use super::fq::{Fq, NEGATIVE_ONE};
 use crate::arithmetic::BaseExt;
 
-use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use ff::Field;
 use rand::RngCore;
 use std::cmp::Ordering;
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+use subtle::{Choice, ConditionallySelectable, CtOption};
 
 /// An element of Fq2, represented by c0 + c1 * u.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
@@ -43,32 +42,50 @@ impl ConditionallySelectable for Fq2 {
     }
 }
 
+impl Neg for Fq2 {
+    type Output = Fq2;
+
+    #[inline]
+    fn neg(self) -> Fq2 {
+        -&self
+    }
+}
+
+impl<'a, 'b> Sub<&'b Fq2> for &'a Fq2 {
+    type Output = Fq2;
+
+    #[inline]
+    fn sub(self, rhs: &'b Fq2) -> Fq2 {
+        self.sub(rhs)
+    }
+}
+
+impl<'a, 'b> Add<&'b Fq2> for &'a Fq2 {
+    type Output = Fq2;
+
+    #[inline]
+    fn add(self, rhs: &'b Fq2) -> Fq2 {
+        self.add(rhs)
+    }
+}
+
+impl<'a, 'b> Mul<&'b Fq2> for &'a Fq2 {
+    type Output = Fq2;
+
+    #[inline]
+    fn mul(self, rhs: &'b Fq2) -> Fq2 {
+        self.mul(rhs)
+    }
+}
+
+impl_binops_additive!(Fq2, Fq2);
+impl_binops_multiplicative!(Fq2, Fq2);
+
 impl Fq2 {
-    fn add(&self, other: &Self) -> Self {
-        Self {
-            c0: self.c0.add(&other.c0),
-            c1: self.c1.add(&other.c1),
-        }
-    }
-
-    fn sub(&self, other: &Self) -> Self {
-        Self {
-            c0: self.c0.sub(&other.c0),
-            c1: self.c1.sub(&other.c1),
-        }
-    }
-
-    fn neg(&self) -> Self {
-        Self {
-            c0: self.c0.neg(),
-            c1: self.c1.neg(),
-        }
-    }
-
-    fn mul_assign(&mut self, other: &Self) {
+    pub fn mul_assign(&mut self, other: &Self) {
         let mut t1 = self.c0 * other.c0;
-        let mut t2 = self.c1 * other.c1;
         let mut t0 = self.c0 + self.c1;
+        let t2 = self.c1 * other.c1;
         self.c1 = other.c0 + other.c1;
         self.c0 = t1 - t2;
         t1 += t2;
@@ -76,15 +93,9 @@ impl Fq2 {
         self.c1 = t0 - t1;
     }
 
-    fn mul(&self, other: &Self) -> Self {
-        let mut t = other.clone();
-        t.mul_assign(self);
-        t
-    }
-
-    fn square_assign(&mut self) {
-        let mut ab = self.c0 * self.c1;
-        let mut c0c1 = self.c0 + self.c1;
+    pub fn square_assign(&mut self) {
+        let ab = self.c0 * self.c1;
+        let c0c1 = self.c0 + self.c1;
         let mut c0 = -self.c1;
         c0 += self.c0;
         c0 *= c0c1;
@@ -93,25 +104,52 @@ impl Fq2 {
         self.c0 = c0 + ab;
     }
 
-    fn square(&self) -> Self {
-        let mut t = self.clone();
-        t.square_assign();
-        t
+    pub fn add(&self, other: &Self) -> Self {
+        Self {
+            c0: self.c0.add(&other.c0),
+            c1: self.c1.add(&other.c1),
+        }
     }
 
-    fn double(&self) -> Self {
-        Fq2 {
+    pub fn double(&self) -> Self {
+        Self {
             c0: self.c0.double(),
             c1: self.c1.double(),
         }
     }
 
-    fn double_assign(&mut self) {
+    pub fn double_assign(&mut self) {
         self.c0 = self.c0.double();
         self.c1 = self.c1.double();
     }
 
-    fn frobenius_map(&mut self, power: usize) {
+    pub fn sub(&self, other: &Self) -> Self {
+        Self {
+            c0: self.c0.sub(&other.c0),
+            c1: self.c1.sub(&other.c1),
+        }
+    }
+
+    pub fn neg(&self) -> Self {
+        Self {
+            c0: self.c0.neg(),
+            c1: self.c1.neg(),
+        }
+    }
+
+    pub fn mul(&self, other: &Self) -> Self {
+        let mut t = other.clone();
+        t.mul_assign(self);
+        t
+    }
+
+    pub fn square(&self) -> Self {
+        let mut t = self.clone();
+        t.square_assign();
+        t
+    }
+
+    pub fn frobenius_map(&mut self, power: usize) {
         self.c1 *= &FROBENIUS_COEFF_FQ2_C1[power % 2];
     }
 
@@ -173,7 +211,7 @@ impl Fq2 {
         self.c1 -= self.c1;
     }
 
-    fn invert(&self) -> CtOption<Self> {
+    pub fn invert(&self) -> CtOption<Self> {
         let mut t1 = self.c1;
         t1 = t1.square();
         let mut t0 = self.c0;
@@ -192,7 +230,7 @@ impl Fq2 {
         })
     }
 
-    fn pow(&self, by: &[u64; 4]) -> Self {
+    pub fn pow(&self, by: &[u64; 4]) -> Self {
         let mut res = Self::one();
         for e in by.iter().rev() {
             for i in (0..64).rev() {
@@ -206,61 +244,12 @@ impl Fq2 {
     }
 }
 
-impl<'a> Neg for &'a Fq2 {
-    type Output = Fq2;
-
-    #[inline]
-    fn neg(self) -> Fq2 {
-        self.neg()
-    }
-}
-
-impl Neg for Fq2 {
-    type Output = Fq2;
-
-    #[inline]
-    fn neg(self) -> Fq2 {
-        -&self
-    }
-}
-
-impl<'a, 'b> Sub<&'b Fq2> for &'a Fq2 {
-    type Output = Fq2;
-
-    #[inline]
-    fn sub(self, rhs: &'b Fq2) -> Fq2 {
-        self.sub(rhs)
-    }
-}
-
-impl<'a, 'b> Add<&'b Fq2> for &'a Fq2 {
-    type Output = Fq2;
-
-    #[inline]
-    fn add(self, rhs: &'b Fq2) -> Fq2 {
-        self.add(rhs)
-    }
-}
-
-impl<'a, 'b> Mul<&'b Fq2> for &'a Fq2 {
-    type Output = Fq2;
-
-    #[inline]
-    fn mul(self, rhs: &'b Fq2) -> Fq2 {
-        self.mul(rhs)
-    }
-}
-
 impl Field for Fq2 {
     fn random(mut rng: impl RngCore) -> Self {
-        let mut random_bytes = [0; 64];
-        rng.fill_bytes(&mut random_bytes[..]);
-        let c0 = Fq::from_bytes_wide(&random_bytes);
-        random_bytes = [0; 64];
-        rng.fill_bytes(&mut random_bytes[..]);
-        let c1 = Fq::from_bytes_wide(&random_bytes);
-
-        Fq2 { c0, c1 }
+        Fq2 {
+            c0: Fq::random(&mut rng),
+            c1: Fq::random(&mut rng),
+        }
     }
 
     fn zero() -> Self {
@@ -289,7 +278,6 @@ impl Field for Fq2 {
         self.double()
     }
 
-    // fn sqrt(&self) -> Option<Self> {
     fn sqrt(&self) -> CtOption<Self> {
         // Algorithm 9, https://eprint.iacr.org/2012/685.pdf
 
@@ -344,24 +332,129 @@ impl Field for Fq2 {
     }
 
     fn invert(&self) -> CtOption<Self> {
-        let mut t1 = self.c1;
-        t1 = t1.square();
-        let mut t0 = self.c0;
-        t0 = t0.square();
-        t0 += &t1;
-        t0.invert().map(|t| {
-            let mut tmp = Fq2 {
-                c0: self.c0,
-                c1: self.c1,
-            };
-            tmp.c0 *= &t;
-            tmp.c1 *= &t;
-            tmp.c1 = -tmp.c1;
-
-            tmp
-        })
+        self.invert()
     }
 }
 
-impl_binops_additive!(Fq2, Fq2);
-impl_binops_multiplicative!(Fq2, Fq2);
+pub const FROBENIUS_COEFF_FQ2_C1: [Fq; 2] = [
+    // Fq(-1)**(((q^0) - 1) / 2)
+    // it's 1 in Montgommery form
+    Fq([
+        0xd35d438dc58f0d9d,
+        0x0a78eb28f5c70b3d,
+        0x666ea36f7879462c,
+        0x0e0a77c19a07df2f,
+    ]),
+    // Fq(-1)**(((q^1) - 1) / 2)
+    Fq([
+        0x68c3488912edefaa,
+        0x8d087f6872aabf4f,
+        0x51e1a24709081231,
+        0x2259d6b14729c0fa,
+    ]),
+];
+
+#[cfg(test)]
+use rand::SeedableRng;
+#[cfg(test)]
+use rand_xorshift::XorShiftRng;
+
+#[test]
+fn test_fq2_ordering() {
+    let mut a = Fq2 {
+        c0: Fq::zero(),
+        c1: Fq::zero(),
+    };
+
+    let mut b = a.clone();
+
+    assert!(a.cmp(&b) == Ordering::Equal);
+    b.c0 += &Fq::one();
+    assert!(a.cmp(&b) == Ordering::Less);
+    a.c0 += &Fq::one();
+    assert!(a.cmp(&b) == Ordering::Equal);
+    b.c1 += &Fq::one();
+    assert!(a.cmp(&b) == Ordering::Less);
+    a.c0 += &Fq::one();
+    assert!(a.cmp(&b) == Ordering::Less);
+    a.c1 += &Fq::one();
+    assert!(a.cmp(&b) == Ordering::Greater);
+    b.c0 += &Fq::one();
+    assert!(a.cmp(&b) == Ordering::Equal);
+}
+
+#[test]
+fn test_fq2_basics() {
+    assert_eq!(
+        Fq2 {
+            c0: Fq::zero(),
+            c1: Fq::zero(),
+        },
+        Fq2::zero()
+    );
+    assert_eq!(
+        Fq2 {
+            c0: Fq::one(),
+            c1: Fq::zero(),
+        },
+        Fq2::one()
+    );
+    assert!(Fq2::zero().is_zero());
+    assert!(!Fq2::one().is_zero());
+    assert!(!Fq2 {
+        c0: Fq::zero(),
+        c1: Fq::one(),
+    }
+    .is_zero());
+}
+
+#[test]
+fn test_fq2_squaring() {
+    let mut a = Fq2 {
+        c0: Fq::one(),
+        c1: Fq::one(),
+    }; // u + 1
+    a.square_assign();
+    assert_eq!(
+        a,
+        Fq2 {
+            c0: Fq::zero(),
+            c1: Fq::from_u64(2),
+        }
+    ); // 2u
+
+    let mut a = Fq2 {
+        c0: Fq::zero(),
+        c1: Fq::one(),
+    }; // u
+    a.square_assign();
+    assert_eq!(a, {
+        let mut neg1 = -Fq::one();
+        Fq2 {
+            c0: neg1,
+            c1: Fq::zero(),
+        }
+    }); // -1
+}
+
+#[test]
+fn test_fq2_mul_nonresidue() {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+    let mut nine = Fq::one().double().double().double() + &Fq::one();
+    let nqr = Fq2 {
+        c0: nine,
+        c1: Fq::one(),
+    };
+
+    for _ in 0..1000 {
+        let mut a = Fq2::random(&mut rng);
+        let mut b = a;
+        a.mul_by_nonresidue();
+        b.mul_assign(&nqr);
+
+        assert_eq!(a, b);
+    }
+}

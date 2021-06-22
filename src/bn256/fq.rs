@@ -10,24 +10,6 @@ use ff::{FieldBits, PrimeFieldBits};
 
 use crate::arithmetic::{adc, mac, sbb, BaseExt};
 
-pub const FROBENIUS_COEFF_FQ2_C1: [Fq; 2] = [
-    // Fq(-1)**(((q^0) - 1) / 2)
-    // it's 1 in Montgommery form
-    Fq([
-        0xd35d438dc58f0d9d,
-        0x0a78eb28f5c70b3d,
-        0x666ea36f7879462c,
-        0x0e0a77c19a07df2f,
-    ]),
-    // Fq(-1)**(((q^1) - 1) / 2)
-    Fq([
-        0x68c3488912edefaa,
-        0x8d087f6872aabf4f,
-        0x51e1a24709081231,
-        0x2259d6b14729c0fa,
-    ]),
-];
-
 // -((2**256) mod q) mod q
 pub const NEGATIVE_ONE: Fq = Fq([
     0x974bc177a0000006,
@@ -130,15 +112,6 @@ const MODULUS: Fq = Fq([
     0xb85045b68181585d,
     0x30644e72e131a029,
 ]);
-
-impl<'a> Neg for &'a Fq {
-    type Output = Fq;
-
-    #[inline]
-    fn neg(self) -> Fq {
-        self.neg()
-    }
-}
 
 impl Neg for Fq {
     type Output = Fq;
