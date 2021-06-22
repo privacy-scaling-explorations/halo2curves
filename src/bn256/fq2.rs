@@ -1,4 +1,5 @@
 use super::fq::{Fq, NEGATIVE_ONE};
+use super::LegendreSymbol;
 use crate::arithmetic::BaseExt;
 
 use core::ops::{Add, Mul, Neg, Sub};
@@ -82,6 +83,10 @@ impl_binops_additive!(Fq2, Fq2);
 impl_binops_multiplicative!(Fq2, Fq2);
 
 impl Fq2 {
+    fn legendre(&self) -> LegendreSymbol {
+        self.norm().legendre()
+    }
+
     pub fn mul_assign(&mut self, other: &Self) {
         let mut t1 = self.c0 * other.c0;
         let mut t0 = self.c0 + self.c1;
@@ -293,7 +298,8 @@ impl Field for Fq2 {
             ];
             let mut a1 = self.pow(&u);
             let mut alpha = a1;
-            alpha.square();
+
+            alpha.square_assign();
             alpha.mul_assign(self);
             let mut a0 = alpha;
             a0.frobenius_map(1);
@@ -457,4 +463,84 @@ fn test_fq2_mul_nonresidue() {
 
         assert_eq!(a, b);
     }
+}
+
+#[test]
+fn test_fq2_legendre() {
+    assert_eq!(LegendreSymbol::Zero, Fq2::zero().legendre());
+    // i^2 = -1
+    let mut m1 = Fq2::one();
+    m1 = m1.neg();
+    assert_eq!(LegendreSymbol::QuadraticResidue, m1.legendre());
+    m1.mul_by_nonresidue();
+    assert_eq!(LegendreSymbol::QuadraticNonResidue, m1.legendre());
+}
+
+#[test]
+pub fn test_sqrt() {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+    for _ in 0..10000 {
+        let a = Fq2::random(&mut rng);
+        let mut b = a;
+        b.square_assign();
+        assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
+
+        let b = b.sqrt().unwrap();
+        let mut negb = b;
+        negb = negb.neg();
+
+        assert!(a == b || a == negb);
+    }
+
+    let mut c = Fq2::one();
+    for _ in 0..10000 {
+        let mut b = c;
+        b.square_assign();
+        assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
+
+        b = b.sqrt().unwrap();
+
+        if b != c {
+            b = b.neg();
+        }
+
+        assert_eq!(b, c);
+
+        c += &Fq2::one();
+    }
+}
+
+#[test]
+fn test_frobenius() {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+
+    for _ in 0..100 {
+        for i in 0..(14) {
+            let mut a = Fq2::random(&mut rng);
+            let mut b = a;
+
+            for _ in 0..i {
+                a = a.pow(&[
+                    0x3c208c16d87cfd47,
+                    0x97816a916871ca8d,
+                    0xb85045b68181585d,
+                    0x30644e72e131a029,
+                ]);
+            }
+            b.frobenius_map(i);
+
+            assert_eq!(a, b);
+        }
+    }
+}
+
+#[test]
+fn test_field() {
+    crate::tests::field::random_field_tests::<Fq2>();
 }

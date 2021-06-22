@@ -379,3 +379,88 @@ pub const FROBENIUS_COEFF_FQ12_C1: [Fq2; 12] = [
         ]),
     },
 ];
+
+#[cfg(test)]
+use rand::SeedableRng;
+#[cfg(test)]
+use rand_xorshift::XorShiftRng;
+
+#[test]
+fn test_fq12_mul_by_014() {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+
+    for _ in 0..1000 {
+        let c0 = Fq2::random(&mut rng);
+        let c1 = Fq2::random(&mut rng);
+        let c5 = Fq2::random(&mut rng);
+        let mut a = Fq12::random(&mut rng);
+        let mut b = a;
+
+        a.mul_by_014(&c0, &c1, &c5);
+        b.mul_assign(&Fq12 {
+            c0: Fq6 {
+                c0: c0,
+                c1: c1,
+                c2: Fq2::zero(),
+            },
+            c1: Fq6 {
+                c0: Fq2::zero(),
+                c1: c5,
+                c2: Fq2::zero(),
+            },
+        });
+
+        assert_eq!(a, b);
+    }
+}
+
+#[test]
+fn test_squaring() {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+
+    for _ in 0..1000 {
+        let mut a = Fq12::random(&mut rng);
+        let mut b = a;
+        b.mul_assign(&a);
+        a.square_assign();
+        assert_eq!(a, b);
+    }
+}
+
+#[test]
+fn test_frobenius() {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+
+    for _ in 0..100 {
+        for i in 0..(14) {
+            let mut a = Fq12::random(&mut rng);
+            let mut b = a;
+
+            for _ in 0..i {
+                a = a.pow_vartime(&[
+                    0x3c208c16d87cfd47,
+                    0x97816a916871ca8d,
+                    0xb85045b68181585d,
+                    0x30644e72e131a029,
+                ]);
+            }
+            b.frobenius_map(i);
+
+            assert_eq!(a, b);
+        }
+    }
+}
+
+#[test]
+fn fq12_field_tests() {
+    crate::tests::field::random_field_tests::<Fq12>();
+}

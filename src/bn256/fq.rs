@@ -1,8 +1,8 @@
+use super::LegendreSymbol;
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
-use std::ops::MulAssign;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "bits")]
@@ -28,6 +28,17 @@ pub const NEGATIVE_ONE: Fq = Fq([
 // Montgomery form; i.e., Fq(a) = aR mod q, with R = 2^256.
 #[derive(Clone, Copy, Eq)]
 pub struct Fq(pub(crate) [u64; 4]);
+
+impl ::std::fmt::Display for Fq {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "0x")?;
+        for i in self.0.iter().rev() {
+            write!(f, "{:016x}", *i)?;
+        }
+
+        Ok(())
+    }
+}
 
 impl fmt::Debug for Fq {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -106,7 +117,7 @@ impl ConditionallySelectable for Fq {
 
 /// Constant representing the modulus
 /// q = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-const MODULUS: Fq = Fq([
+pub const MODULUS: Fq = Fq([
     0x3c208c16d87cfd47,
     0x97816a916871ca8d,
     0xb85045b68181585d,
@@ -202,6 +213,25 @@ impl Default for Fq {
 }
 
 impl Fq {
+    pub fn legendre(&self) -> LegendreSymbol {
+        // s = self^((modulus - 1) // 2)
+        // 0x183227397098d014dc2822db40c0ac2ecbc0b548b438e5469e10460b6c3e7ea3
+        let s = &[
+            0x9e10460b6c3e7ea3u64,
+            0xcbc0b548b438e546u64,
+            0xdc2822db40c0ac2eu64,
+            0x183227397098d014u64,
+        ];
+        let s = self.pow(s);
+        if s == Self::zero() {
+            LegendreSymbol::Zero
+        } else if s == Self::one() {
+            LegendreSymbol::QuadraticResidue
+        } else {
+            LegendreSymbol::QuadraticNonResidue
+        }
+    }
+
     /// Returns zero, the additive identity.
     #[inline]
     pub const fn zero() -> Fq {
@@ -448,23 +478,7 @@ impl ff::Field for Fq {
 
     /// Computes the square root of this element, if it exists.
     fn sqrt(&self) -> CtOption<Self> {
-        // let (is_square, res) = self.sqrt_alt();
-        // CtOption::new(res, is_square)
-
-        // let mut a1 = self.pow(#mod_minus_3_over_4);
-
-        // let mut a0 = a1;
-        // a0.square();
-        // a0.mul_assign(self);
-
-        // if a0.0 == #repr(#rneg) {
-        //     None
-        // } else {
-        //     a1.mul_assign(self);
-        //     Some(a1)
-        // }
-
-        let tmp = self.pow_vartime(&[
+        let tmp = self.pow(&[
             0x4f082305b61f3f52,
             0x65e05aa45a1c72a3,
             0x6e14116da0605617,
@@ -477,7 +491,7 @@ impl ff::Field for Fq {
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
     fn invert(&self) -> CtOption<Self> {
-        let tmp = self.pow_vartime(&[
+        let tmp = self.pow(&[
             0x3c208c16d87cfd45,
             0x97816a916871ca8d,
             0xb85045b68181585d,
@@ -531,47 +545,6 @@ impl ff::PrimeField for Fq {
 
     fn root_of_unity() -> Self {
         Self::ROOT_OF_UNITY
-    }
-}
-
-#[cfg(all(feature = "bits", not(target_pointer_width = "64")))]
-type ReprBits = [u32; 8];
-
-#[cfg(all(feature = "bits", target_pointer_width = "64"))]
-type ReprBits = [u64; 4];
-
-#[cfg(feature = "bits")]
-impl PrimeFieldBits for Fq {
-    type ReprBits = ReprBits;
-
-    fn to_le_bits(&self) -> FieldBits<Self::ReprBits> {
-        let bytes = self.to_bytes();
-
-        #[cfg(not(target_pointer_width = "64"))]
-        let limbs = [
-            u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
-            u32::from_le_bytes(bytes[4..8].try_into().unwrap()),
-            u32::from_le_bytes(bytes[8..12].try_into().unwrap()),
-            u32::from_le_bytes(bytes[12..16].try_into().unwrap()),
-            u32::from_le_bytes(bytes[16..20].try_into().unwrap()),
-            u32::from_le_bytes(bytes[20..24].try_into().unwrap()),
-            u32::from_le_bytes(bytes[24..28].try_into().unwrap()),
-            u32::from_le_bytes(bytes[28..32].try_into().unwrap()),
-        ];
-
-        #[cfg(target_pointer_width = "64")]
-        let limbs = [
-            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
-            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
-            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
-        ];
-
-        FieldBits::new(limbs)
-    }
-
-    fn char_le_bits() -> FieldBits<Self::ReprBits> {
-        FieldBits::new(MODULUS.0)
     }
 }
 
@@ -675,6 +648,10 @@ impl BaseExt for Fq {
 
 #[cfg(test)]
 use ff::Field;
+#[cfg(test)]
+use rand::SeedableRng;
+#[cfg(test)]
+use rand_xorshift::XorShiftRng;
 
 #[test]
 fn test_inv() {
@@ -692,10 +669,43 @@ fn test_inv() {
 }
 
 #[test]
-fn test_sqrt() {
-    // NB: TWO_INV is standing in as a "random" field element
+pub fn test_sqrt() {
     let v = (Fq::TWO_INV).square().sqrt().unwrap();
     assert!(v == Fq::TWO_INV || (-v) == Fq::TWO_INV);
+
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+    for _ in 0..10000 {
+        let a = Fq::random(&mut rng);
+        let mut b = a;
+        b = b.square();
+        assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
+
+        let b = b.sqrt().unwrap();
+        let mut negb = b;
+        negb = negb.neg();
+
+        assert!(a == b || a == negb);
+    }
+
+    let mut c = Fq::one();
+    for _ in 0..10000 {
+        let mut b = c;
+        b = b.square();
+        assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
+
+        b = b.sqrt().unwrap();
+
+        if b != c {
+            b = b.neg();
+        }
+
+        assert_eq!(b, c);
+
+        c += &Fq::one();
+    }
 }
 
 #[test]
@@ -723,4 +733,9 @@ fn test_from_u512() {
             0xaaaaaaaaaaaaaaaa
         ])
     );
+}
+
+#[test]
+fn test_field() {
+    crate::tests::field::random_field_tests::<Fq>();
 }

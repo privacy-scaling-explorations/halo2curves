@@ -1,10 +1,11 @@
 #[macro_use]
 mod macros;
-mod curves;
 mod bn256;
+mod curves;
 
 pub mod arithmetic;
-pub use curves::*;
 pub use bn256::*;
+pub use curves::*;
 
-
+#[cfg(test)]
+pub mod tests;
