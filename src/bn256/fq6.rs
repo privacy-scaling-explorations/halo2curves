@@ -1,40 +1,16 @@
-use crate::arithmetic::BaseExt;
-
 use super::fq::Fq;
 use super::fq2::Fq2;
-
 use core::ops::{Add, Mul, Neg, Sub};
 use ff::Field;
 use rand::RngCore;
-use std::cmp::Ordering;
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
-/// An element of Fq2, represented by c0 + c1 * u.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
 pub struct Fq6 {
     pub c0: Fq2,
     pub c1: Fq2,
     pub c2: Fq2,
 }
-
-// /// `Fq2` elements are ordered lexicographically.
-// impl Ord for Fq6 {
-//     #[inline(always)]
-//     fn cmp(&self, other: &Fq6) -> Ordering {
-//         match self.c1.cmp(&other.c1) {
-//             Ordering::Greater => Ordering::Greater,
-//             Ordering::Less => Ordering::Less,
-//             Ordering::Equal => self.c0.cmp(&other.c0),
-//         }
-//     }
-// }
-
-// impl PartialOrd for Fq6 {
-//     #[inline(always)]
-//     fn partial_cmp(&self, other: &Fq6) -> Option<Ordering> {
-//         Some(self.cmp(other))
-//     }
-// }
 
 impl ConditionallySelectable for Fq6 {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
@@ -377,22 +353,6 @@ impl Fq6 {
 
             tmp
         })
-
-        // match tmp1.invert() {
-        //     Some(t) => {
-        //         let mut tmp = Fq6 {
-        //             c0: t,
-        //             c1: t,
-        //             c2: t,
-        //         };
-        //         tmp.c0 *= &c0;
-        //         tmp.c1 *= &c1;
-        //         tmp.c2 *= &c2;
-
-        //         Some(tmp)
-        //     }
-        //     None => None,
-        // }
     }
 }
 

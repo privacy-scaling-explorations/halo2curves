@@ -1,4 +1,5 @@
 mod fq;
+mod fq12;
 mod fq2;
 mod fq6;
 // mod fr;
