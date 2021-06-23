@@ -3,10 +3,10 @@ mod fq;
 mod fq12;
 mod fq2;
 mod fq6;
+mod fr;
 // mod fr;
 
 pub use fq::*;
-// pub use fr::*;
 
 #[derive(Debug, PartialEq)]
 pub enum LegendreSymbol {
