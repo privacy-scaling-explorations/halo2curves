@@ -59,8 +59,6 @@ const S: u32 = 1;
 
 const ROOT_OF_UNITY: Fq = Fq::from_raw([0x01, 0x00, 0x00, 0x00]);
 
-const DELTA: Fq = Fq::from_raw([0x01, 0x00, 0x00, 0x00]);
-
 impl ::std::fmt::Display for Fq {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let tmp = self.to_bytes();

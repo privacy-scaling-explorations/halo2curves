@@ -5,7 +5,7 @@ use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-use crate::arithmetic::{adc, mac, sbb, BaseExt, Group};
+use crate::arithmetic::{adc, mac, sbb, BaseExt, FieldExt, Group};
 
 #[derive(Clone, Copy, Eq)]
 pub struct Fr(pub(crate) [u64; 4]);
@@ -61,30 +61,22 @@ const ROOT_OF_UNITY: Fr = Fr::from_raw([
     0x003ddb9f5166d18b,
 ]);
 
-// 0x09226b6e22c6f0ca64ec26aad4c86e715b5f898e5e963f25870e56bbe533e9a2
-const DELTA: Fr = Fr::from_raw([
-    0x870e56bbe533e9a2,
-    0x5b5f898e5e963f25,
-    0x64ec26aad4c86e71,
-    0x09226b6e22c6f0ca,
-]);
+impl Group for Fr {
+    type Scalar = Fr;
 
-// impl Group for Fr {
-//     type Scalar = Fr;
-
-//     fn group_zero() -> Self {
-//         Self::zero()
-//     }
-//     fn group_add(&mut self, rhs: &Self) {
-//         *self += *rhs;
-//     }
-//     fn group_sub(&mut self, rhs: &Self) {
-//         *self -= *rhs;
-//     }
-//     fn group_scale(&mut self, by: &Self::Scalar) {
-//         *self *= *by;
-//     }
-// }
+    fn group_zero() -> Self {
+        Self::zero()
+    }
+    fn group_add(&mut self, rhs: &Self) {
+        *self += *rhs;
+    }
+    fn group_sub(&mut self, rhs: &Self) {
+        *self -= *rhs;
+    }
+    fn group_scale(&mut self, by: &Self::Scalar) {
+        *self *= *by;
+    }
+}
 
 impl ::std::fmt::Display for Fr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -628,6 +620,41 @@ impl BaseExt for Fr {
 
         tmp.0[0] as u32
     }
+}
+
+impl FieldExt for Fr {
+    const ROOT_OF_UNITY_INV: Self = Self::from_raw([
+        0x0ed3e50a414e6dba,
+        0xb22625f59115aba7,
+        0x1bbe587180f34361,
+        0x048127174daabc26,
+    ]);
+
+    // 0x09226b6e22c6f0ca64ec26aad4c86e715b5f898e5e963f25870e56bbe533e9a2
+    const DELTA: Self = Self::from_raw([
+        0x870e56bbe533e9a2,
+        0x5b5f898e5e963f25,
+        0x64ec26aad4c86e71,
+        0x09226b6e22c6f0ca,
+    ]);
+
+    const RESCUE_ALPHA: u64 = 5;
+
+    const RESCUE_INVALPHA: [u64; 4] = [
+        0xcfe7f7a98ccccccd,
+        0x535cb9d394945a0d,
+        0x93736af8679aad17,
+        0x26b6a528b427b354,
+    ];
+
+    const T_MINUS1_OVER2: [u64; 4] = [
+        0xcdcb848a1f0fac9f,
+        0x0c0ac2e9419f4243,
+        0x098d014dc2822db4,
+        0x0000000183227397,
+    ];
+
+    const ZETA: Self = Fr::from_raw([0x07, 0x00, 0x00, 0x00]);
 }
 
 #[cfg(test)]
