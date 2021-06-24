@@ -153,7 +153,7 @@ macro_rules! impl_binops_multiplicative {
 }
 
 macro_rules! new_curve_impl {
-    (($($privacy:tt)*), $name:ident, $name_affine:ident, $base:ident, $scalar:ident,
+    (($($privacy:tt)*), $name:ident, $name_affine:ident, $base:ident, $scalar:ident, $size:expr,
      $curve_id:literal) => {
         /// Represents a point in the projective coordinate space.
         #[derive(Copy, Clone, Debug)]
@@ -346,22 +346,22 @@ macro_rules! new_curve_impl {
             type Affine = $name_affine;
         }
 
-        impl GroupEncoding for $name {
-            type Repr = [u8; 32];
+        // impl GroupEncoding for $name {
+        //     type Repr = [u8; 32];
 
-            fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
-                $name_affine::from_bytes(bytes).map(Self::from)
-            }
+        //     fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
+        //         $name_affine::from_bytes(bytes).map(Self::from)
+        //     }
 
-            fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
-                // We can't avoid curve checks when parsing a compressed encoding.
-                $name_affine::from_bytes(bytes).map(Self::from)
-            }
+        //     fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
+        //         // We can't avoid curve checks when parsing a compressed encoding.
+        //         $name_affine::from_bytes(bytes).map(Self::from)
+        //     }
 
-            fn to_bytes(&self) -> Self::Repr {
-                $name_affine::from(self).to_bytes()
-            }
-        }
+        //     fn to_bytes(&self) -> Self::Repr {
+        //         $name_affine::from(self).to_bytes()
+        //     }
+        // }
 
         impl<'a> From<&'a $name_affine> for $name {
             fn from(p: &'a $name_affine) -> $name {
@@ -746,53 +746,53 @@ macro_rules! new_curve_impl {
             }
         }
 
-        impl GroupEncoding for $name_affine {
-            type Repr = [u8; 32];
+        // impl GroupEncoding for $name_affine {
+        //     type Repr = [u8; $size];
 
-            fn from_bytes(bytes: &[u8; 32]) -> CtOption<Self> {
-                let mut tmp = *bytes;
-                let ysign = Choice::from(tmp[31] >> 7);
-                tmp[31] &= 0b0111_1111;
+        //     fn from_bytes(bytes: &[u8; $size]) -> CtOption<Self> {
+        //         let mut tmp = *bytes;
+        //         let ysign = Choice::from(tmp[$size-1] >> 7);
+        //         tmp[$size-1] &= 0b0111_1111;
 
-                $base::from_bytes(&tmp).and_then(|x| {
-                    CtOption::new(Self::identity(), x.ct_is_zero() & (!ysign)).or_else(|| {
-                        let x3 = x.square() * x;
-                        (x3 + $name::curve_constant_b()).sqrt().and_then(|y| {
-                            let sign = Choice::from(y.to_bytes()[0] & 1);
+        //         $base::from_bytes(&tmp).and_then(|x| {
+        //             CtOption::new(Self::identity(), x.ct_is_zero() & (!ysign)).or_else(|| {
+        //                 let x3 = x.square() * x;
+        //                 (x3 + $name::curve_constant_b()).sqrt().and_then(|y| {
+        //                     let sign = Choice::from(y.to_bytes()[0] & 1);
 
-                            let y = $base::conditional_select(&y, &-y, ysign ^ sign);
+        //                     let y = $base::conditional_select(&y, &-y, ysign ^ sign);
 
-                            CtOption::new(
-                                $name_affine {
-                                    x,
-                                    y,
-                                    infinity: Choice::from(0u8),
-                                },
-                                Choice::from(1u8),
-                            )
-                        })
-                    })
-                })
-            }
+        //                     CtOption::new(
+        //                         $name_affine {
+        //                             x,
+        //                             y,
+        //                             infinity: Choice::from(0u8),
+        //                         },
+        //                         Choice::from(1u8),
+        //                     )
+        //                 })
+        //             })
+        //         })
+        //     }
 
-            fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
-                // We can't avoid curve checks when parsing a compressed encoding.
-                Self::from_bytes(bytes)
-            }
+        //     fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
+        //         // We can't avoid curve checks when parsing a compressed encoding.
+        //         Self::from_bytes(bytes)
+        //     }
 
-            fn to_bytes(&self) -> [u8; 32] {
-                // TODO: not constant time
-                if bool::from(self.is_identity()) {
-                    [0; 32]
-                } else {
-                    let (x, y) = (self.x, self.y);
-                    let sign = (y.to_bytes()[0] & 1) << 7;
-                    let mut xbytes = x.to_bytes();
-                    xbytes[31] |= sign;
-                    xbytes
-                }
-            }
-        }
+        //     fn to_bytes(&self) -> [u8; $size] {
+        //         // TODO: not constant time
+        //         if bool::from(self.is_identity()) {
+        //             [0; $size]
+        //         } else {
+        //             let (x, y) = (self.x, self.y);
+        //             let sign = (y.to_bytes()[0] & 1) << 7;
+        //             let mut xbytes = x.to_bytes();
+        //             xbytes[$size-1] |= sign;
+        //             xbytes
+        //         }
+        //     }
+        // }
 
         impl CurveAffine for $name_affine {
             type ScalarExt = $scalar;

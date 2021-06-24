@@ -57,6 +57,18 @@ impl Default for Fq2 {
     }
 }
 
+impl From<Fq2> for [u8; 64] {
+    fn from(value: Fq2) -> [u8; 64] {
+        value.to_bytes()
+    }
+}
+
+impl<'a> From<&'a Fq2> for [u8; 64] {
+    fn from(value: &'a Fq2) -> [u8; 64] {
+        value.to_bytes()
+    }
+}
+
 impl Neg for Fq2 {
     type Output = Fq2;
 
