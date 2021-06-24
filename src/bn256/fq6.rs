@@ -31,6 +31,15 @@ impl Neg for Fq6 {
     }
 }
 
+impl<'a> Neg for &'a Fq6 {
+    type Output = Fq6;
+
+    #[inline]
+    fn neg(self) -> Fq6 {
+        self.neg()
+    }
+}
+
 impl<'a, 'b> Sub<&'b Fq6> for &'a Fq6 {
     type Output = Fq6;
 

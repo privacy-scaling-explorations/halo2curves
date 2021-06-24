@@ -1,11 +1,12 @@
 use super::LegendreSymbol;
+use crate::arithmetic::{adc, mac, sbb, BaseExt};
+use byteorder::{BigEndian, ReadBytesExt};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
+use std::io::{self, Read, Write};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-use crate::arithmetic::{adc, mac, sbb, BaseExt};
 
 #[derive(Clone, Copy, Eq)]
 pub struct Fq(pub(crate) [u64; 4]);
@@ -161,6 +162,15 @@ impl Neg for Fq {
     }
 }
 
+impl<'a> Neg for &'a Fq {
+    type Output = Fq;
+
+    #[inline]
+    fn neg(self) -> Fq {
+        self.neg()
+    }
+}
+
 impl<'a, 'b> Sub<&'b Fq> for &'a Fq {
     type Output = Fq;
 
@@ -192,6 +202,101 @@ impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
 
 impl Fq {
+    // impl AsRef<[u8]> for #repr {
+    //     #[inline(always)]
+    //     fn as_ref(&self) -> &[u8] {
+    //         &self.0
+    //     }
+    // }
+
+    // impl AsMut<[u8]> for #repr {
+    //     #[inline(always)]
+    //     fn as_mut(&mut self) -> &mut [u8] {
+    //         &mut self.0
+    //     }
+    // }
+
+    // fn write<W: Write>(&self, mut writer: W) -> io::Result<()> {
+    //     use byteorder::{BigEndian, WriteBytesExt};
+
+    //     for digit in self.as_ref().iter().rev() {
+    //         writer.write_u64::<BigEndian>(*digit)?;
+    //     }
+
+    //     Ok(())
+    // }
+
+    // /// Reads a big endian integer into this representation.
+    // fn read<R: Read>(&mut self, mut reader: R) -> io::Result<()> {
+    //     self.from_bytes();
+    //     // use byteorder::{BigEndian, ReadBytesExt};
+
+    //     // for digit in self.as_mut().iter_mut().rev() {
+    //     //     *digit = reader.read_u64::<BigEndian>()?;
+    //     // }
+
+    //     Ok(())
+    // }
+
+    /// Attempts to convert a little-endian byte representation of
+    /// a scalar into a `Fq`, failing if the input is not canonical.
+    pub fn from_bytes(bytes: &[u8; 32]) -> CtOption<Fq> {
+        let mut tmp = Fq([0, 0, 0, 0]);
+
+        tmp.0[0] = u64::from_le_bytes(bytes[0..8].try_into().unwrap());
+        tmp.0[1] = u64::from_le_bytes(bytes[8..16].try_into().unwrap());
+        tmp.0[2] = u64::from_le_bytes(bytes[16..24].try_into().unwrap());
+        tmp.0[3] = u64::from_le_bytes(bytes[24..32].try_into().unwrap());
+
+        // Try to subtract the modulus
+        let (_, borrow) = sbb(tmp.0[0], MODULUS.0[0], 0);
+        let (_, borrow) = sbb(tmp.0[1], MODULUS.0[1], borrow);
+        let (_, borrow) = sbb(tmp.0[2], MODULUS.0[2], borrow);
+        let (_, borrow) = sbb(tmp.0[3], MODULUS.0[3], borrow);
+
+        // If the element is smaller than MODULUS then the
+        // subtraction will underflow, producing a borrow value
+        // of 0xffff...ffff. Otherwise, it'll be zero.
+        let is_some = (borrow as u8) & 1;
+
+        // Convert to Montgomery form by computing
+        // (a.R^0 * R^2) / R = a.R
+        tmp *= &R2;
+
+        CtOption::new(tmp, Choice::from(is_some))
+    }
+
+    /// Converts an element of `Fq` into a byte representation in
+    /// little-endian byte order.
+    pub fn to_bytes(&self) -> [u8; 32] {
+        // Turn into canonical form by computing
+        // (a.R) / R = a
+        let tmp = Fq::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+
+        let mut res = [0; 32];
+        res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
+        res[8..16].copy_from_slice(&tmp.0[1].to_le_bytes());
+        res[16..24].copy_from_slice(&tmp.0[2].to_le_bytes());
+        res[24..32].copy_from_slice(&tmp.0[3].to_le_bytes());
+
+        res
+    }
+
+    /// Converts a 512-bit little endian integer into
+    /// a `Fq` by reducing by the modulus.
+    fn from_bytes_wide(bytes: &[u8; 64]) -> Fq {
+        Fq::from_u512([
+            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
+            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
+            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
+            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
+            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
+            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
+            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
+            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
+        ])
+    }
+
     pub fn legendre(&self) -> LegendreSymbol {
         // s = self^((modulus - 1) // 2)
         // 0x183227397098d014dc2822db40c0ac2ecbc0b548b438e5469e10460b6c3e7ea3
@@ -499,129 +604,24 @@ impl ff::Field for Fq {
     }
 }
 
-impl ff::PrimeField for Fq {
-    type Repr = [u8; 32];
-
-    const NUM_BITS: u32 = 253;
-    const CAPACITY: u32 = 252;
-    const S: u32 = S;
-
-    fn from_repr(repr: Self::Repr) -> Option<Self> {
-        Self::from_bytes(&repr).into()
-    }
-
-    fn to_repr(&self) -> Self::Repr {
-        self.to_bytes()
-    }
-
-    fn is_odd(&self) -> bool {
-        self.to_bytes()[0] & 1 == 1
-    }
-
-    fn multiplicative_generator() -> Self {
-        GENERATOR
-    }
-
-    fn root_of_unity() -> Self {
-        Self::ROOT_OF_UNITY
-    }
-}
-
 impl BaseExt for Fq {
-    const MODULUS: &'static str =
-        "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
-
-    const ROOT_OF_UNITY: Self = ROOT_OF_UNITY;
-
-    const TWO_INV: Self = Fq::from_raw([
-        0x9e10460b6c3e7ea4,
-        0xcbc0b548b438e546,
-        0xdc2822db40c0ac2e,
-        0x183227397098d014,
-    ]);
-
     fn ct_is_zero(&self) -> Choice {
         self.ct_eq(&Self::zero())
     }
 
-    fn from_u64(v: u64) -> Self {
-        Fq::from_raw([v as u64, 0, 0, 0])
+    /// Writes this element in its normalized, little endian form into a buffer.
+    fn write<W: Write>(&self, writer: &mut W) -> io::Result<()> {
+        let compressed = self.to_bytes();
+        writer.write_all(&compressed[..])
     }
 
-    fn from_u128(v: u128) -> Self {
-        Fq::from_raw([v as u64, (v >> 64) as u64, 0, 0])
-    }
-
-    /// Attempts to convert a little-endian byte representation of
-    /// a scalar into a `Fq`, failing if the input is not canonical.
-    fn from_bytes(bytes: &[u8; 32]) -> CtOption<Fq> {
-        let mut tmp = Fq([0, 0, 0, 0]);
-
-        tmp.0[0] = u64::from_le_bytes(bytes[0..8].try_into().unwrap());
-        tmp.0[1] = u64::from_le_bytes(bytes[8..16].try_into().unwrap());
-        tmp.0[2] = u64::from_le_bytes(bytes[16..24].try_into().unwrap());
-        tmp.0[3] = u64::from_le_bytes(bytes[24..32].try_into().unwrap());
-
-        // Try to subtract the modulus
-        let (_, borrow) = sbb(tmp.0[0], MODULUS.0[0], 0);
-        let (_, borrow) = sbb(tmp.0[1], MODULUS.0[1], borrow);
-        let (_, borrow) = sbb(tmp.0[2], MODULUS.0[2], borrow);
-        let (_, borrow) = sbb(tmp.0[3], MODULUS.0[3], borrow);
-
-        // If the element is smaller than MODULUS then the
-        // subtraction will underflow, producing a borrow value
-        // of 0xffff...ffff. Otherwise, it'll be zero.
-        let is_some = (borrow as u8) & 1;
-
-        // Convert to Montgomery form by computing
-        // (a.R^0 * R^2) / R = a.R
-        tmp *= &R2;
-
-        CtOption::new(tmp, Choice::from(is_some))
-    }
-
-    /// Converts an element of `Fq` into a byte representation in
-    /// little-endian byte order.
-    fn to_bytes(&self) -> [u8; 32] {
-        // Turn into canonical form by computing
-        // (a.R) / R = a
-        let tmp = Fq::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
-
-        let mut res = [0; 32];
-        res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
-        res[8..16].copy_from_slice(&tmp.0[1].to_le_bytes());
-        res[16..24].copy_from_slice(&tmp.0[2].to_le_bytes());
-        res[24..32].copy_from_slice(&tmp.0[3].to_le_bytes());
-
-        res
-    }
-
-    /// Converts a 512-bit little endian integer into
-    /// a `Fq` by reducing by the modulus.
-    fn from_bytes_wide(bytes: &[u8; 64]) -> Fq {
-        Fq::from_u512([
-            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
-            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
-            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
-            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
-            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
-            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
-            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
-        ])
-    }
-
-    fn get_lower_128(&self) -> u128 {
-        let tmp = Fq::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
-
-        u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)
-    }
-
-    fn get_lower_32(&self) -> u32 {
-        // TODO: don't reduce, just hash the Montgomery form. (Requires rebuilding perfect hash table.)
-        let tmp = Fq::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
-
-        tmp.0[0] as u32
+    /// Reads a normalized, little endian represented field element from a
+    /// buffer.
+    fn read<R: Read>(reader: &mut R) -> io::Result<Self> {
+        let mut compressed = [0u8; 32];
+        reader.read_exact(&mut compressed[..])?;
+        Option::from(Self::from_bytes(&compressed))
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "invalid point encoding in proof"))
     }
 }
 
@@ -631,6 +631,18 @@ use ff::Field;
 use rand::SeedableRng;
 #[cfg(test)]
 use rand_xorshift::XorShiftRng;
+
+#[test]
+fn test_ser() {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+
+    let a0 = Fq::random(&mut rng);
+    let a_bytes = a0.to_bytes();
+    let a1 = Fq::from_bytes(&a_bytes);
+}
 
 #[test]
 fn test_inv() {
@@ -649,8 +661,8 @@ fn test_inv() {
 
 #[test]
 pub fn test_sqrt() {
-    let v = (Fq::TWO_INV).square().sqrt().unwrap();
-    assert!(v == Fq::TWO_INV || (-v) == Fq::TWO_INV);
+    // let v = (Fq::TWO_INV).square().sqrt().unwrap();
+    // assert!(v == Fq::TWO_INV || (-v) == Fq::TWO_INV);
 
     let mut rng = XorShiftRng::from_seed([
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
@@ -685,11 +697,6 @@ pub fn test_sqrt() {
 
         c += &Fq::one();
     }
-}
-
-#[test]
-fn test_inv_2() {
-    assert_eq!(Fq::TWO_INV, Fq::from(2).invert().unwrap());
 }
 
 #[test]

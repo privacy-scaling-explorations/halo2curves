@@ -1,15 +1,16 @@
 use super::fq::{Fq, NEGATIVE_ONE};
 use super::LegendreSymbol;
 use crate::arithmetic::BaseExt;
-
+use core::convert::TryInto;
 use core::ops::{Add, Mul, Neg, Sub};
 use ff::Field;
 use rand::RngCore;
 use std::cmp::Ordering;
-use subtle::{Choice, ConditionallySelectable, CtOption};
+use std::io::{self, Read, Write};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// An element of Fq2, represented by c0 + c1 * u.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Fq2 {
     pub c0: Fq,
     pub c1: Fq,
@@ -43,12 +44,34 @@ impl ConditionallySelectable for Fq2 {
     }
 }
 
+impl ConstantTimeEq for Fq2 {
+    fn ct_eq(&self, other: &Self) -> Choice {
+        self.c0.ct_eq(&other.c0) & self.c1.ct_eq(&other.c1)
+    }
+}
+
+impl Default for Fq2 {
+    #[inline]
+    fn default() -> Self {
+        Self::zero()
+    }
+}
+
 impl Neg for Fq2 {
     type Output = Fq2;
 
     #[inline]
     fn neg(self) -> Fq2 {
         -&self
+    }
+}
+
+impl<'a> Neg for &'a Fq2 {
+    type Output = Fq2;
+
+    #[inline]
+    fn neg(self) -> Fq2 {
+        self.neg()
     }
 }
 
@@ -83,6 +106,36 @@ impl_binops_additive!(Fq2, Fq2);
 impl_binops_multiplicative!(Fq2, Fq2);
 
 impl Fq2 {
+    /// Attempts to convert a little-endian byte representation of
+    /// a scalar into a `Fq`, failing if the input is not canonical.
+    pub fn from_bytes(bytes: &[u8; 64]) -> CtOption<Fq2> {
+        let c0_bytes: &[u8; 32] = bytes[0..32].try_into().unwrap();
+        let c1_bytes: &[u8; 32] = bytes[0..32].try_into().unwrap();
+        let c0 = Fq::from_bytes(c0_bytes);
+        let c1 = Fq::from_bytes(c1_bytes);
+        let c0_val = c0.unwrap();
+        let c1_val = c1.unwrap();
+
+        CtOption::new(
+            Fq2 {
+                c0: c0.unwrap(),
+                c1: c1.unwrap(),
+            },
+            c0.is_some() & c1.is_some(),
+        )
+    }
+
+    /// Converts an element of `Fq` into a byte representation in
+    /// little-endian byte order.
+    pub fn to_bytes(&self) -> [u8; 64] {
+        let mut res = [0u8; 64];
+        let c0_bytes = self.c0.to_bytes();
+        let c1_bytes = self.c1.to_bytes();
+        res[0..32].copy_from_slice(&c0_bytes[..]);
+        res[32..64].copy_from_slice(&c1_bytes[..]);
+        res
+    }
+
     fn legendre(&self) -> LegendreSymbol {
         self.norm().legendre()
     }
@@ -342,6 +395,27 @@ impl Field for Fq2 {
     }
 }
 
+impl BaseExt for Fq2 {
+    fn ct_is_zero(&self) -> Choice {
+        self.ct_eq(&Self::zero())
+    }
+
+    /// Writes this element in its normalized, little endian form into a buffer.
+    fn write<W: Write>(&self, writer: &mut W) -> io::Result<()> {
+        let compressed = self.to_bytes();
+        writer.write_all(&compressed[..])
+    }
+
+    /// Reads a normalized, little endian represented field element from a
+    /// buffer.
+    fn read<R: Read>(reader: &mut R) -> io::Result<Self> {
+        let mut compressed = [0u8; 64];
+        reader.read_exact(&mut compressed[..])?;
+        Option::from(Self::from_bytes(&compressed))
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "invalid point encoding in proof"))
+    }
+}
+
 pub const FROBENIUS_COEFF_FQ2_C1: [Fq; 2] = [
     // Fq(-1)**(((q^0) - 1) / 2)
     // it's 1 in Montgommery form
@@ -425,7 +499,7 @@ fn test_fq2_squaring() {
         a,
         Fq2 {
             c0: Fq::zero(),
-            c1: Fq::from_u64(2),
+            c1: Fq::one() + Fq::one(),
         }
     ); // 2u
 

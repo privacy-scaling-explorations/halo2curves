@@ -6,7 +6,7 @@ use core::ops::{Add, Mul, Sub};
 use group::prime::{PrimeCurve, PrimeCurveAffine};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-use super::{FieldExt, Group};
+use super::{BaseExt, FieldExt, Group};
 
 use std::io::{self, Read, Write};
 
@@ -27,7 +27,7 @@ pub trait CurveExt:
     /// The scalar field of this elliptic curve.
     type ScalarExt: FieldExt;
     /// The base field over which this elliptic curve is constructed.
-    type Base: FieldExt;
+    type Base: BaseExt;
     /// The affine version of the curve
     type AffineExt: CurveAffine<CurveExt = Self, ScalarExt = <Self as CurveExt>::ScalarExt>
         + Mul<Self::ScalarExt, Output = Self>
@@ -69,7 +69,7 @@ pub trait CurveExt:
     fn is_on_curve(&self) -> Choice;
 
     /// Returns the curve constant a.
-    fn a() -> Self::Base;
+    // fn a() -> Self::Base;
 
     /// Returns the curve constant b.
     fn b() -> Self::Base;
@@ -95,7 +95,7 @@ pub trait CurveAffine:
     /// The scalar field of this elliptic curve.
     type ScalarExt: FieldExt;
     /// The base field over which this elliptic curve is constructed.
-    type Base: FieldExt;
+    type Base: BaseExt;
     /// The projective form of the curve
     type CurveExt: CurveExt<AffineExt = Self, ScalarExt = <Self as CurveAffine>::ScalarExt>;
 
@@ -127,8 +127,8 @@ pub trait CurveAffine:
         writer.write_all(compressed.as_ref())
     }
 
-    /// Returns the curve constant $a$.
-    fn a() -> Self::Base;
+    // /// Returns the curve constant $a$.
+    // fn a() -> Self::Base;
 
     /// Returns the curve constant $b$.
     fn b() -> Self::Base;

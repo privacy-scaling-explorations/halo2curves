@@ -3,6 +3,7 @@ use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
+use std::io::{self, Read, Write};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::arithmetic::{adc, mac, sbb, BaseExt, FieldExt, Group};
@@ -180,6 +181,15 @@ impl Neg for Fr {
     }
 }
 
+impl<'a> Neg for &'a Fr {
+    type Output = Fr;
+
+    #[inline]
+    fn neg(self) -> Fr {
+        self.neg()
+    }
+}
+
 impl<'a, 'b> Sub<&'b Fr> for &'a Fr {
     type Output = Fr;
 
@@ -211,6 +221,50 @@ impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
 
 impl Fr {
+    /// Attempts to convert a little-endian byte representation of
+    /// a scalar into a `Fr`, failing if the input is not canonical.
+    pub fn from_bytes(bytes: &[u8; 32]) -> CtOption<Fr> {
+        let mut tmp = Fr([0, 0, 0, 0]);
+
+        tmp.0[0] = u64::from_le_bytes(bytes[0..8].try_into().unwrap());
+        tmp.0[1] = u64::from_le_bytes(bytes[8..16].try_into().unwrap());
+        tmp.0[2] = u64::from_le_bytes(bytes[16..24].try_into().unwrap());
+        tmp.0[3] = u64::from_le_bytes(bytes[24..32].try_into().unwrap());
+
+        // Try to subtract the modulus
+        let (_, borrow) = sbb(tmp.0[0], MODULUS.0[0], 0);
+        let (_, borrow) = sbb(tmp.0[1], MODULUS.0[1], borrow);
+        let (_, borrow) = sbb(tmp.0[2], MODULUS.0[2], borrow);
+        let (_, borrow) = sbb(tmp.0[3], MODULUS.0[3], borrow);
+
+        // If the element is smaller than MODULUS then the
+        // subtraction will underflow, producing a borrow value
+        // of 0xffff...ffff. Otherwise, it'll be zero.
+        let is_some = (borrow as u8) & 1;
+
+        // Convert to Montgomery form by computing
+        // (a.R^0 * R^2) / R = a.R
+        tmp *= &R2;
+
+        CtOption::new(tmp, Choice::from(is_some))
+    }
+
+    /// Converts an element of `Fr` into a byte representation in
+    /// little-endian byte order.
+    pub fn to_bytes(&self) -> [u8; 32] {
+        // Turn into canonical form by computing
+        // (a.R) / R = a
+        let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+
+        let mut res = [0; 32];
+        res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
+        res[8..16].copy_from_slice(&tmp.0[1].to_le_bytes());
+        res[16..24].copy_from_slice(&tmp.0[2].to_le_bytes());
+        res[24..32].copy_from_slice(&tmp.0[3].to_le_bytes());
+
+        res
+    }
+
     pub fn legendre(&self) -> LegendreSymbol {
         unimplemented!()
     }
@@ -525,6 +579,27 @@ impl ff::PrimeField for Fr {
 }
 
 impl BaseExt for Fr {
+    fn ct_is_zero(&self) -> Choice {
+        self.ct_eq(&Self::zero())
+    }
+
+    /// Writes this element in its normalized, little endian form into a buffer.
+    fn write<W: Write>(&self, writer: &mut W) -> io::Result<()> {
+        let compressed = self.to_bytes();
+        writer.write_all(&compressed[..])
+    }
+
+    /// Reads a normalized, little endian represented field element from a
+    /// buffer.
+    fn read<R: Read>(reader: &mut R) -> io::Result<Self> {
+        let mut compressed = [0u8; 32];
+        reader.read_exact(&mut compressed[..])?;
+        Option::from(Self::from_bytes(&compressed))
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "invalid point encoding in proof"))
+    }
+}
+
+impl FieldExt for Fr {
     const MODULUS: &'static str =
         "0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001";
 
@@ -537,92 +612,6 @@ impl BaseExt for Fr {
         0x183227397098d014,
     ]);
 
-    fn ct_is_zero(&self) -> Choice {
-        self.ct_eq(&Self::zero())
-    }
-
-    fn from_u64(v: u64) -> Self {
-        Fr::from_raw([v as u64, 0, 0, 0])
-    }
-
-    fn from_u128(v: u128) -> Self {
-        Fr::from_raw([v as u64, (v >> 64) as u64, 0, 0])
-    }
-
-    /// Attempts to convert a little-endian byte representation of
-    /// a scalar into a `Fr`, failing if the input is not canonical.
-    fn from_bytes(bytes: &[u8; 32]) -> CtOption<Fr> {
-        let mut tmp = Fr([0, 0, 0, 0]);
-
-        tmp.0[0] = u64::from_le_bytes(bytes[0..8].try_into().unwrap());
-        tmp.0[1] = u64::from_le_bytes(bytes[8..16].try_into().unwrap());
-        tmp.0[2] = u64::from_le_bytes(bytes[16..24].try_into().unwrap());
-        tmp.0[3] = u64::from_le_bytes(bytes[24..32].try_into().unwrap());
-
-        // Try to subtract the modulus
-        let (_, borrow) = sbb(tmp.0[0], MODULUS.0[0], 0);
-        let (_, borrow) = sbb(tmp.0[1], MODULUS.0[1], borrow);
-        let (_, borrow) = sbb(tmp.0[2], MODULUS.0[2], borrow);
-        let (_, borrow) = sbb(tmp.0[3], MODULUS.0[3], borrow);
-
-        // If the element is smaller than MODULUS then the
-        // subtraction will underflow, producing a borrow value
-        // of 0xffff...ffff. Otherwise, it'll be zero.
-        let is_some = (borrow as u8) & 1;
-
-        // Convert to Montgomery form by computing
-        // (a.R^0 * R^2) / R = a.R
-        tmp *= &R2;
-
-        CtOption::new(tmp, Choice::from(is_some))
-    }
-
-    /// Converts an element of `Fr` into a byte representation in
-    /// little-endian byte order.
-    fn to_bytes(&self) -> [u8; 32] {
-        // Turn into canonical form by computing
-        // (a.R) / R = a
-        let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
-
-        let mut res = [0; 32];
-        res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
-        res[8..16].copy_from_slice(&tmp.0[1].to_le_bytes());
-        res[16..24].copy_from_slice(&tmp.0[2].to_le_bytes());
-        res[24..32].copy_from_slice(&tmp.0[3].to_le_bytes());
-
-        res
-    }
-
-    /// Converts a 512-bit little endian integer into
-    /// a `Fr` by reducing by the modulus.
-    fn from_bytes_wide(bytes: &[u8; 64]) -> Fr {
-        Fr::from_u512([
-            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
-            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
-            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
-            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
-            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
-            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
-            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
-        ])
-    }
-
-    fn get_lower_128(&self) -> u128 {
-        let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
-
-        u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)
-    }
-
-    fn get_lower_32(&self) -> u32 {
-        // TODO: don't reduce, just hash the Montgomery form. (Requires rebuilding perfect hash table.)
-        let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
-
-        tmp.0[0] as u32
-    }
-}
-
-impl FieldExt for Fr {
     const ROOT_OF_UNITY_INV: Self = Self::from_raw([
         0x0ed3e50a414e6dba,
         0xb22625f59115aba7,
@@ -655,6 +644,21 @@ impl FieldExt for Fr {
     ];
 
     const ZETA: Self = Fr::from_raw([0x07, 0x00, 0x00, 0x00]);
+
+    /// Converts a 512-bit little endian integer into
+    /// a `Fr` by reducing by the modulus.
+    fn from_bytes_wide(bytes: &[u8; 64]) -> Fr {
+        Fr::from_u512([
+            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
+            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
+            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
+            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
+            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
+            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
+            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
+            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
+        ])
+    }
 }
 
 #[cfg(test)]
