@@ -20,6 +20,7 @@ rand_xorshift = "0.3"
 subtle = "2.3"
 ff = { version = "0.10", features = ["derive"] }
 group = "0.10"
+pairing = "0.20"
 rand = "0.8"
 blake2b_simd = "0.5"
 lazy_static = "1.4.0"

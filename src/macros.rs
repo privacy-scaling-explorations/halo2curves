@@ -158,17 +158,17 @@ macro_rules! new_curve_impl {
         /// Represents a point in the projective coordinate space.
         #[derive(Copy, Clone, Debug)]
         $($privacy)* struct $name {
-            x: $base,
-            y: $base,
-            z: $base,
+            pub x: $base,
+            pub y: $base,
+            pub z: $base,
         }
 
         /// Represents a point in the affine coordinate space (or the point at
         /// infinity).
         #[derive(Copy, Clone)]
         $($privacy)* struct $name_affine {
-            x: $base,
-            y: $base,
+            pub x: $base,
+            pub y: $base,
             infinity: Choice,
         }
 
@@ -186,24 +186,25 @@ macro_rules! new_curve_impl {
             type Scalar = $scalar;
 
             fn random(mut rng: impl RngCore) -> Self {
-                loop {
-                    let x = $base::random(&mut rng);
-                    let ysign = (rng.next_u32() % 2) as u8;
+                $name_affine::random(&mut rng).to_curve()
+                // loop {
+                //     let x = $base::random(&mut rng);
+                //     let ysign = (rng.next_u32() % 2) as u8;
 
-                    let x3 = x.square() * x;
-                    let y = (x3 + $name::curve_constant_b()).sqrt();
-                    if let Some(y) = Option::<$base>::from(y) {
-                        let sign = y.to_bytes()[0] & 1;
-                        let y = if ysign ^ sign == 0 { y } else { -y };
+                //     let x3 = x.square() * x;
+                //     let y = (x3 + $name::curve_constant_b()).sqrt();
+                //     if let Some(y) = Option::<$base>::from(y) {
+                //         let sign = y.to_bytes()[0] & 1;
+                //         let y = if ysign ^ sign == 0 { y } else { -y };
 
-                        let p = $name_affine {
-                            x,
-                            y,
-                            infinity: Choice::from(0u8),
-                        };
-                        break p.to_curve();
-                    }
-                }
+                //         let p = $name_affine {
+                //             x,
+                //             y,
+                //             infinity: Choice::from(0u8),
+                //         };
+                //         break p.to_curve();
+                //     }
+                // }
             }
 
             impl_projective_curve_specific!($name, $base);
@@ -253,7 +254,7 @@ macro_rules! new_curve_impl {
                 let z2 = self.z.square();
                 let z4 = z2.square();
                 let z6 = z4 * z2;
-                (self.y.square() - (self.x.square() * z4) * self.x)
+                (self.y.square() - self.x.square() * self.x)
                     .ct_eq(&(z6 * $name::curve_constant_b()))
                     | self.z.ct_is_zero()
             }

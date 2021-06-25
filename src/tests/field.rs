@@ -1,7 +1,5 @@
-use ff::{Field, PrimeField};
-use rand::RngCore;
-use rand::{Rng, SeedableRng};
-
+use ff::Field;
+use rand::{RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
 
 pub fn random_field_tests<F: Field>() {
@@ -16,7 +14,7 @@ pub fn random_field_tests<F: Field>() {
     random_negation_tests::<F, _>(&mut rng);
     random_doubling_tests::<F, _>(&mut rng);
     random_squaring_tests::<F, _>(&mut rng);
-    // random_inversion_tests::<F, _>(&mut rng);
+    random_inversion_tests::<F, _>(&mut rng);
     // random_expansion_tests::<F, _>(&mut rng);
 
     assert!(F::zero().is_zero());

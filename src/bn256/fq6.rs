@@ -3,7 +3,7 @@ use super::fq2::Fq2;
 use core::ops::{Add, Mul, Neg, Sub};
 use ff::Field;
 use rand::RngCore;
-use subtle::{Choice, ConditionallySelectable, CtOption};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
 pub struct Fq6 {
@@ -19,6 +19,12 @@ impl ConditionallySelectable for Fq6 {
             c1: Fq2::conditional_select(&a.c1, &b.c1, choice),
             c2: Fq2::conditional_select(&a.c2, &b.c2, choice),
         }
+    }
+}
+
+impl ConstantTimeEq for Fq6 {
+    fn ct_eq(&self, other: &Self) -> Choice {
+        self.c0.ct_eq(&other.c0) & self.c1.ct_eq(&other.c1) & self.c2.ct_eq(&other.c2)
     }
 }
 
@@ -333,7 +339,7 @@ impl Fq6 {
             c1 -= &c01;
         }
         let mut c2 = self.c1;
-        c2.square();
+        c2.square_assign();
         {
             let mut c02 = self.c0;
             c02 *= &self.c2;
@@ -688,6 +694,6 @@ fn test_frobenius() {
 }
 
 #[test]
-fn fq6_field_tests() {
+fn field_tests() {
     crate::tests::field::random_field_tests::<Fq6>();
 }

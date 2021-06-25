@@ -4,7 +4,7 @@ use super::fq6::Fq6;
 use core::ops::{Add, Mul, Neg, Sub};
 use ff::Field;
 use rand::RngCore;
-use subtle::{Choice, ConditionallySelectable, CtOption};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
 pub struct Fq12 {
@@ -18,6 +18,12 @@ impl ConditionallySelectable for Fq12 {
             c0: Fq6::conditional_select(&a.c0, &b.c0, choice),
             c1: Fq6::conditional_select(&a.c1, &b.c1, choice),
         }
+    }
+}
+
+impl ConstantTimeEq for Fq12 {
+    fn ct_eq(&self, other: &Self) -> Choice {
+        self.c0.ct_eq(&other.c0) & self.c1.ct_eq(&other.c1)
     }
 }
 
@@ -146,8 +152,12 @@ impl Fq12 {
         t
     }
 
-    pub fn conjugate(&mut self) {
-        self.c1 = -self.c1;
+    #[inline(always)]
+    pub fn conjugate(&self) -> Self {
+        Self {
+            c0: self.c0,
+            c1: -self.c1,
+        }
     }
 
     pub fn frobenius_map(&mut self, power: usize) {
@@ -189,6 +199,24 @@ impl Fq12 {
                 c2: Fq2::zero(),
             },
         });
+    }
+
+    fn invert(&self) -> CtOption<Self> {
+        let mut c0s = self.c0;
+        c0s.square_assign();
+        let mut c1s = self.c1;
+        c1s.square_assign();
+        c1s.mul_by_nonresidue();
+        c0s -= &c1s;
+
+        c0s.invert().map(|t| {
+            let mut tmp = Fq12 { c0: t, c1: t };
+            tmp.c0.mul_assign(&self.c0);
+            tmp.c1.mul_assign(&self.c1);
+            tmp.c1 = tmp.c1.neg();
+
+            tmp
+        })
     }
 }
 
@@ -470,6 +498,6 @@ fn test_frobenius() {
 }
 
 #[test]
-fn fq12_field_tests() {
+fn field_tests() {
     crate::tests::field::random_field_tests::<Fq12>();
 }
