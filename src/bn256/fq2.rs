@@ -118,6 +118,9 @@ impl_binops_additive!(Fq2, Fq2);
 impl_binops_multiplicative!(Fq2, Fq2);
 
 impl Fq2 {
+    pub const fn size() -> usize {
+        64
+    }
     /// Attempts to convert a little-endian byte representation of
     /// a scalar into a `Fq`, failing if the input is not canonical.
     pub fn from_bytes(bytes: &[u8; 64]) -> CtOption<Fq2> {
@@ -337,6 +340,7 @@ impl Field for Fq2 {
             CtOption::new(Self::zero(), Choice::from(1))
         } else {
             // a1 = self^((q - 3) / 4)
+            // 0xc19139cb84c680a6e14116da060561765e05aa45a1c72a34f082305b61f3f51
             let u: [u64; 4] = [
                 0x4f082305b61f3f51,
                 0x65e05aa45a1c72a3,
@@ -370,6 +374,7 @@ impl Field for Fq2 {
                 } else {
                     alpha += &Fq2::one();
                     // alpha = alpha^((q - 1) / 2)
+                    // 0x183227397098d014dc2822db40c0ac2ecbc0b548b438e5469e10460b6c3e7ea3
                     let u: [u64; 4] = [
                         0x9e10460b6c3e7ea3,
                         0xcbc0b548b438e546,
@@ -559,6 +564,16 @@ pub fn test_sqrt() {
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
         0xe5,
     ]);
+
+    let mut i = 0;
+    for _ in 0..10000 {
+        let a = Fq2::random(&mut rng);
+        if a.legendre() == LegendreSymbol::QuadraticNonResidue {
+            assert!(bool::from(a.sqrt().is_none()));
+        }
+    }
+    return;
+
     for _ in 0..10000 {
         let a = Fq2::random(&mut rng);
         let mut b = a;

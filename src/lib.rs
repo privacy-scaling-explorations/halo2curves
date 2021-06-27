@@ -1,5 +1,7 @@
 #[macro_use]
-mod macros;
+mod binops;
+#[macro_use]
+mod ec;
 mod bn256;
 
 pub mod arithmetic;

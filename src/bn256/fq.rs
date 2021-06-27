@@ -48,9 +48,13 @@ const R3: Fq = Fq([
 ]);
 
 pub const NEGATIVE_ONE: Fq = Fq([
-    0x974bc177a0000006,
-    0xf13771b2da58a367,
-    0x51e1a2470908122e,
+    // 0x974bc177a0000006,
+    // 0xf13771b2da58a367,
+    // 0x51e1a2470908122e,
+    // 0x2259d6b14729c0fa,
+    0x68c3488912edefaa,
+    0x8d087f6872aabf4f,
+    0x51e1a24709081231,
     0x2259d6b14729c0fa,
 ]);
 
@@ -196,6 +200,9 @@ impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
 
 impl Fq {
+    pub const fn size() -> usize {
+        32
+    }
     /// Attempts to convert a little-endian byte representation of
     /// a scalar into a `Fq`, failing if the input is not canonical.
     pub fn from_bytes(bytes: &[u8; 32]) -> CtOption<Fq> {
@@ -567,6 +574,13 @@ use ff::Field;
 use rand::SeedableRng;
 #[cfg(test)]
 use rand_xorshift::XorShiftRng;
+
+// #[test]
+// fn neg_one() {
+//     println!("{:?}", NEGATIVE_ONE);
+//     println!("{:?}", NEGATIVE_ONE_X);
+//     println!("{:?}", -Fq::one());
+// }
 
 #[test]
 fn test_ser() {
