@@ -575,13 +575,6 @@ use rand::SeedableRng;
 #[cfg(test)]
 use rand_xorshift::XorShiftRng;
 
-// #[test]
-// fn neg_one() {
-//     println!("{:?}", NEGATIVE_ONE);
-//     println!("{:?}", NEGATIVE_ONE_X);
-//     println!("{:?}", -Fq::one());
-// }
-
 #[test]
 fn test_ser() {
     let mut rng = XorShiftRng::from_seed([

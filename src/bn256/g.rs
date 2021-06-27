@@ -8,9 +8,18 @@ use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
 use ff::Field;
-use group::{prime::PrimeCurveAffine, Curve as _, Group as _, GroupEncoding};
+use group::{
+    cofactor::CofactorGroup, prime::PrimeCurveAffine, Curve as _, Group as _, GroupEncoding,
+};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+const GROUP_ORDER: Fr = Fr([
+    0x30644e72e131a029,
+    0xb85045b68181585d,
+    0x2833e84879b97091,
+    0x43e1f593f0000001,
+]);
 
 new_curve_impl!(
     (pub),
@@ -40,10 +49,21 @@ const G1_GENERATOR_X: Fq = Fq::one();
 const G1_GENERATOR_Y: Fq = Fq::from_raw([2, 0, 0, 0]);
 const G1_B: Fq = Fq::from_raw([3, 0, 0, 0]);
 
-// var b2 = &fe2{
-// 	fe{0x3bf938e377b802a8, 0x020b1b273633535d, 0x26b7edf049755260, 0x2514c6324384a86d},
-// 	fe{0x38e7ecccd1dcff67, 0x65f0b37d93ce0d3e, 0xd749d0dd22ac00aa, 0x0141b9ce4a688d4d},
-// }
+impl group::cofactor::CofactorGroup for G1 {
+    type Subgroup = G1;
+
+    fn clear_cofactor(&self) -> Self {
+        *self
+    }
+
+    fn into_subgroup(self) -> CtOption<Self::Subgroup> {
+        CtOption::new(self, 1.into())
+    }
+
+    fn is_torsion_free(&self) -> Choice {
+        1.into()
+    }
+}
 
 const G2_B: Fq2 = Fq2 {
     c0: Fq::from_raw([
@@ -91,12 +111,35 @@ const G2_GENERATOR_Y: Fq2 = Fq2 {
     ]),
 };
 
-// 0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed
-// 0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2
-// 0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa
-// 0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b
-// 0x2b149d40ceb8aaae81be18991be06ac3b5b4c5e559dbefa33267e6dc24a138e5
-// 0x009713b03af0fed4cd2cafadeed8fdf4a74fa084e52d1852e4a2bd0685c315d2
+const COFACTOR_G2: Fr = Fr([
+    0x345f2299c0f9fa8d,
+    0x06ceecda572a2489,
+    0xb85045b68181585e,
+    0x30644e72e131a029,
+]);
+
+impl CofactorGroup for G2 {
+    type Subgroup = G2;
+
+    fn clear_cofactor(&self) -> Self {
+        self * COFACTOR_G2
+    }
+
+    fn into_subgroup(self) -> CtOption<Self::Subgroup> {
+        unimplemented!();
+    }
+
+    fn is_torsion_free(&self) -> Choice {
+        (self * GROUP_ORDER).is_identity().into()
+    }
+}
+
+impl G2 {
+    fn random(mut rng: impl RngCore) -> Self {
+        let point = <Self as group::Group>::random(&mut rng);
+        point.clear_cofactor()
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -352,18 +395,26 @@ mod tests {
 
     #[test]
     fn curve_tests() {
-        is_on_curve::<G1>();
-        equality::<G1>();
-        projective_to_affine_affine_to_projective::<G1>();
-        projective_addition::<G1>();
-        mixed_addition::<G1>();
-        multiplication::<G1>();
-        is_on_curve::<G2>();
-        equality::<G2>();
-        projective_to_affine_affine_to_projective::<G2>();
-        projective_addition::<G2>();
-        mixed_addition::<G2>();
-        multiplication::<G2>();
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+
+        // is_on_curve::<G1>();
+        // equality::<G1>();
+        // projective_to_affine_affine_to_projective::<G1>();
+        // projective_addition::<G1>();
+        // mixed_addition::<G1>();
+        // multiplication::<G1>();
+        // is_on_curve::<G2>();
+        // equality::<G2>();
+        // projective_to_affine_affine_to_projective::<G2>();
+        // projective_addition::<G2>();
+        // mixed_addition::<G2>();
+        // multiplication::<G2>();
+
+        G2::random(&mut rng);
+        <G2 as group::Group>::random(&mut rng);
     }
 }
 
