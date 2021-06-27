@@ -23,7 +23,9 @@ pub trait BaseExt: ff::Field + Ord + ConstantTimeEq {
     }
 
     /// Returns whether or not this element is zero.
-    fn ct_is_zero(&self) -> Choice;
+    fn ct_is_zero(&self) -> Choice {
+        self.ct_eq(&Self::zero())
+    }
 
     /// Writes this element in its normalized, little endian form into a buffer.
     fn write<W: Write>(&self, writer: &mut W) -> io::Result<()>;

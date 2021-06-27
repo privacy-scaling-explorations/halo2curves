@@ -54,12 +54,6 @@ pub const NEGATIVE_ONE: Fq = Fq([
     0x2259d6b14729c0fa,
 ]);
 
-const GENERATOR: Fq = Fq::from_raw([0x02, 0x00, 0x00, 0x00]);
-
-const S: u32 = 1;
-
-const ROOT_OF_UNITY: Fq = Fq::from_raw([0x01, 0x00, 0x00, 0x00]);
-
 impl ::std::fmt::Display for Fq {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let tmp = self.to_bytes();
@@ -202,42 +196,6 @@ impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
 
 impl Fq {
-    // impl AsRef<[u8]> for #repr {
-    //     #[inline(always)]
-    //     fn as_ref(&self) -> &[u8] {
-    //         &self.0
-    //     }
-    // }
-
-    // impl AsMut<[u8]> for #repr {
-    //     #[inline(always)]
-    //     fn as_mut(&mut self) -> &mut [u8] {
-    //         &mut self.0
-    //     }
-    // }
-
-    // fn write<W: Write>(&self, mut writer: W) -> io::Result<()> {
-    //     use byteorder::{BigEndian, WriteBytesExt};
-
-    //     for digit in self.as_ref().iter().rev() {
-    //         writer.write_u64::<BigEndian>(*digit)?;
-    //     }
-
-    //     Ok(())
-    // }
-
-    // /// Reads a big endian integer into this representation.
-    // fn read<R: Read>(&mut self, mut reader: R) -> io::Result<()> {
-    //     self.from_bytes();
-    //     // use byteorder::{BigEndian, ReadBytesExt};
-
-    //     // for digit in self.as_mut().iter_mut().rev() {
-    //     //     *digit = reader.read_u64::<BigEndian>()?;
-    //     // }
-
-    //     Ok(())
-    // }
-
     /// Attempts to convert a little-endian byte representation of
     /// a scalar into a `Fq`, failing if the input is not canonical.
     pub fn from_bytes(bytes: &[u8; 32]) -> CtOption<Fq> {
@@ -584,31 +542,9 @@ impl ff::Field for Fq {
 
         CtOption::new(tmp, !self.ct_eq(&Self::zero()))
     }
-
-    fn pow_vartime<S: AsRef<[u64]>>(&self, exp: S) -> Self {
-        let mut res = Self::one();
-        let mut found_one = false;
-        for e in exp.as_ref().iter().rev() {
-            for i in (0..64).rev() {
-                if found_one {
-                    res = res.square();
-                }
-
-                if ((*e >> i) & 1) == 1 {
-                    found_one = true;
-                    res *= self;
-                }
-            }
-        }
-        res
-    }
 }
 
 impl BaseExt for Fq {
-    fn ct_is_zero(&self) -> Choice {
-        self.ct_eq(&Self::zero())
-    }
-
     /// Writes this element in its normalized, little endian form into a buffer.
     fn write<W: Write>(&self, writer: &mut W) -> io::Result<()> {
         let compressed = self.to_bytes();
@@ -641,14 +577,12 @@ fn test_ser() {
 
     let a0 = Fq::random(&mut rng);
     let a_bytes = a0.to_bytes();
-    let a1 = Fq::from_bytes(&a_bytes);
+    let a1 = Fq::from_bytes(&a_bytes).unwrap();
+    assert_eq!(a0, a1);
 }
 
 #[test]
 fn test_inv() {
-    // Compute -(r^{-1} mod 2^64) mod 2^64 by exponentiating
-    // by totient(2**64) - 1
-
     let mut inv = 1u64;
     for _ in 0..63 {
         inv = inv.wrapping_mul(inv);
@@ -661,9 +595,6 @@ fn test_inv() {
 
 #[test]
 pub fn test_sqrt() {
-    // let v = (Fq::TWO_INV).square().sqrt().unwrap();
-    // assert!(v == Fq::TWO_INV || (-v) == Fq::TWO_INV);
-
     let mut rng = XorShiftRng::from_seed([
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
         0xe5,

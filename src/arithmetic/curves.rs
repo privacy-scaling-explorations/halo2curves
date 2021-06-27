@@ -43,27 +43,6 @@ pub trait CurveExt:
     /// Return the Jacobian coordinates of this point.
     fn jacobian_coordinates(&self) -> (Self::Base, Self::Base, Self::Base);
 
-    /// Requests a hasher that accepts messages and returns near-uniformly
-    /// distributed elements in the group, given domain prefix `domain_prefix`.
-    ///
-    /// This method is suitable for use as a random oracle.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use pasta_curves::arithmetic::CurveExt;
-    /// fn pedersen_commitment<C: CurveExt>(
-    ///     x: C::ScalarExt,
-    ///     r: C::ScalarExt,
-    /// ) -> C::Affine {
-    ///     let hasher = C::hash_to_curve("z.cash:example_pedersen_commitment");
-    ///     let g = hasher(b"g");
-    ///     let h = hasher(b"h");
-    ///     (g * x + &(h * r)).to_affine()
-    /// }
-    /// ```
-    // fn hash_to_curve<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a>;
-
     /// Returns whether or not this element is on the curve; should
     /// always be true unless an "unchecked" API was used.
     fn is_on_curve(&self) -> Choice;

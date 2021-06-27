@@ -12,11 +12,10 @@ use ff::Field;
 use fq::*;
 use fq12::*;
 use fq2::*;
-use fq6::{Fq6, FROBENIUS_COEFF_FQ6_C1, FROBENIUS_COEFF_FQ6_C2};
+use fq6::FROBENIUS_COEFF_FQ6_C1;
 use fr::*;
 use group::cofactor::CofactorCurveAffine;
 use group::Group;
-use pairing::MultiMillerLoop;
 use pairing::{Engine, PairingCurveAffine};
 use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -33,8 +32,7 @@ impl PairingCurveAffine for G1Affine {
     type PairingResult = Gt;
 
     fn pairing_with(&self, other: &Self::Pair) -> Self::PairingResult {
-        unimplemented!();
-        // pairing(self, other)
+        pairing(self, other)
     }
 }
 
@@ -43,8 +41,20 @@ impl PairingCurveAffine for G2Affine {
     type PairingResult = Gt;
 
     fn pairing_with(&self, other: &Self::Pair) -> Self::PairingResult {
-        unimplemented!();
-        // pairing(other, self)
+        pairing(other, self)
+    }
+}
+
+impl Engine for Bn256 {
+    type G1 = G1;
+    type G1Affine = G1Affine;
+    type G2 = G2;
+    type G2Affine = G2Affine;
+    type Gt = Gt;
+    type Fr = Fr;
+
+    fn pairing(p: &Self::G1Affine, q: &Self::G2Affine) -> Self::Gt {
+        pairing(p, q)
     }
 }
 
@@ -335,7 +345,7 @@ pub struct G2Prepared {
     pub(crate) infinity: bool,
 }
 
-use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use core::ops::{Add, Mul, MulAssign, Neg, Sub};
 
 #[cfg_attr(docsrs, doc(cfg(feature = "pairings")))]
 #[derive(Copy, Clone, Debug, Default)]
@@ -385,7 +395,9 @@ impl<'a> Neg for &'a Gt {
     #[inline]
     fn neg(self) -> Gt {
         // The element is unitary, so we just conjugate.
-        Gt(self.0.conjugate())
+        let mut ret = self.clone();
+        ret.0.conjugate();
+        ret
     }
 }
 
@@ -461,7 +473,7 @@ where
 impl Group for Gt {
     type Scalar = Fr;
 
-    fn random(mut rng: impl RngCore) -> Self {
+    fn random(_: impl RngCore) -> Self {
         unimplemented!();
     }
 
@@ -480,19 +492,6 @@ impl Group for Gt {
     #[must_use]
     fn double(&self) -> Self {
         self.double()
-    }
-}
-
-impl Engine for Bn256 {
-    type G1 = G1;
-    type G1Affine = G1Affine;
-    type G2 = G2;
-    type G2Affine = G2Affine;
-    type Gt = Gt;
-    type Fr = Fr;
-
-    fn pairing(p: &Self::G1Affine, q: &Self::G2Affine) -> Self::Gt {
-        pairing(p, q)
     }
 }
 
@@ -555,8 +554,6 @@ where
         }
     }
 
-    // two additional steps: for q1 and minus q2
-
     for &mut (p, ref mut coeffs) in &mut pairs {
         ell(&mut f, coeffs.next().unwrap(), &p.0);
     }
@@ -574,7 +571,7 @@ where
 
 fn final_exponentiation(r: &Fq12) -> CtOption<Fq12> {
     let mut f1 = *r;
-    f1 = f1.conjugate();
+    f1.conjugate();
 
     r.invert().map(|mut f2| {
         let mut r = f1;
@@ -584,7 +581,14 @@ fn final_exponentiation(r: &Fq12) -> CtOption<Fq12> {
         r.mul_assign(&f2);
 
         fn exp_by_x(f: &mut Fq12, x: u64) {
-            *f = f.pow_vartime(&[x]);
+            let mut res = Fq12::one();
+            for i in (0..64).rev() {
+                res.cyclotomic_square();
+                if ((x >> i) & 1) == 1 {
+                    res.mul_assign(f);
+                }
+            }
+            *f = res
         }
 
         let x = BN_U;
@@ -623,22 +627,22 @@ fn final_exponentiation(r: &Fq12) -> CtOption<Fq12> {
         y0.mul_assign(&fp3);
 
         let mut y1 = r;
-        y1 = y1.conjugate();
+        y1.conjugate();
 
         let mut y5 = fu2;
-        y5 = y5.conjugate();
+        y5.conjugate();
 
-        y3 = y3.conjugate();
+        y3.conjugate();
 
         let mut y4 = fu;
         y4.mul_assign(&fu2p);
-        y4 = y4.conjugate();
+        y4.conjugate();
 
         let mut y6 = fu3;
         y6.mul_assign(&fu3p);
-        y6 = y6.conjugate();
+        y6.conjugate();
 
-        y6.square_assign();
+        y6.cyclotomic_square();
         y6.mul_assign(&y4);
         y6.mul_assign(&y5);
 
@@ -648,16 +652,16 @@ fn final_exponentiation(r: &Fq12) -> CtOption<Fq12> {
 
         y6.mul_assign(&y2);
 
-        t1.square_assign();
+        t1.cyclotomic_square();
         t1.mul_assign(&y6);
-        t1.square_assign();
+        t1.cyclotomic_square();
 
         let mut t0 = t1;
         t0.mul_assign(&y1);
 
         t1.mul_assign(&y0);
 
-        t0.square_assign();
+        t0.cyclotomic_square();
         t0.mul_assign(&t1);
 
         t0
@@ -672,19 +676,19 @@ use rand_xorshift::XorShiftRng;
 #[test]
 fn test_pairing() {
     // use crate::CurveProjective;
-    let mut g1 = G1::generator();
+    let g1 = G1::generator();
     let mut g2 = G2::generator();
     g2 = g2.double();
     let pair12 = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
     let mut g1 = G1::generator();
-    let mut g2 = G2::generator();
+    let g2 = G2::generator();
     g1 = g1.double();
     let pair21 = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
     assert_eq!(pair12, pair21);
 
-    let mut g1 = G1::generator();
+    let g1 = G1::generator();
     let mut g2 = G2::generator();
     g2 = g2.double().double();
     let pair12 = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
@@ -697,50 +701,30 @@ fn test_pairing() {
 
     assert_eq!(pair12, pair21);
 
-    // assert_eq!(pair41, pair22);
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+    for _ in 0..1000 {
+        let a = Fr::random(&mut rng);
+        let b = Fr::random(&mut rng);
 
-    // g1 = G1::one();
-    // g1.double();
-    // g1.add_assign(&G1::one());
+        let mut g1 = G1::generator();
+        g1.mul_assign(a);
 
-    // g2 = G2::one();
-    // g2.double();
+        let mut g2 = G2::generator();
+        g1.mul_assign(b);
 
-    // let pair32 = Bn256::pairing(g1, g2);
+        let pair_ab = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
-    // g2 = G2::one();
-    // g2.double();
-    // g2.add_assign(&G2::one());
+        g1 = G1::generator();
+        g1.mul_assign(b);
 
-    // g1 = G1::one();
-    // g1.double();
+        g2 = G2::generator();
+        g1.mul_assign(a);
 
-    // let pair23 = Bn256::pairing(g1, g2);
+        let pair_ba = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
-    // assert_eq!(pair23, pair32);
-
-    // let mut rng = XorShiftRng::from_seed([0x5dbe6259, 0x8d313d76, 0x3237db17, 0xe5bc0654]);
-
-    // for _ in 0..1000 {
-    //     let a = Fr::rand(&mut rng);
-    //     let b = Fr::rand(&mut rng);
-
-    //     let mut g1 = G1::one();
-    //     g1.mul_assign(a);
-
-    //     let mut g2 = G2::one();
-    //     g1.mul_assign(b);
-
-    //     let pair_ab = Bn256::pairing(g1, g2);
-
-    //     g1 = G1::one();
-    //     g1.mul_assign(b);
-
-    //     g2 = G2::one();
-    //     g1.mul_assign(a);
-
-    //     let pair_ba = Bn256::pairing(g1, g2);
-
-    //     assert_eq!(pair_ab, pair_ba);
-    // }
+        assert_eq!(pair_ab, pair_ba);
+    }
 }

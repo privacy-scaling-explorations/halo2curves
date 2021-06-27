@@ -121,13 +121,8 @@ impl Fq2 {
     /// Attempts to convert a little-endian byte representation of
     /// a scalar into a `Fq`, failing if the input is not canonical.
     pub fn from_bytes(bytes: &[u8; 64]) -> CtOption<Fq2> {
-        let c0_bytes: &[u8; 32] = bytes[0..32].try_into().unwrap();
-        let c1_bytes: &[u8; 32] = bytes[0..32].try_into().unwrap();
-        let c0 = Fq::from_bytes(c0_bytes);
-        let c1 = Fq::from_bytes(c1_bytes);
-        let c0_val = c0.unwrap();
-        let c1_val = c1.unwrap();
-
+        let c0 = Fq::from_bytes(bytes[0..32].try_into().unwrap());
+        let c1 = Fq::from_bytes(bytes[32..64].try_into().unwrap());
         CtOption::new(
             Fq2 {
                 c0: c0.unwrap(),
@@ -148,7 +143,7 @@ impl Fq2 {
         res
     }
 
-    fn legendre(&self) -> LegendreSymbol {
+    pub fn legendre(&self) -> LegendreSymbol {
         self.norm().legendre()
     }
 
@@ -174,13 +169,6 @@ impl Fq2 {
         self.c0 = c0 + ab;
     }
 
-    pub fn add(&self, other: &Self) -> Self {
-        Self {
-            c0: self.c0.add(&other.c0),
-            c1: self.c1.add(&other.c1),
-        }
-    }
-
     pub fn double(&self) -> Self {
         Self {
             c0: self.c0.double(),
@@ -193,17 +181,17 @@ impl Fq2 {
         self.c1 = self.c1.double();
     }
 
+    pub fn add(&self, other: &Self) -> Self {
+        Self {
+            c0: self.c0.add(&other.c0),
+            c1: self.c1.add(&other.c1),
+        }
+    }
+
     pub fn sub(&self, other: &Self) -> Self {
         Self {
             c0: self.c0.sub(&other.c0),
             c1: self.c1.sub(&other.c1),
-        }
-    }
-
-    pub fn neg(&self) -> Self {
-        Self {
-            c0: self.c0.neg(),
-            c1: self.c1.neg(),
         }
     }
 
@@ -217,6 +205,18 @@ impl Fq2 {
         let mut t = self.clone();
         t.square_assign();
         t
+    }
+
+    pub fn neg(&self) -> Self {
+        Self {
+            c0: self.c0.neg(),
+            c1: self.c1.neg(),
+        }
+    }
+
+    // conjucate by negating c1
+    pub fn conjugate(&mut self) {
+        self.c1 = -self.c1;
     }
 
     pub fn frobenius_map(&mut self, power: usize) {
@@ -276,11 +276,6 @@ impl Fq2 {
         t1 + t0
     }
 
-    // conjucate by negating c1
-    pub fn conjugate(&mut self) {
-        self.c1 -= self.c1;
-    }
-
     pub fn invert(&self) -> CtOption<Self> {
         let mut t1 = self.c1;
         t1 = t1.square();
@@ -298,19 +293,6 @@ impl Fq2 {
 
             tmp
         })
-    }
-
-    pub fn pow(&self, by: &[u64; 4]) -> Self {
-        let mut res = Self::one();
-        for e in by.iter().rev() {
-            for i in (0..64).rev() {
-                res = res.square();
-                let mut tmp = res;
-                tmp *= self;
-                res.conditional_assign(&tmp, (((*e >> i) & 0x1) as u8).into());
-            }
-        }
-        res
     }
 }
 
@@ -408,10 +390,6 @@ impl Field for Fq2 {
 }
 
 impl BaseExt for Fq2 {
-    fn ct_is_zero(&self) -> Choice {
-        self.ct_eq(&Self::zero())
-    }
-
     /// Writes this element in its normalized, little endian form into a buffer.
     fn write<W: Write>(&self, writer: &mut W) -> io::Result<()> {
         let compressed = self.to_bytes();
@@ -450,6 +428,19 @@ pub const FROBENIUS_COEFF_FQ2_C1: [Fq; 2] = [
 use rand::SeedableRng;
 #[cfg(test)]
 use rand_xorshift::XorShiftRng;
+
+#[test]
+fn test_ser() {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+
+    let a0 = Fq2::random(&mut rng);
+    let a_bytes = a0.to_bytes();
+    let a1 = Fq2::from_bytes(&a_bytes).unwrap();
+    assert_eq!(a0, a1);
+}
 
 #[test]
 fn test_fq2_ordering() {

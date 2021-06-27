@@ -77,9 +77,9 @@ impl_binops_multiplicative!(Fq12, Fq12);
 
 impl Fq12 {
     pub fn mul_assign(&mut self, other: &Self) {
-        let mut t0 = self.c0 * other.c0;
+        let t0 = self.c0 * other.c0;
         let mut t1 = self.c1 * other.c1;
-        let mut t2 = other.c0 + other.c1;
+        let t2 = other.c0 + other.c1;
 
         self.c1 += &self.c0;
         self.c1 *= &t2;
@@ -93,7 +93,7 @@ impl Fq12 {
     pub fn square_assign(&mut self) {
         let mut ab = self.c0 * self.c1;
 
-        let mut c0c1 = self.c0 + self.c1;
+        let c0c1 = self.c0 + self.c1;
 
         let mut c0 = self.c1;
         c0.mul_by_nonresidue();
@@ -105,13 +105,6 @@ impl Fq12 {
         ab.mul_by_nonresidue();
         c0 -= &ab;
         self.c0 = c0;
-    }
-
-    pub fn add(&self, other: &Self) -> Self {
-        Self {
-            c0: self.c0 + other.c0,
-            c1: self.c1 + other.c1,
-        }
     }
 
     pub fn double(&self) -> Self {
@@ -126,17 +119,17 @@ impl Fq12 {
         self.c1 = self.c1.double();
     }
 
+    pub fn add(&self, other: &Self) -> Self {
+        Self {
+            c0: self.c0 + other.c0,
+            c1: self.c1 + other.c1,
+        }
+    }
+
     pub fn sub(&self, other: &Self) -> Self {
         Self {
             c0: self.c0 - other.c0,
             c1: self.c1 - other.c1,
-        }
-    }
-
-    pub fn neg(&self) -> Self {
-        Self {
-            c0: -self.c0,
-            c1: -self.c1,
         }
     }
 
@@ -153,12 +146,24 @@ impl Fq12 {
     }
 
     #[inline(always)]
-    pub fn conjugate(&self) -> Self {
+    pub fn neg(&self) -> Self {
         Self {
-            c0: self.c0,
+            c0: -self.c0,
             c1: -self.c1,
         }
     }
+
+    #[inline(always)]
+    pub fn conjugate(&mut self) {
+        self.c1 = -self.c1;
+    }
+
+    // pub fn conjugate(&self) -> Self {
+    //     Self {
+    //         c0: self.c0,
+    //         c1: -self.c1,
+    //     }
+    // }
 
     pub fn frobenius_map(&mut self, power: usize) {
         self.c0.frobenius_map(power);
@@ -174,7 +179,7 @@ impl Fq12 {
         aa.mul_by_01(c0, c1);
         let mut bb = self.c1;
         bb.mul_by_1(c4);
-        let mut o = c1 + c4;
+        let o = c1 + c4;
         self.c1 += &self.c0;
         self.c1.mul_by_01(c0, &o);
         self.c1 -= &aa;
@@ -184,24 +189,24 @@ impl Fq12 {
         self.c0 += &aa;
     }
 
-    // TODO make it hand optimized
-    // // multiply by (c0, c1, c2) + (c3, c4, c5)*w where only c0, c3 and c4 are non-zero
     pub fn mul_by_034(&mut self, c0: &Fq2, c3: &Fq2, c4: &Fq2) {
-        self.mul_assign(&Fq12 {
-            c0: Fq6 {
-                c0: *c0,
-                c1: Fq2::zero(),
-                c2: Fq2::zero(),
-            },
-            c1: Fq6 {
-                c0: *c3,
-                c1: *c4,
-                c2: Fq2::zero(),
-            },
-        });
+        let t0 = Fq6 {
+            c0: self.c0.c0 * c0,
+            c1: self.c0.c1 * c0,
+            c2: self.c0.c2 * c0,
+        };
+        let mut t1 = self.c1;
+        t1.mul_by_01(c3, c4);
+        let o = c0 + c3;
+        let mut t2 = self.c0 + self.c1;
+        t2.mul_by_01(&o, c4);
+        t2 -= t0;
+        self.c1 = t2 - t1;
+        t1.mul_by_nonresidue();
+        self.c0 = t0 + t1;
     }
 
-    fn invert(&self) -> CtOption<Self> {
+    pub fn invert(&self) -> CtOption<Self> {
         let mut c0s = self.c0;
         c0s.square_assign();
         let mut c1s = self.c1;
@@ -217,6 +222,52 @@ impl Fq12 {
 
             tmp
         })
+    }
+
+    pub fn cyclotomic_square(&mut self) {
+        fn fp4_square(c0: &mut Fq2, c1: &mut Fq2, a0: &Fq2, a1: &Fq2) {
+            let t0 = a0.square();
+            let t1 = a1.square();
+            let mut t2 = t1;
+            t2.mul_by_nonresidue();
+            *c0 = t2 + t0;
+            t2 = a0 + a1;
+            t2.square_assign();
+            t2 -= t0;
+            *c1 = t2 - t1;
+        }
+
+        let mut t3 = Fq2::zero();
+        let mut t4 = Fq2::zero();
+        let mut t5 = Fq2::zero();
+        let mut t6 = Fq2::zero();
+
+        fp4_square(&mut t3, &mut t4, &self.c0.c0, &self.c1.c1);
+        let mut t2 = t3 - self.c0.c0;
+        t2.double_assign();
+        self.c0.c0 = t2 + t3;
+
+        t2 = t4 + self.c1.c1;
+        t2.double_assign();
+        self.c1.c1 = t2 + t4;
+
+        fp4_square(&mut t3, &mut t4, &self.c1.c0, &self.c0.c2);
+        fp4_square(&mut t5, &mut t6, &self.c0.c1, &self.c1.c2);
+
+        t2 = t3 - self.c0.c1;
+        t2.double_assign();
+        self.c0.c1 = t2 + t3;
+        t2 = t4 + self.c1.c2;
+        t2.double_assign();
+        self.c1.c2 = t2 + t4;
+        t3 = t6;
+        t3.mul_by_nonresidue();
+        t2 = t3 + self.c1.c0;
+        t2.double_assign();
+        self.c1.c0 = t2 + t3;
+        t2 = t5 - self.c0.c2;
+        t2.double_assign();
+        self.c0.c2 = t2 + t5;
     }
 }
 
@@ -446,6 +497,38 @@ fn test_fq12_mul_by_014() {
             c1: Fq6 {
                 c0: Fq2::zero(),
                 c1: c5,
+                c2: Fq2::zero(),
+            },
+        });
+
+        assert_eq!(a, b);
+    }
+}
+
+#[test]
+fn test_fq12_mul_by_034() {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+
+    for _ in 0..1000 {
+        let c0 = Fq2::random(&mut rng);
+        let c3 = Fq2::random(&mut rng);
+        let c4 = Fq2::random(&mut rng);
+        let mut a = Fq12::random(&mut rng);
+        let mut b = a;
+
+        a.mul_by_034(&c0, &c3, &c4);
+        b.mul_assign(&Fq12 {
+            c0: Fq6 {
+                c0: c0,
+                c1: Fq2::zero(),
+                c2: Fq2::zero(),
+            },
+            c1: Fq6 {
+                c0: c3,
+                c1: c4,
                 c2: Fq2::zero(),
             },
         });

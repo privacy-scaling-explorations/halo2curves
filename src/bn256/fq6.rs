@@ -172,14 +172,6 @@ impl Fq6 {
         self.c2 -= &s4;
     }
 
-    pub fn add(&self, other: &Self) -> Self {
-        Self {
-            c0: self.c0 + other.c0,
-            c1: self.c1 + other.c1,
-            c2: self.c2 + other.c2,
-        }
-    }
-
     pub fn double(&self) -> Self {
         Self {
             c0: self.c0.double(),
@@ -194,19 +186,19 @@ impl Fq6 {
         self.c2 = self.c2.double();
     }
 
+    pub fn add(&self, other: &Self) -> Self {
+        Self {
+            c0: self.c0 + other.c0,
+            c1: self.c1 + other.c1,
+            c2: self.c2 + other.c2,
+        }
+    }
+
     pub fn sub(&self, other: &Self) -> Self {
         Self {
             c0: self.c0 - other.c0,
             c1: self.c1 - other.c1,
             c2: self.c2 - other.c2,
-        }
-    }
-
-    pub fn neg(&self) -> Self {
-        Self {
-            c0: -self.c0,
-            c1: -self.c1,
-            c2: -self.c2,
         }
     }
 
@@ -220,6 +212,14 @@ impl Fq6 {
         let mut t = self.clone();
         t.square_assign();
         t
+    }
+
+    pub fn neg(&self) -> Self {
+        Self {
+            c0: -self.c0,
+            c1: -self.c1,
+            c2: -self.c2,
+        }
     }
 
     pub fn frobenius_map(&mut self, power: usize) {
