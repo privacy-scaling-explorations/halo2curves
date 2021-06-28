@@ -181,10 +181,6 @@ impl G2 {
 #[cfg(test)]
 mod tests {
 
-    use crate::bn256::fq::Fq;
-    use crate::bn256::fq2::Fq2;
-    use crate::bn256::fr::Fr;
-    use crate::bn256::g::GROUP_ORDER;
     use crate::bn256::{G1, G2};
     use ff::Field;
 
@@ -467,5 +463,37 @@ mod tests {
         projective_addition::<G2>();
         mixed_addition::<G2>();
         multiplication::<G2>();
+    }
+}
+
+impl group::UncompressedEncoding for G1Affine {
+    type Uncompressed = G1Compressed;
+
+    fn from_uncompressed(bytes: &Self::Uncompressed) -> CtOption<Self> {
+        unimplemented!();
+    }
+
+    fn from_uncompressed_unchecked(bytes: &Self::Uncompressed) -> CtOption<Self> {
+        unimplemented!();
+    }
+
+    fn to_uncompressed(&self) -> Self::Uncompressed {
+        unimplemented!();
+    }
+}
+
+impl group::UncompressedEncoding for G2Affine {
+    type Uncompressed = G2Compressed;
+
+    fn from_uncompressed(bytes: &Self::Uncompressed) -> CtOption<Self> {
+        unimplemented!();
+    }
+
+    fn from_uncompressed_unchecked(bytes: &Self::Uncompressed) -> CtOption<Self> {
+        unimplemented!();
+    }
+
+    fn to_uncompressed(&self) -> Self::Uncompressed {
+        unimplemented!();
     }
 }

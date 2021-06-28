@@ -565,14 +565,12 @@ pub fn test_sqrt() {
         0xe5,
     ]);
 
-    let mut i = 0;
     for _ in 0..10000 {
         let a = Fq2::random(&mut rng);
         if a.legendre() == LegendreSymbol::QuadraticNonResidue {
             assert!(bool::from(a.sqrt().is_none()));
         }
     }
-    return;
 
     for _ in 0..10000 {
         let a = Fq2::random(&mut rng);
