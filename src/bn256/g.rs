@@ -12,14 +12,8 @@ use group::{
     cofactor::CofactorGroup, prime::PrimeCurveAffine, Curve as _, Group as _, GroupEncoding,
 };
 use rand::RngCore;
+use std::ops::MulAssign;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-const GROUP_ORDER: Fr = Fr([
-    0x30644e72e131a029,
-    0xb85045b68181585d,
-    0x2833e84879b97091,
-    0x43e1f593f0000001,
-]);
 
 new_curve_impl!(
     (pub),
@@ -111,6 +105,13 @@ const G2_GENERATOR_Y: Fq2 = Fq2 {
     ]),
 };
 
+const GROUP_ORDER: Fr = Fr([
+    0x43e1f593f0000000,
+    0x2833e84879b97091,
+    0xb85045b68181585d,
+    0x30644e72e131a029,
+]);
+
 const COFACTOR_G2: Fr = Fr([
     0x345f2299c0f9fa8d,
     0x06ceecda572a2489,
@@ -122,7 +123,24 @@ impl CofactorGroup for G2 {
     type Subgroup = G2;
 
     fn clear_cofactor(&self) -> Self {
-        self * COFACTOR_G2
+        // "0x30644e72e131a029b85045b68181585e06ceecda572a2489345f2299c0f9fa8d"
+        let e: [u8; 32] = [
+            0x30, 0x64, 0x4e, 0x72, 0xe1, 0x31, 0xa0, 0x29, 0xb8, 0x50, 0x45, 0xb6, 0x81, 0x81,
+            0x58, 0x5e, 0x06, 0xce, 0xec, 0xda, 0x57, 0x2a, 0x24, 0x89, 0x34, 0x5f, 0x22, 0x99,
+            0xc0, 0xf9, 0xfa, 0x8d,
+        ];
+
+        // self * COFACTOR_G2
+        let mut acc = G2::identity();
+        for bit in e
+            .iter()
+            .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))
+            .skip(1)
+        {
+            acc = acc.double();
+            acc = G2::conditional_select(&acc, &(acc + self), bit);
+        }
+        acc
     }
 
     fn into_subgroup(self) -> CtOption<Self::Subgroup> {
@@ -130,25 +148,48 @@ impl CofactorGroup for G2 {
     }
 
     fn is_torsion_free(&self) -> Choice {
-        (self * GROUP_ORDER).is_identity().into()
+        // "0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001"
+        let e: [u8; 32] = [
+            0x30, 0x64, 0x4e, 0x72, 0xe1, 0x31, 0xa0, 0x29, 0xb8, 0x50, 0x45, 0xb6, 0x81, 0x81,
+            0x58, 0x5d, 0x28, 0x33, 0xe8, 0x48, 0x79, 0xb9, 0x70, 0x91, 0x43, 0xe1, 0xf5, 0x93,
+            0xf0, 0x00, 0x00, 0x01,
+        ];
+
+        // self * GROUP_ORDER;
+
+        let mut acc = G2::identity();
+        for bit in e
+            .iter()
+            .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))
+            .skip(1)
+        {
+            acc = acc.double();
+            acc = G2::conditional_select(&acc, &(acc + self), bit);
+        }
+        acc.is_identity()
     }
 }
 
 impl G2 {
     fn random(mut rng: impl RngCore) -> Self {
-        let point = <Self as group::Group>::random(&mut rng);
-        point.clear_cofactor()
+        let mut point = <Self as group::Group>::random(&mut rng);
+        point = point.clear_cofactor();
+        point
     }
 }
 
 #[cfg(test)]
 mod tests {
 
-    use super::{G1, G2};
+    use crate::bn256::fq::Fq;
+    use crate::bn256::fq2::Fq2;
+    use crate::bn256::fr::Fr;
+    use crate::bn256::g::GROUP_ORDER;
+    use crate::bn256::{G1, G2};
     use ff::Field;
 
     use crate::arithmetic::{BaseExt, Coordinates, CurveAffine, CurveExt};
-    use group::{prime::PrimeCurveAffine, Curve, Group, GroupEncoding};
+    use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Curve, Group, GroupEncoding};
     use rand::SeedableRng;
     use rand_xorshift::XorShiftRng;
 
@@ -394,76 +435,37 @@ mod tests {
     }
 
     #[test]
+    fn test_cofactor() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+        let a = G2::random(&mut rng);
+        assert!(bool::from(a.is_torsion_free()));
+        let mut a = <G2 as group::Group>::random(&mut rng);
+        assert!(!bool::from(a.is_torsion_free()));
+        a = a.clear_cofactor();
+        assert!(bool::from(a.is_torsion_free()));
+    }
+
+    #[test]
     fn curve_tests() {
         let mut rng = XorShiftRng::from_seed([
             0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
             0xbc, 0xe5,
         ]);
 
-        // is_on_curve::<G1>();
-        // equality::<G1>();
-        // projective_to_affine_affine_to_projective::<G1>();
-        // projective_addition::<G1>();
-        // mixed_addition::<G1>();
-        // multiplication::<G1>();
-        // is_on_curve::<G2>();
-        // equality::<G2>();
-        // projective_to_affine_affine_to_projective::<G2>();
-        // projective_addition::<G2>();
-        // mixed_addition::<G2>();
-        // multiplication::<G2>();
-
-        G2::random(&mut rng);
-        <G2 as group::Group>::random(&mut rng);
+        is_on_curve::<G1>();
+        equality::<G1>();
+        projective_to_affine_affine_to_projective::<G1>();
+        projective_addition::<G1>();
+        mixed_addition::<G1>();
+        multiplication::<G1>();
+        is_on_curve::<G2>();
+        equality::<G2>();
+        projective_to_affine_affine_to_projective::<G2>();
+        projective_addition::<G2>();
+        mixed_addition::<G2>();
+        multiplication::<G2>();
     }
 }
-
-// #[test]
-// fn test_clear_cofactor() {
-//     // the generator (and the identity) are always on the curve,
-//     // even after clearing the cofactor
-//     let generator = G1::generator();
-//     assert!(bool::from(generator.clear_cofactor().is_on_curve()));
-//     let id = G1::identity();
-//     assert!(bool::from(id.clear_cofactor().is_on_curve()));
-
-//     let z = Fq::from_raw_unchecked([
-//         0x3d2d1c670671394e,
-//         0x0ee3a800a2f7c1ca,
-//         0x270f4f21da2e5050,
-//         0xe02840a53f1be768,
-//         0x55debeb597512690,
-//         0x08bd25353dc8f791,
-//     ]);
-
-//     let point = G1 {
-//         x: Fq::from_raw_unchecked([
-//             0x48af5ff540c817f0,
-//             0xd73893acaf379d5a,
-//             0xe6c43584e18e023c,
-//             0x1eda39c30f188b3e,
-//             0xf618c6d3ccc0f8d8,
-//             0x0073542cd671e16c,
-//         ]) * z,
-//         y: Fq::from_raw_unchecked([
-//             0x57bf8be79461d0ba,
-//             0xfc61459cee3547c3,
-//             0x0d23567df1ef147b,
-//             0x0ee187bcce1d9b64,
-//             0xb0c8cfbe9dc8fdc1,
-//             0x1328661767ef368b,
-//         ]),
-//         z: z.square() * z,
-//     };
-
-//     assert!(bool::from(point.is_on_curve()));
-//     assert!(!bool::from(G1Affine::from(point).is_torsion_free()));
-//     let cleared_point = point.clear_cofactor();
-//     assert!(bool::from(cleared_point.is_on_curve()));
-//     assert!(bool::from(G1Affine::from(cleared_point).is_torsion_free()));
-
-//     // in BLS12-381 the cofactor in G1 can be
-//     // cleared multiplying by (1-x)
-//     let h_eff = Scalar::from(1) + Scalar::from(crate::BLS_X);
-//     assert_eq!(point.clear_cofactor(), point * h_eff);
-// }
