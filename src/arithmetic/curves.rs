@@ -106,9 +106,6 @@ pub trait CurveAffine:
         writer.write_all(compressed.as_ref())
     }
 
-    // /// Returns the curve constant $a$.
-    // fn a() -> Self::Base;
-
     /// Returns the curve constant $b$.
     fn b() -> Self::Base;
 }

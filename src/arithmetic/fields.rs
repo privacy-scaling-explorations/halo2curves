@@ -3,10 +3,7 @@
 
 use core::mem::size_of;
 use static_assertions::const_assert;
-use std::assert;
-use std::convert::TryInto;
-use std::marker::PhantomData;
-use subtle::{Choice, ConstantTimeEq, CtOption};
+use subtle::{Choice, ConstantTimeEq};
 
 use super::Group;
 
