@@ -1,15 +1,15 @@
 [package]
-name = "masta_curves"
+name = "pairing-bn256"
 version = "0.1.0"
 authors = [
-  "Sean Bowe <sean@electriccoin.co>",
-  "Ying Tong Lai <yingtong@electriccoin.co>",
-  "Daira Hopwood <daira@electriccoin.co>",
-  "Jack Grigg <jack@electriccoin.co>",
-  "kilic <kiliconu@itu.edu.tr>",
+  "Sean Bowe <ewillbefull@gmail.com>",
+  "Jack Grigg <jack@z.cash>",
+  "Alex Vlasov <alex.m.vlasov@gmail.com>",
+  "Alex Gluchowski <alex@gluchowski.net>"
 ]
+license = "MIT/Apache-2.0"
 edition = "2018"
-repository = "https://github.com/kilic/masta_curves"
+repository = "https://github.com/kilic/pairing"
 readme = "README.md"
 
 [dev-dependencies]
@@ -18,15 +18,11 @@ rand_xorshift = "0.3"
 
 [dependencies]
 subtle = "2.3"
-ff = { version = "0.10", features = ["derive"] }
+ff = { version = "0.10" }
 group = "0.10"
 pairing = "0.20"
-rand = "0.8"
-blake2b_simd = "0.5"
-lazy_static = "1.4.0"
 static_assertions = "1.1.0"
-bitvec = { version = "0.22", default-features = false, optional = true }
-byteorder = "1"
+rand = "0.8"
 rand_core = { version = "0.6", default-features = false }
 
 
