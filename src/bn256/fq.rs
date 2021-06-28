@@ -1,6 +1,5 @@
 use super::LegendreSymbol;
 use crate::arithmetic::{adc, mac, sbb, BaseExt};
-use byteorder::{BigEndian, ReadBytesExt};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};

@@ -517,7 +517,7 @@ fn test_fq2_squaring() {
     }; // u
     a.square_assign();
     assert_eq!(a, {
-        let mut neg1 = -Fq::one();
+        let neg1 = -Fq::one();
         Fq2 {
             c0: neg1,
             c1: Fq::zero(),
@@ -531,7 +531,7 @@ fn test_fq2_mul_nonresidue() {
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
         0xe5,
     ]);
-    let mut nine = Fq::one().double().double().double() + &Fq::one();
+    let nine = Fq::one().double().double().double() + &Fq::one();
     let nqr = Fq2 {
         c0: nine,
         c1: Fq::one(),

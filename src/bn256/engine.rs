@@ -177,7 +177,7 @@ where
 impl Group for Gt {
     type Scalar = Fr;
 
-    fn random(mut rng: impl RngCore) -> Self {
+    fn random(_: impl RngCore) -> Self {
         unimplemented!();
     }
 

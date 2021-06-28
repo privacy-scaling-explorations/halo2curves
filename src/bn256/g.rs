@@ -2,7 +2,6 @@ use super::fq::Fq;
 use super::fq2::Fq2;
 use super::fr::Fr;
 use crate::arithmetic::{BaseExt, Coordinates, CurveAffine, CurveExt, Group};
-// use crate::G1Prepared;
 use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
@@ -12,7 +11,6 @@ use group::{
     cofactor::CofactorGroup, prime::PrimeCurveAffine, Curve as _, Group as _, GroupEncoding,
 };
 use rand::RngCore;
-use std::ops::MulAssign;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 new_curve_impl!(
@@ -105,20 +103,6 @@ const G2_GENERATOR_Y: Fq2 = Fq2 {
     ]),
 };
 
-const GROUP_ORDER: Fr = Fr([
-    0x43e1f593f0000000,
-    0x2833e84879b97091,
-    0xb85045b68181585d,
-    0x30644e72e131a029,
-]);
-
-const COFACTOR_G2: Fr = Fr([
-    0x345f2299c0f9fa8d,
-    0x06ceecda572a2489,
-    0xb85045b68181585e,
-    0x30644e72e131a029,
-]);
-
 impl CofactorGroup for G2 {
     type Subgroup = G2;
 
@@ -171,7 +155,7 @@ impl CofactorGroup for G2 {
 }
 
 impl G2 {
-    fn random(mut rng: impl RngCore) -> Self {
+    pub fn random(mut rng: impl RngCore) -> Self {
         let mut point = <Self as group::Group>::random(&mut rng);
         point = point.clear_cofactor();
         point
@@ -184,8 +168,8 @@ mod tests {
     use crate::bn256::{G1, G2};
     use ff::Field;
 
-    use crate::arithmetic::{BaseExt, Coordinates, CurveAffine, CurveExt};
-    use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Curve, Group, GroupEncoding};
+    use crate::arithmetic::{CurveAffine, CurveExt};
+    use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine};
     use rand::SeedableRng;
     use rand_xorshift::XorShiftRng;
 
@@ -200,7 +184,7 @@ mod tests {
             0xbc, 0xe5,
         ]);
 
-        for i in 0..100 {
+        for _ in 0..100 {
             let point = G::random(&mut rng);
             assert!(bool::from(point.is_on_curve()));
             let affine_point: G::AffineExt = point.into();
@@ -415,7 +399,7 @@ mod tests {
         let t0 = a * G::ScalarExt::zero();
         assert!(bool::from(t0.is_identity()));
 
-        let mut t0 = a * s1 + a * s2;
+        let t0 = a * s1 + a * s2;
 
         let s3 = s1 + s2;
         let t1 = a * s3;
@@ -446,34 +430,31 @@ mod tests {
 
     #[test]
     fn curve_tests() {
-        let mut rng = XorShiftRng::from_seed([
-            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
-            0xbc, 0xe5,
-        ]);
-
         is_on_curve::<G1>();
         equality::<G1>();
         projective_to_affine_affine_to_projective::<G1>();
         projective_addition::<G1>();
         mixed_addition::<G1>();
         multiplication::<G1>();
+        batch_normalize::<G1>();
         is_on_curve::<G2>();
         equality::<G2>();
         projective_to_affine_affine_to_projective::<G2>();
         projective_addition::<G2>();
         mixed_addition::<G2>();
         multiplication::<G2>();
+        batch_normalize::<G1>();
     }
 }
 
 impl group::UncompressedEncoding for G1Affine {
     type Uncompressed = G1Compressed;
 
-    fn from_uncompressed(bytes: &Self::Uncompressed) -> CtOption<Self> {
+    fn from_uncompressed(_: &Self::Uncompressed) -> CtOption<Self> {
         unimplemented!();
     }
 
-    fn from_uncompressed_unchecked(bytes: &Self::Uncompressed) -> CtOption<Self> {
+    fn from_uncompressed_unchecked(_: &Self::Uncompressed) -> CtOption<Self> {
         unimplemented!();
     }
 
@@ -485,11 +466,11 @@ impl group::UncompressedEncoding for G1Affine {
 impl group::UncompressedEncoding for G2Affine {
     type Uncompressed = G2Compressed;
 
-    fn from_uncompressed(bytes: &Self::Uncompressed) -> CtOption<Self> {
+    fn from_uncompressed(_: &Self::Uncompressed) -> CtOption<Self> {
         unimplemented!();
     }
 
-    fn from_uncompressed_unchecked(bytes: &Self::Uncompressed) -> CtOption<Self> {
+    fn from_uncompressed_unchecked(_: &Self::Uncompressed) -> CtOption<Self> {
         unimplemented!();
     }
 
