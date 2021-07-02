@@ -1,14 +1,12 @@
 //! This module contains the `Curve`/`CurveAffine` abstractions that allow us to
 //! write code that generalizes over a pair of groups.
 
+use super::{BaseExt, FieldExt, Group};
 use core::cmp;
 use core::ops::{Add, Mul, Sub};
 use group::prime::{PrimeCurve, PrimeCurveAffine};
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-use super::{BaseExt, FieldExt, Group};
-
 use std::io::{self, Read, Write};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// This trait is a common interface for dealing with elements of an elliptic
 /// curve group in a "projective" form, where that arithmetic is usually more
@@ -60,6 +58,7 @@ pub trait CurveExt:
 
 /// This trait is the affine counterpart to `Curve` and is used for
 /// serialization, storage in memory, and inspection of $x$ and $y$ coordinates.
+
 pub trait CurveAffine:
     PrimeCurveAffine<
         Scalar = <Self as CurveAffine>::ScalarExt,

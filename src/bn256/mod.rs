@@ -7,8 +7,8 @@ mod fr;
 mod g;
 
 pub use engine::*;
-pub use fq::*;
-pub use fq2::*;
+use fq::*;
+use fq2::*;
 pub use fr::*;
 pub use g::*;
 
