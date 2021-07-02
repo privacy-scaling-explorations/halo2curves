@@ -1,6 +1,5 @@
 //! This module contains the `Field` abstraction that allows us to write
 //! code that generalizes over a pair of fields.
-
 use core::mem::size_of;
 use static_assertions::const_assert;
 use subtle::{Choice, ConstantTimeEq};
@@ -104,6 +103,12 @@ pub trait FieldExt: ff::PrimeField + BaseExt + Group<Scalar = Self> {
     /// Obtains a field element that is congruent to the provided little endian
     /// byte representation of an integer.
     fn from_bytes_wide(bytes: &[u8; 64]) -> Self;
+
+    /// Obtains a field element congruent to the integer `v`.
+    fn from_u64(v: u64) -> Self;
+
+    /// Obtains a field element congruent to the integer `v`.
+    fn from_u128(v: u128) -> Self;
 }
 
 /// Compute a + b + carry, returning the result and the new carry over.

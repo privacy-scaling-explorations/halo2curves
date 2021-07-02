@@ -6,9 +6,9 @@ use rand::RngCore;
 use std::io::{self, Read, Write};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-use crate::arithmetic::{adc, mac, sbb, BaseExt, FieldExt, Group};
+use crate::arithmetic::{adc, mac, sbb, BaseExt, FieldExt, Group, LinearCombinationEngine};
 
-#[derive(Clone, Copy, Eq)]
+#[derive(Clone, Copy, Eq, Hash)]
 pub struct Fr(pub(crate) [u64; 4]);
 
 /// Constant representing the modulus
@@ -61,6 +61,50 @@ const ROOT_OF_UNITY: Fr = Fr::from_raw([
     0x798865ea93dd31f7,
     0x003ddb9f5166d18b,
 ]);
+
+pub struct ScalarCombination {
+    sum: Fr,
+    base: Fr,
+    lc: Fr,
+}
+
+impl LinearCombinationEngine for ScalarCombination {
+    type Lhs = Fr;
+    type Rhs = Fr;
+
+    fn new(base: Fr) -> Self {
+        ScalarCombination {
+            sum: Fr::zero(),
+            base,
+            lc: Fr::one(),
+        }
+    }
+
+    fn result(&mut self) -> Self::Lhs {
+        let res = self.sum;
+        self.sum = Fr::zero();
+        self.lc = Fr::one();
+        res
+    }
+
+    fn add(&mut self, elem: Self::Lhs) {
+        self.sum += elem * self.lc;
+        self.lc *= self.base;
+    }
+
+    fn add_with_aux(&mut self, elem: Self::Lhs, aux: Self::Rhs) {
+        self.sum += elem * self.lc * aux;
+        self.lc *= self.base;
+    }
+
+    fn combine(base: Self::Rhs, elems: Vec<Self::Lhs>) -> Self::Lhs {
+        let mut lc = Self::new(base);
+        for elem in elems.iter() {
+            lc.add(*elem);
+        }
+        lc.result()
+    }
+}
 
 impl Group for Fr {
     type Scalar = Fr;
@@ -530,24 +574,6 @@ impl ff::Field for Fr {
 
         CtOption::new(tmp, !self.ct_eq(&Self::zero()))
     }
-
-    fn pow_vartime<S: AsRef<[u64]>>(&self, exp: S) -> Self {
-        let mut res = Self::one();
-        let mut found_one = false;
-        for e in exp.as_ref().iter().rev() {
-            for i in (0..64).rev() {
-                if found_one {
-                    res = res.square();
-                }
-
-                if ((*e >> i) & 1) == 1 {
-                    found_one = true;
-                    res *= self;
-                }
-            }
-        }
-        res
-    }
 }
 
 impl ff::PrimeField for Fr {
@@ -659,6 +685,14 @@ impl FieldExt for Fr {
             u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
         ])
     }
+
+    fn from_u64(v: u64) -> Self {
+        Fr::from_raw([v as u64, 0, 0, 0])
+    }
+
+    fn from_u128(v: u128) -> Self {
+        Fr::from_raw([v as u64, (v >> 64) as u64, 0, 0])
+    }
 }
 
 #[cfg(test)]
@@ -709,4 +743,21 @@ fn test_from_u512() {
 #[test]
 fn test_field() {
     crate::tests::field::random_field_tests::<Fr>();
+}
+
+#[test]
+fn test_lc() {
+    let base = Fr::from_u64(10);
+    let mut lc = ScalarCombination::new(base);
+    let u0 = Fr::from_u64(2);
+    let u1 = Fr::from_u64(4);
+    let u2 = Fr::from_u64(8);
+
+    lc.add(u0);
+    lc.add(u1);
+    lc.add(u2);
+    let res = Fr::from_u64(842);
+
+    assert_eq!(res, lc.result());
+    assert_eq!(res, ScalarCombination::combine(base, vec![u0, u1, u2]));
 }

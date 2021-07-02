@@ -1,3 +1,4 @@
+use crate::arithmetic::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use crate::bn256::fq::*;
 use crate::bn256::fq12::*;
 use crate::bn256::fq2::*;
@@ -10,11 +11,8 @@ use core::ops::{Add, Mul, MulAssign, Neg, Sub};
 use ff::Field;
 use group::cofactor::CofactorCurveAffine;
 use group::Group;
-use pairing::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
-
-// use alloc::vec::Vec;
 
 pub const BN_X: u64 = 4965661367192848881;
 
@@ -198,19 +196,6 @@ impl Group for Gt {
         self.double()
     }
 }
-
-// #[derive(Clone, Debug)]
-// pub struct G1Prepared(pub(crate) G1Affine);
-
-// impl G1Prepared {
-//     pub fn is_zero(&self) -> Choice {
-//         self.0.is_identity()
-//     }
-
-//     pub fn from_affine(p: G1Affine) -> Self {
-//         G1Prepared(p)
-//     }
-// }
 
 #[derive(Clone, Debug)]
 pub struct G2Prepared {
@@ -649,6 +634,8 @@ impl Engine for Bn256 {
     type G2 = G2;
     type G2Affine = G2Affine;
     type Gt = Gt;
+    type PointCombination = PointCombination;
+    type ScalarCombination = ScalarCombination;
 
     fn pairing(p: &Self::G1Affine, q: &Self::G2Affine) -> Self::Gt {
         pairing(p, q)
