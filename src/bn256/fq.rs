@@ -551,6 +551,9 @@ impl ff::Field for Fq {
 }
 
 impl BaseExt for Fq {
+    const MODULUS: &'static str =
+        "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
+
     /// Writes this element in its normalized, little endian form into a buffer.
     fn write<W: Write>(&self, writer: &mut W) -> io::Result<()> {
         let compressed = self.to_bytes();

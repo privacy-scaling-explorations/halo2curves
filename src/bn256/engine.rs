@@ -1,4 +1,4 @@
-use crate::arithmetic::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
+use crate::arithmetic::{Engine, FieldExt, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use crate::bn256::fq::*;
 use crate::bn256::fq12::*;
 use crate::bn256::fq2::*;

@@ -2,7 +2,7 @@
 //! code that generalizes over a pair of fields.
 use core::mem::size_of;
 use static_assertions::const_assert;
-use subtle::{Choice, ConstantTimeEq};
+use subtle::{Choice, ConstantTimeEq, CtOption};
 
 use super::Group;
 
@@ -13,6 +13,9 @@ const_assert!(size_of::<usize>() >= 4);
 /// This trait is a common interface for dealing with elements of a finite
 /// field.
 pub trait BaseExt: ff::Field + Ord + ConstantTimeEq {
+    /// Modulus of the field written as a string for display purposes
+    const MODULUS: &'static str;
+
     /// This computes a random element of the field using system randomness.
     fn rand() -> Self {
         Self::random(rand::rngs::OsRng)
@@ -72,9 +75,6 @@ pub trait BaseExt: ff::Field + Ord + ConstantTimeEq {
 }
 
 pub trait FieldExt: ff::PrimeField + BaseExt + Group<Scalar = Self> {
-    /// Modulus of the field written as a string for display purposes
-    const MODULUS: &'static str;
-
     /// Generator of the $2^S$ multiplicative subgroup
     const ROOT_OF_UNITY: Self;
 
@@ -109,6 +109,14 @@ pub trait FieldExt: ff::PrimeField + BaseExt + Group<Scalar = Self> {
 
     /// Obtains a field element congruent to the integer `v`.
     fn from_u128(v: u128) -> Self;
+
+    /// Converts this field element to its normalized, little endian byte
+    /// representation.
+    fn to_bytes(&self) -> [u8; 32];
+
+    /// Attempts to obtain a field element from its normalized, little endian
+    /// byte representation.
+    fn from_bytes(bytes: &[u8; 32]) -> CtOption<Self>;
 }
 
 /// Compute a + b + carry, returning the result and the new carry over.

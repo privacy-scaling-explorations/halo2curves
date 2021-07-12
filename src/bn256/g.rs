@@ -1,5 +1,5 @@
 use crate::arithmetic::{
-    BaseExt, Coordinates, CurveAffine, CurveExt, Group, LinearCombinationEngine,
+    BaseExt, Coordinates, CurveAffine, CurveExt, FieldExt, Group, LinearCombinationEngine,
 };
 use crate::bn256::Fq;
 use crate::bn256::Fq2;

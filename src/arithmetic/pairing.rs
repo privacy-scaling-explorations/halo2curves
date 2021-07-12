@@ -4,11 +4,13 @@ use group::{
     ff::PrimeField, prime::PrimeCurve, Group, GroupOps, GroupOpsOwned, ScalarMul, ScalarMulOwned,
     UncompressedEncoding,
 };
-use std::hash::Hash;
+
+use super::FieldExt;
 
 pub trait Engine: Sized + 'static + Clone {
     /// This is the scalar field of the engine's groups.
-    type Fr: PrimeField + Hash;
+    // TODO: should rename to Scalar?
+    type Fr: FieldExt;
 
     type ScalarCombination: LinearCombinationEngine<Rhs = Self::Fr, Lhs = Self::Fr>;
     type PointCombination: LinearCombinationEngine<Rhs = Self::Fr, Lhs = Self::G1>;
@@ -23,8 +25,8 @@ pub trait Engine: Sized + 'static + Clone {
 
     /// The affine representation of an element in G1.
     type G1Affine: PairingCurveAffine<
-            Scalar = Self::Fr,
-            Curve = Self::G1,
+            ScalarExt = Self::Fr,
+            CurveExt = Self::G1,
             Pair = Self::G2Affine,
             PairingResult = Self::Gt,
         > + From<Self::G1>
@@ -41,8 +43,8 @@ pub trait Engine: Sized + 'static + Clone {
 
     /// The affine representation of an element in G2.
     type G2Affine: PairingCurveAffine<
-            Scalar = Self::Fr,
-            Curve = Self::G2,
+            ScalarExt = Self::Fr,
+            CurveExt = Self::G2,
             Pair = Self::G1Affine,
             PairingResult = Self::Gt,
         > + From<Self::G2>
