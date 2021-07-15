@@ -8,12 +8,10 @@ pub use ff::Field;
 
 mod curves;
 mod fields;
-mod lc;
 mod pairing;
 
 pub use curves::*;
 pub use fields::*;
-pub use lc::*;
 pub use pairing::*;
 
 /// This represents an element of a group with basic operations that can be

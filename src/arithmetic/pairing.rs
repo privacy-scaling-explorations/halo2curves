@@ -1,7 +1,7 @@
-use crate::arithmetic::{CurveAffine, LinearCombinationEngine};
+use crate::arithmetic::CurveAffine;
 use core::ops::Mul;
 use group::{
-    ff::PrimeField, prime::PrimeCurve, Group, GroupOps, GroupOpsOwned, ScalarMul, ScalarMulOwned,
+    prime::PrimeCurve, Group, GroupOps, GroupOpsOwned, ScalarMul, ScalarMulOwned,
     UncompressedEncoding,
 };
 
@@ -9,50 +9,46 @@ use super::FieldExt;
 
 pub trait Engine: Sized + 'static + Clone {
     /// This is the scalar field of the engine's groups.
-    // TODO: should rename to Scalar?
-    type Fr: FieldExt;
-
-    type ScalarCombination: LinearCombinationEngine<Rhs = Self::Fr, Lhs = Self::Fr>;
-    type PointCombination: LinearCombinationEngine<Rhs = Self::Fr, Lhs = Self::G1>;
+    type Scalar: FieldExt;
 
     /// The projective representation of an element in G1.
-    type G1: PrimeCurve<Scalar = Self::Fr, Affine = Self::G1Affine>
+    type G1: PrimeCurve<Scalar = Self::Scalar, Affine = Self::G1Affine>
         + From<Self::G1Affine>
         + GroupOps<Self::G1Affine>
         + GroupOpsOwned<Self::G1Affine>
-        + ScalarMul<Self::Fr>
-        + ScalarMulOwned<Self::Fr>;
+        + ScalarMul<Self::Scalar>
+        + ScalarMulOwned<Self::Scalar>;
 
     /// The affine representation of an element in G1.
     type G1Affine: PairingCurveAffine<
-            ScalarExt = Self::Fr,
+            ScalarExt = Self::Scalar,
             CurveExt = Self::G1,
             Pair = Self::G2Affine,
             PairingResult = Self::Gt,
         > + From<Self::G1>
-        + Mul<Self::Fr, Output = Self::G1>
-        + for<'a> Mul<&'a Self::Fr, Output = Self::G1>;
+        + Mul<Self::Scalar, Output = Self::G1>
+        + for<'a> Mul<&'a Self::Scalar, Output = Self::G1>;
 
     /// The projective representation of an element in G2.
-    type G2: PrimeCurve<Scalar = Self::Fr, Affine = Self::G2Affine>
+    type G2: PrimeCurve<Scalar = Self::Scalar, Affine = Self::G2Affine>
         + From<Self::G2Affine>
         + GroupOps<Self::G2Affine>
         + GroupOpsOwned<Self::G2Affine>
-        + ScalarMul<Self::Fr>
-        + ScalarMulOwned<Self::Fr>;
+        + ScalarMul<Self::Scalar>
+        + ScalarMulOwned<Self::Scalar>;
 
     /// The affine representation of an element in G2.
     type G2Affine: PairingCurveAffine<
-            ScalarExt = Self::Fr,
+            ScalarExt = Self::Scalar,
             CurveExt = Self::G2,
             Pair = Self::G1Affine,
             PairingResult = Self::Gt,
         > + From<Self::G2>
-        + Mul<Self::Fr, Output = Self::G2>
-        + for<'a> Mul<&'a Self::Fr, Output = Self::G2>;
+        + Mul<Self::Scalar, Output = Self::G2>
+        + for<'a> Mul<&'a Self::Scalar, Output = Self::G2>;
 
     /// The extension field that hosts the target group of the pairing.
-    type Gt: Group<Scalar = Self::Fr> + ScalarMul<Self::Fr> + ScalarMulOwned<Self::Fr>;
+    type Gt: Group<Scalar = Self::Scalar> + ScalarMul<Self::Scalar> + ScalarMulOwned<Self::Scalar>;
 
     /// Invoke the pairing function `G1 x G2 -> Gt` without the use of precomputation and
     /// other optimizations.

@@ -628,14 +628,12 @@ pub fn pairing(g1: &G1Affine, g2: &G2Affine) -> Gt {
 pub struct Bn256;
 
 impl Engine for Bn256 {
-    type Fr = Fr;
+    type Scalar = Fr;
     type G1 = G1;
     type G1Affine = G1Affine;
     type G2 = G2;
     type G2Affine = G2Affine;
     type Gt = Gt;
-    type PointCombination = PointCombination;
-    type ScalarCombination = ScalarCombination;
 
     fn pairing(p: &Self::G1Affine, q: &Self::G2Affine) -> Self::Gt {
         pairing(p, q)

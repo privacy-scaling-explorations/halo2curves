@@ -1,6 +1,4 @@
-use crate::arithmetic::{
-    BaseExt, Coordinates, CurveAffine, CurveExt, FieldExt, Group, LinearCombinationEngine,
-};
+use crate::arithmetic::{BaseExt, Coordinates, CurveAffine, CurveExt, FieldExt, Group};
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
@@ -164,57 +162,13 @@ impl G2 {
     }
 }
 
-pub struct PointCombination {
-    sum: G1,
-    base: Fr,
-    lc: Fr,
-}
-
-impl LinearCombinationEngine for PointCombination {
-    type Lhs = G1;
-    type Rhs = Fr;
-
-    fn new(base: Self::Rhs) -> Self {
-        PointCombination {
-            sum: G1::identity(),
-            base,
-            lc: Fr::one(),
-        }
-    }
-
-    fn result(&mut self) -> Self::Lhs {
-        let res = self.sum;
-        self.sum = G1::identity();
-        self.lc = Fr::one();
-        res
-    }
-
-    fn add(&mut self, coeff: Self::Lhs) {
-        self.sum += coeff * self.lc;
-        self.lc *= self.base;
-    }
-
-    fn add_with_aux(&mut self, elem: Self::Lhs, aux: Self::Rhs) {
-        self.sum += elem * self.lc * aux;
-        self.lc *= self.base;
-    }
-
-    fn combine(base: Self::Rhs, coeffs: Vec<Self::Lhs>) -> Self::Lhs {
-        let mut lc = Self::new(base);
-        for coeff in coeffs.iter() {
-            lc.add(*coeff);
-        }
-        lc.result()
-    }
-}
-
 #[cfg(test)]
 mod tests {
 
-    use crate::bn256::{Fr, G1Affine, PointCombination, G1, G2};
+    use crate::bn256::{G1, G2};
     use ff::Field;
 
-    use crate::arithmetic::{CurveAffine, CurveExt, FieldExt};
+    use crate::arithmetic::{CurveAffine, CurveExt};
     use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine};
     use rand::SeedableRng;
     use rand_xorshift::XorShiftRng;
@@ -490,40 +444,6 @@ mod tests {
         mixed_addition::<G2>();
         multiplication::<G2>();
         batch_normalize::<G1>();
-    }
-
-    #[test]
-    fn test_lc() {
-        let mut rng = XorShiftRng::from_seed([
-            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
-            0xbc, 0xe5,
-        ]);
-        use crate::arithmetic::LinearCombinationEngine;
-        let base = Fr::from_u64(10);
-        let mut lc = PointCombination::new(base);
-        let u0 = G1Affine::random(&mut rng).into();
-        let u1 = G1Affine::random(&mut rng).into();
-        let u2 = G1Affine::random(&mut rng).into();
-
-        lc.add(u0);
-        lc.add(u1);
-        lc.add(u2);
-
-        let res = u0 + u1 * base + u2 * (base * base);
-
-        assert!(res == lc.result());
-        assert!(res == PointCombination::combine(base, vec![u0, u1, u2]));
-
-        let z0 = Fr::random(&mut rng);
-        let z1 = Fr::random(&mut rng);
-        let z2 = Fr::random(&mut rng);
-
-        lc.add_with_aux(u0, z0);
-        lc.add_with_aux(u1, z1);
-        lc.add_with_aux(u2, z2);
-
-        let res = u0 * z0 + u1 * (base * z1) + u2 * (base * base * z2);
-        assert!(res == lc.result());
     }
 }
 
