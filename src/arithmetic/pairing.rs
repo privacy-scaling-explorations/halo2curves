@@ -1,4 +1,4 @@
-use crate::arithmetic::CurveAffine;
+use crate::arithmetic::{CurveAffine, Group as _Group};
 use core::ops::Mul;
 use group::{
     prime::PrimeCurve, Group, GroupOps, GroupOpsOwned, ScalarMul, ScalarMulOwned,
@@ -17,7 +17,8 @@ pub trait Engine: Sized + 'static + Clone {
         + GroupOps<Self::G1Affine>
         + GroupOpsOwned<Self::G1Affine>
         + ScalarMul<Self::Scalar>
-        + ScalarMulOwned<Self::Scalar>;
+        + ScalarMulOwned<Self::Scalar>
+        + _Group<Scalar = Self::Scalar>;
 
     /// The affine representation of an element in G1.
     type G1Affine: PairingCurveAffine<
