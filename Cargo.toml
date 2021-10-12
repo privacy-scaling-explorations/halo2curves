@@ -17,9 +17,9 @@ criterion = "0.3"
 rand_xorshift = "0.3"
 
 [dependencies]
-subtle = "2.3"
-ff = { version = "0.10" }
-group = "0.10"
+subtle = "2.4"
+ff = "0.11"
+group = "0.11"
 # pairing = "0.20"
 static_assertions = "1.1.0"
 rand = "0.8"

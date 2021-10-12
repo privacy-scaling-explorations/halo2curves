@@ -511,8 +511,8 @@ impl ff::Field for Fq {
         Self::one()
     }
 
-    fn is_zero(&self) -> bool {
-        self.ct_is_zero().into()
+    fn is_zero(&self) -> Choice {
+        self.ct_is_zero()
     }
 
     fn double(&self) -> Self {

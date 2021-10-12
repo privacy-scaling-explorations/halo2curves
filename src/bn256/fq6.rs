@@ -396,8 +396,8 @@ impl Field for Fq6 {
         }
     }
 
-    fn is_zero(&self) -> bool {
-        self.c0.is_zero() && self.c1.is_zero()
+    fn is_zero(&self) -> Choice {
+        self.c0.is_zero() & self.c1.is_zero()
     }
 
     fn square(&self) -> Self {

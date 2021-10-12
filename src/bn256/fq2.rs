@@ -321,8 +321,8 @@ impl Field for Fq2 {
         }
     }
 
-    fn is_zero(&self) -> bool {
-        self.c0.is_zero() && self.c1.is_zero()
+    fn is_zero(&self) -> Choice {
+        self.c0.is_zero() & self.c1.is_zero()
     }
 
     fn square(&self) -> Self {
@@ -336,7 +336,7 @@ impl Field for Fq2 {
     fn sqrt(&self) -> CtOption<Self> {
         // Algorithm 9, https://eprint.iacr.org/2012/685.pdf
 
-        if self.is_zero() {
+        if self.is_zero().into() {
             CtOption::new(Self::zero(), Choice::from(1))
         } else {
             // a1 = self^((q - 3) / 4)
@@ -490,13 +490,17 @@ fn test_fq2_basics() {
         },
         Fq2::one()
     );
-    assert!(Fq2::zero().is_zero());
-    assert!(!Fq2::one().is_zero());
-    assert!(!Fq2 {
-        c0: Fq::zero(),
-        c1: Fq::one(),
-    }
-    .is_zero());
+    assert_eq!(Fq2::zero().is_zero().unwrap_u8(), 1);
+    assert_eq!(Fq2::one().is_zero().unwrap_u8(), 0);
+    assert_eq!(
+        Fq2 {
+            c0: Fq::zero(),
+            c1: Fq::one(),
+        }
+        .is_zero()
+        .unwrap_u8(),
+        0
+    );
 }
 
 #[test]

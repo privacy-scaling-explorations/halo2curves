@@ -24,6 +24,7 @@ macro_rules! new_curve_impl {
             infinity: Choice,
         }
 
+        #[derive(Copy, Clone)]
         $($privacy)* struct $name_compressed([u8; $base::size()]);
 
 

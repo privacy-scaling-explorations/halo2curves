@@ -17,11 +17,11 @@ pub fn random_field_tests<F: Field>() {
     random_inversion_tests::<F, _>(&mut rng);
     random_expansion_tests::<F, _>(&mut rng);
 
-    assert!(F::zero().is_zero());
+    assert_eq!(F::zero().is_zero().unwrap_u8(), 1);
     {
         let mut z = F::zero();
         z = z.neg();
-        assert!(z.is_zero());
+        assert_eq!(z.is_zero().unwrap_u8(), 1);
     }
 
     assert!(bool::from(F::zero().invert().is_none()));
@@ -30,7 +30,7 @@ pub fn random_field_tests<F: Field>() {
     {
         let mut a = F::random(&mut rng);
         a.mul_assign(&F::zero());
-        assert!(a.is_zero());
+        assert_eq!(a.is_zero().unwrap_u8(), 1);
     }
 
     // Addition by zero
@@ -102,7 +102,7 @@ fn random_subtraction_tests<F: Field, R: RngCore>(mut rng: R) {
         let mut t2 = t0; // (a - b) + (b - a) = 0
         t2.add_assign(&t1);
 
-        assert!(t2.is_zero());
+        assert_eq!(t2.is_zero().unwrap_u8(), 1);
     }
 }
 
@@ -113,7 +113,7 @@ fn random_negation_tests<F: Field, R: RngCore>(mut rng: R) {
         b = b.neg();
         b.add_assign(&a);
 
-        assert!(b.is_zero());
+        assert_eq!(b.is_zero().unwrap_u8(), 1);
     }
 }
 

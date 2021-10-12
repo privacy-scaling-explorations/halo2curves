@@ -455,8 +455,8 @@ impl ff::Field for Fr {
         Self::one()
     }
 
-    fn is_zero(&self) -> bool {
-        self.ct_is_zero().into()
+    fn is_zero(&self) -> Choice {
+        self.ct_is_zero()
     }
 
     fn double(&self) -> Self {
@@ -494,7 +494,7 @@ impl ff::PrimeField for Fr {
     const CAPACITY: u32 = 252;
     const S: u32 = S;
 
-    fn from_repr(repr: Self::Repr) -> Option<Self> {
+    fn from_repr(repr: Self::Repr) -> CtOption<Self> {
         Self::from_bytes(&repr).into()
     }
 
@@ -502,8 +502,12 @@ impl ff::PrimeField for Fr {
         self.to_bytes()
     }
 
-    fn is_odd(&self) -> bool {
-        self.to_bytes()[0] & 1 == 1
+    fn is_odd(&self) -> Choice {
+        if self.to_bytes()[0] & 1 == 1 {
+            Choice::from(1)
+        } else {
+            Choice::from(0)
+        }
     }
 
     fn multiplicative_generator() -> Self {
