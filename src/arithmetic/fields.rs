@@ -75,9 +75,6 @@ pub trait BaseExt: ff::Field + Ord + ConstantTimeEq {
 }
 
 pub trait FieldExt: ff::PrimeField + BaseExt + Group<Scalar = Self> {
-    /// Generator of the $2^S$ multiplicative subgroup
-    const ROOT_OF_UNITY: Self;
-
     /// Inverse of $2$ in the field.
     const TWO_INV: Self;
 
@@ -103,9 +100,6 @@ pub trait FieldExt: ff::PrimeField + BaseExt + Group<Scalar = Self> {
     /// Obtains a field element that is congruent to the provided little endian
     /// byte representation of an integer.
     fn from_bytes_wide(bytes: &[u8; 64]) -> Self;
-
-    /// Obtains a field element congruent to the integer `v`.
-    fn from_u64(v: u64) -> Self;
 
     /// Obtains a field element congruent to the integer `v`.
     fn from_u128(v: u128) -> Self;

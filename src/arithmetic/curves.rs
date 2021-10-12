@@ -2,7 +2,6 @@
 //! write code that generalizes over a pair of groups.
 
 use super::{BaseExt, FieldExt, Group};
-use core::cmp;
 use core::ops::{Add, Mul, Sub};
 use group::prime::{PrimeCurve, PrimeCurveAffine};
 use std::io::{self, Read, Write};
@@ -15,8 +14,6 @@ pub trait CurveExt:
     PrimeCurve<Affine = <Self as CurveExt>::AffineExt>
     + group::Group<Scalar = <Self as CurveExt>::ScalarExt>
     + Default
-    + PartialEq
-    + cmp::Eq
     + ConditionallySelectable
     + ConstantTimeEq
     + From<<Self as PrimeCurve>::Affine>

@@ -441,10 +441,16 @@ impl<'a> From<&'a Fr> for [u8; 32] {
 
 impl ff::Field for Fr {
     fn random(mut rng: impl RngCore) -> Self {
-        let mut random_bytes = [0; 64];
-        rng.fill_bytes(&mut random_bytes[..]);
-
-        Self::from_bytes_wide(&random_bytes)
+        Self::from_u512([
+            rng.next_u64(),
+            rng.next_u64(),
+            rng.next_u64(),
+            rng.next_u64(),
+            rng.next_u64(),
+            rng.next_u64(),
+            rng.next_u64(),
+            rng.next_u64(),
+        ])
     }
 
     fn zero() -> Self {
@@ -495,19 +501,47 @@ impl ff::PrimeField for Fr {
     const S: u32 = S;
 
     fn from_repr(repr: Self::Repr) -> CtOption<Self> {
-        Self::from_bytes(&repr).into()
+        let mut tmp = Fr([0, 0, 0, 0]);
+
+        tmp.0[0] = u64::from_le_bytes(repr[0..8].try_into().unwrap());
+        tmp.0[1] = u64::from_le_bytes(repr[8..16].try_into().unwrap());
+        tmp.0[2] = u64::from_le_bytes(repr[16..24].try_into().unwrap());
+        tmp.0[3] = u64::from_le_bytes(repr[24..32].try_into().unwrap());
+
+        // Try to subtract the modulus
+        let (_, borrow) = sbb(tmp.0[0], MODULUS.0[0], 0);
+        let (_, borrow) = sbb(tmp.0[1], MODULUS.0[1], borrow);
+        let (_, borrow) = sbb(tmp.0[2], MODULUS.0[2], borrow);
+        let (_, borrow) = sbb(tmp.0[3], MODULUS.0[3], borrow);
+
+        // If the element is smaller than MODULUS then the
+        // subtraction will underflow, producing a borrow value
+        // of 0xffff...ffff. Otherwise, it'll be zero.
+        let is_some = (borrow as u8) & 1;
+
+        // Convert to Montgomery form by computing
+        // (a.R^0 * R^2) / R = a.R
+        tmp *= &R2;
+
+        CtOption::new(tmp, Choice::from(is_some))
     }
 
     fn to_repr(&self) -> Self::Repr {
-        self.to_bytes()
+        // Turn into canonical form by computing
+        // (a.R) / R = a
+        let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+
+        let mut res = [0; 32];
+        res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
+        res[8..16].copy_from_slice(&tmp.0[1].to_le_bytes());
+        res[16..24].copy_from_slice(&tmp.0[2].to_le_bytes());
+        res[24..32].copy_from_slice(&tmp.0[3].to_le_bytes());
+
+        res
     }
 
     fn is_odd(&self) -> Choice {
-        if self.to_bytes()[0] & 1 == 1 {
-            Choice::from(1)
-        } else {
-            Choice::from(0)
-        }
+        Choice::from(self.to_repr()[0] & 1)
     }
 
     fn multiplicative_generator() -> Self {
@@ -515,7 +549,7 @@ impl ff::PrimeField for Fr {
     }
 
     fn root_of_unity() -> Self {
-        Self::ROOT_OF_UNITY
+        ROOT_OF_UNITY
     }
 }
 
@@ -543,7 +577,7 @@ impl BaseExt for Fr {
 }
 
 impl FieldExt for Fr {
-    const ROOT_OF_UNITY: Self = ROOT_OF_UNITY;
+    // const ROOT_OF_UNITY: Self = ROOT_OF_UNITY;
 
     const TWO_INV: Self = Fr::from_raw([
         0xa1f0fac9f8000001,
@@ -605,10 +639,6 @@ impl FieldExt for Fr {
         ])
     }
 
-    fn from_u64(v: u64) -> Self {
-        Fr::from_raw([v as u64, 0, 0, 0])
-    }
-
     fn from_u128(v: u128) -> Self {
         Fr::from_raw([v as u64, (v >> 64) as u64, 0, 0])
     }
@@ -616,45 +646,13 @@ impl FieldExt for Fr {
     /// Attempts to convert a little-endian byte representation of
     /// a scalar into a `Fr`, failing if the input is not canonical.
     fn from_bytes(bytes: &[u8; 32]) -> CtOption<Fr> {
-        let mut tmp = Fr([0, 0, 0, 0]);
-
-        tmp.0[0] = u64::from_le_bytes(bytes[0..8].try_into().unwrap());
-        tmp.0[1] = u64::from_le_bytes(bytes[8..16].try_into().unwrap());
-        tmp.0[2] = u64::from_le_bytes(bytes[16..24].try_into().unwrap());
-        tmp.0[3] = u64::from_le_bytes(bytes[24..32].try_into().unwrap());
-
-        // Try to subtract the modulus
-        let (_, borrow) = sbb(tmp.0[0], MODULUS.0[0], 0);
-        let (_, borrow) = sbb(tmp.0[1], MODULUS.0[1], borrow);
-        let (_, borrow) = sbb(tmp.0[2], MODULUS.0[2], borrow);
-        let (_, borrow) = sbb(tmp.0[3], MODULUS.0[3], borrow);
-
-        // If the element is smaller than MODULUS then the
-        // subtraction will underflow, producing a borrow value
-        // of 0xffff...ffff. Otherwise, it'll be zero.
-        let is_some = (borrow as u8) & 1;
-
-        // Convert to Montgomery form by computing
-        // (a.R^0 * R^2) / R = a.R
-        tmp *= &R2;
-
-        CtOption::new(tmp, Choice::from(is_some))
+        <Self as ff::PrimeField>::from_repr(*bytes)
     }
 
     /// Converts an element of `Fr` into a byte representation in
     /// little-endian byte order.
     fn to_bytes(&self) -> [u8; 32] {
-        // Turn into canonical form by computing
-        // (a.R) / R = a
-        let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
-
-        let mut res = [0; 32];
-        res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
-        res[8..16].copy_from_slice(&tmp.0[1].to_le_bytes());
-        res[16..24].copy_from_slice(&tmp.0[2].to_le_bytes());
-        res[24..32].copy_from_slice(&tmp.0[3].to_le_bytes());
-
-        res
+        <Self as ff::PrimeField>::to_repr(self)
     }
 }
 
@@ -675,14 +673,14 @@ fn test_zeta() {
 #[test]
 fn test_root_of_unity() {
     assert_eq!(
-        Fr::ROOT_OF_UNITY.pow_vartime(&[1 << Fr::S, 0, 0, 0]),
+        Fr::root_of_unity().pow_vartime(&[1 << Fr::S, 0, 0, 0]),
         Fr::one()
     );
 }
 
 #[test]
 fn test_inv_root_of_unity() {
-    assert_eq!(Fr::ROOT_OF_UNITY_INV, Fr::ROOT_OF_UNITY.invert().unwrap());
+    assert_eq!(Fr::ROOT_OF_UNITY_INV, Fr::root_of_unity().invert().unwrap());
 }
 
 #[test]
