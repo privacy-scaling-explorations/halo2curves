@@ -246,21 +246,6 @@ impl Fq {
         res
     }
 
-    /// Converts a 512-bit little endian integer into
-    /// a `Fq` by reducing by the modulus.
-    fn from_bytes_wide(bytes: &[u8; 64]) -> Fq {
-        Fq::from_u512([
-            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
-            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
-            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
-            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
-            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
-            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
-            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
-        ])
-    }
-
     pub fn legendre(&self) -> LegendreSymbol {
         // s = self^((modulus - 1) // 2)
         // 0x183227397098d014dc2822db40c0ac2ecbc0b548b438e5469e10460b6c3e7ea3
@@ -553,6 +538,21 @@ impl ff::Field for Fq {
 impl BaseExt for Fq {
     const MODULUS: &'static str =
         "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
+
+    /// Converts a 512-bit little endian integer into
+    /// a `Fq` by reducing by the modulus.
+    fn from_bytes_wide(bytes: &[u8; 64]) -> Self {
+        Self::from_u512([
+            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
+            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
+            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
+            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
+            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
+            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
+            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
+            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
+        ])
+    }
 
     /// Writes this element in its normalized, little endian form into a buffer.
     fn write<W: Write>(&self, writer: &mut W) -> io::Result<()> {

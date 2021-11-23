@@ -556,6 +556,22 @@ impl ff::PrimeField for Fr {
 impl BaseExt for Fr {
     const MODULUS: &'static str =
         "0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001";
+
+    /// Converts a 512-bit little endian integer into
+    /// a `Fr` by reducing by the modulus.
+    fn from_bytes_wide(bytes: &[u8; 64]) -> Self {
+        Self::from_u512([
+            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
+            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
+            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
+            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
+            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
+            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
+            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
+            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
+        ])
+    }
+
     fn ct_is_zero(&self) -> Choice {
         self.ct_eq(&Self::zero())
     }
@@ -623,21 +639,6 @@ impl FieldExt for Fr {
         0x048b6e193fd84104,
         0x30644e72e131a029,
     ]);
-
-    /// Converts a 512-bit little endian integer into
-    /// a `Fr` by reducing by the modulus.
-    fn from_bytes_wide(bytes: &[u8; 64]) -> Fr {
-        Fr::from_u512([
-            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
-            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
-            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
-            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
-            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
-            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
-            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
-        ])
-    }
 
     fn from_u128(v: u128) -> Self {
         Fr::from_raw([v as u64, (v >> 64) as u64, 0, 0])

@@ -26,6 +26,10 @@ pub trait BaseExt: ff::Field + Ord + ConstantTimeEq {
         self.ct_eq(&Self::zero())
     }
 
+    /// Obtains a field element that is congruent to the provided little endian
+    /// byte representation of an integer.
+    fn from_bytes_wide(bytes: &[u8; 64]) -> Self;
+
     /// Writes this element in its normalized, little endian form into a buffer.
     fn write<W: Write>(&self, writer: &mut W) -> io::Result<()>;
 
@@ -96,10 +100,6 @@ pub trait FieldExt: ff::PrimeField + BaseExt + Group<Scalar = Self> {
 
     /// Element of multiplicative order $3$.
     const ZETA: Self;
-
-    /// Obtains a field element that is congruent to the provided little endian
-    /// byte representation of an integer.
-    fn from_bytes_wide(bytes: &[u8; 64]) -> Self;
 
     /// Obtains a field element congruent to the integer `v`.
     fn from_u128(v: u128) -> Self;

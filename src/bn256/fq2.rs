@@ -398,6 +398,12 @@ impl BaseExt for Fq2 {
     const MODULUS: &'static str =
         "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
 
+    /// Converts a 512-bit little endian integer into
+    /// a `Fq` by reducing by the modulus.
+    fn from_bytes_wide(_: &[u8; 64]) -> Self {
+        unimplemented!();
+    }
+
     /// Writes this element in its normalized, little endian form into a buffer.
     fn write<W: Write>(&self, writer: &mut W) -> io::Result<()> {
         let compressed = self.to_bytes();
