@@ -111,6 +111,10 @@ pub trait FieldExt: ff::PrimeField + BaseExt + Group<Scalar = Self> {
     /// Attempts to obtain a field element from its normalized, little endian
     /// byte representation.
     fn from_bytes(bytes: &[u8; 32]) -> CtOption<Self>;
+
+    /// Gets the lower 128 bits of this field element when expressed
+    /// canonically.
+    fn get_lower_128(&self) -> u128;
 }
 
 /// Compute a + b + carry, returning the result and the new carry over.

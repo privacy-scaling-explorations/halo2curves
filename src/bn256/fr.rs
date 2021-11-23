@@ -655,6 +655,14 @@ impl FieldExt for Fr {
     fn to_bytes(&self) -> [u8; 32] {
         <Self as ff::PrimeField>::to_repr(self)
     }
+
+    /// Gets the lower 128 bits of this field element when expressed
+    /// canonically.
+    fn get_lower_128(&self) -> u128 {
+        let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+
+        u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)
+    }
 }
 
 #[cfg(test)]
