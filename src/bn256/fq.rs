@@ -1,5 +1,5 @@
 use super::LegendreSymbol;
-use crate::arithmetic::{adc, mac, sbb, BaseExt};
+use crate::arithmetic::{adc, mac, sbb, BaseExt, FieldExt, Group};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
@@ -47,15 +47,28 @@ const R3: Fq = Fq([
 ]);
 
 pub const NEGATIVE_ONE: Fq = Fq([
-    // 0x974bc177a0000006,
-    // 0xf13771b2da58a367,
-    // 0x51e1a2470908122e,
-    // 0x2259d6b14729c0fa,
     0x68c3488912edefaa,
     0x8d087f6872aabf4f,
     0x51e1a24709081231,
     0x2259d6b14729c0fa,
 ]);
+
+impl Group for Fq {
+    type Scalar = Fq;
+
+    fn group_zero() -> Self {
+        Self::zero()
+    }
+    fn group_add(&mut self, rhs: &Self) {
+        *self += *rhs;
+    }
+    fn group_sub(&mut self, rhs: &Self) {
+        *self -= *rhs;
+    }
+    fn group_scale(&mut self, by: &Self::Scalar) {
+        *self *= *by;
+    }
+}
 
 impl ::std::fmt::Display for Fq {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -535,6 +548,67 @@ impl ff::Field for Fq {
     }
 }
 
+impl ff::PrimeField for Fq {
+    type Repr = [u8; 32];
+
+    const NUM_BITS: u32 = 254;
+    const CAPACITY: u32 = 253;
+
+    const S: u32 = 0;
+
+    fn from_repr(repr: Self::Repr) -> CtOption<Self> {
+        let mut tmp = Fq([0, 0, 0, 0]);
+
+        tmp.0[0] = u64::from_le_bytes(repr[0..8].try_into().unwrap());
+        tmp.0[1] = u64::from_le_bytes(repr[8..16].try_into().unwrap());
+        tmp.0[2] = u64::from_le_bytes(repr[16..24].try_into().unwrap());
+        tmp.0[3] = u64::from_le_bytes(repr[24..32].try_into().unwrap());
+
+        // Try to subtract the modulus
+        let (_, borrow) = sbb(tmp.0[0], MODULUS.0[0], 0);
+        let (_, borrow) = sbb(tmp.0[1], MODULUS.0[1], borrow);
+        let (_, borrow) = sbb(tmp.0[2], MODULUS.0[2], borrow);
+        let (_, borrow) = sbb(tmp.0[3], MODULUS.0[3], borrow);
+
+        // If the element is smaller than MODULUS then the
+        // subtraction will underflow, producing a borrow value
+        // of 0xffff...ffff. Otherwise, it'll be zero.
+        let is_some = (borrow as u8) & 1;
+
+        // Convert to Montgomery form by computing
+        // (a.R^0 * R^2) / R = a.R
+        tmp *= &R2;
+
+        CtOption::new(tmp, Choice::from(is_some))
+    }
+
+    fn to_repr(&self) -> Self::Repr {
+        // Turn into canonical form by computing
+        // (a.R) / R = a
+        let tmp = Self::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+
+        let mut res = [0; 32];
+        res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
+        res[8..16].copy_from_slice(&tmp.0[1].to_le_bytes());
+        res[16..24].copy_from_slice(&tmp.0[2].to_le_bytes());
+        res[24..32].copy_from_slice(&tmp.0[3].to_le_bytes());
+
+        res
+    }
+
+    fn is_odd(&self) -> Choice {
+        Choice::from(self.to_repr()[0] & 1)
+    }
+
+    fn multiplicative_generator() -> Self {
+        unimplemented!()
+    }
+
+    fn root_of_unity() -> Self {
+        unimplemented!()
+    }
+}
+
 impl BaseExt for Fq {
     const MODULUS: &'static str =
         "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
@@ -567,6 +641,40 @@ impl BaseExt for Fq {
         reader.read_exact(&mut compressed[..])?;
         Option::from(Self::from_bytes(&compressed))
             .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "invalid point encoding in proof"))
+    }
+}
+
+impl FieldExt for Fq {
+    const TWO_INV: Self = Self::from_raw([0, 0, 0, 0]);
+    const ROOT_OF_UNITY_INV: Self = Self::from_raw([0, 0, 0, 0]);
+    const DELTA: Self = Self::from_raw([0, 0, 0, 0]);
+    const RESCUE_ALPHA: u64 = 0;
+    const RESCUE_INVALPHA: [u64; 4] = [0, 0, 0, 0];
+    const T_MINUS1_OVER2: [u64; 4] = [0, 0, 0, 0];
+    const ZETA: Self = Self::from_raw([0, 0, 0, 0]);
+
+    fn from_u128(v: u128) -> Self {
+        Fq::from_raw([v as u64, (v >> 64) as u64, 0, 0])
+    }
+
+    /// Attempts to convert a little-endian byte representation of
+    /// a scalar into a `Fr`, failing if the input is not canonical.
+    fn from_bytes(bytes: &[u8; 32]) -> CtOption<Fq> {
+        <Self as ff::PrimeField>::from_repr(*bytes)
+    }
+
+    /// Converts an element of `Fr` into a byte representation in
+    /// little-endian byte order.
+    fn to_bytes(&self) -> [u8; 32] {
+        <Self as ff::PrimeField>::to_repr(self)
+    }
+
+    /// Gets the lower 128 bits of this field element when expressed
+    /// canonically.
+    fn get_lower_128(&self) -> u128 {
+        let tmp = Fq::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+
+        u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)
     }
 }
 

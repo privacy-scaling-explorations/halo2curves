@@ -496,8 +496,8 @@ impl ff::Field for Fr {
 impl ff::PrimeField for Fr {
     type Repr = [u8; 32];
 
-    const NUM_BITS: u32 = 253;
-    const CAPACITY: u32 = 252;
+    const NUM_BITS: u32 = 254;
+    const CAPACITY: u32 = 253;
     const S: u32 = S;
 
     fn from_repr(repr: Self::Repr) -> CtOption<Self> {
