@@ -645,5 +645,5 @@ fn test_frobenius() {
 
 #[test]
 fn test_field() {
-    crate::tests::field::random_field_tests::<Fq2>();
+    crate::tests::field::random_field_tests::<Fq2>("fq2".to_string());
 }

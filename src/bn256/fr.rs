@@ -736,5 +736,5 @@ fn test_from_u512() {
 
 #[test]
 fn test_field() {
-    crate::tests::field::random_field_tests::<Fr>();
+    crate::tests::field::random_field_tests::<Fr>("fr".to_string());
 }
