@@ -7,7 +7,7 @@ use rand::RngCore;
 use std::io::{self, Read, Write};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-#[cfg(feature = "asm")]
+#[cfg(all(feature = "asm", target_arch = "x86_64"))]
 use super::assembly::assembly_field;
 
 #[derive(Clone, Copy, Eq)]
@@ -214,9 +214,6 @@ impl<'a, 'b> Mul<&'b Fq> for &'a Fq {
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
 
-#[cfg(feature = "asm")]
-assembly_field!(Fq, MODULUS, INV);
-
 impl Fq {
     pub const fn size() -> usize {
         32
@@ -254,10 +251,10 @@ impl Fq {
     pub fn to_bytes(&self) -> [u8; 32] {
         // Turn into canonical form by computing
         // (a.R) / R = a
-        #[cfg(feature = "asm")]
+        #[cfg(all(feature = "asm", target_arch = "x86_64"))]
         let tmp = Fq::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
 
-        #[cfg(not(feature = "asm"))]
+        #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
         let tmp = Fq::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
 
         let mut res = [0; 32];
@@ -287,10 +284,7 @@ impl Fq {
             LegendreSymbol::QuadraticNonResidue
         }
     }
-}
 
-#[cfg(not(feature = "asm"))]
-impl Fq {
     /// Returns zero, the additive identity.
     #[inline]
     pub const fn zero() -> Fq {
@@ -301,13 +295,6 @@ impl Fq {
     #[inline]
     pub const fn one() -> Fq {
         R
-    }
-
-    /// Doubles this field element.
-    #[inline]
-    pub const fn double(&self) -> Fq {
-        // TODO: This can be achieved more efficiently with a bitshift.
-        self.add(self)
     }
 
     fn from_u512(limbs: [u64; 8]) -> Fq {
@@ -333,7 +320,80 @@ impl Fq {
     /// Converts from an integer represented in little endian
     /// into its (congruent) `Fq` representation.
     pub const fn from_raw(val: [u64; 4]) -> Self {
-        (&Fq(val)).mul(&R2)
+        let (r0, carry) = mac(0, val[0], R2.0[0], 0);
+        let (r1, carry) = mac(0, val[0], R2.0[1], carry);
+        let (r2, carry) = mac(0, val[0], R2.0[2], carry);
+        let (r3, r4) = mac(0, val[0], R2.0[3], carry);
+
+        let (r1, carry) = mac(r1, val[1], R2.0[0], 0);
+        let (r2, carry) = mac(r2, val[1], R2.0[1], carry);
+        let (r3, carry) = mac(r3, val[1], R2.0[2], carry);
+        let (r4, r5) = mac(r4, val[1], R2.0[3], carry);
+
+        let (r2, carry) = mac(r2, val[2], R2.0[0], 0);
+        let (r3, carry) = mac(r3, val[2], R2.0[1], carry);
+        let (r4, carry) = mac(r4, val[2], R2.0[2], carry);
+        let (r5, r6) = mac(r5, val[2], R2.0[3], carry);
+
+        let (r3, carry) = mac(r3, val[3], R2.0[0], 0);
+        let (r4, carry) = mac(r4, val[3], R2.0[1], carry);
+        let (r5, carry) = mac(r5, val[3], R2.0[2], carry);
+        let (r6, r7) = mac(r6, val[3], R2.0[3], carry);
+
+        let k = r0.wrapping_mul(INV);
+        let (_, carry) = mac(r0, k, MODULUS.0[0], 0);
+        let (r1, carry) = mac(r1, k, MODULUS.0[1], carry);
+        let (r2, carry) = mac(r2, k, MODULUS.0[2], carry);
+        let (r3, carry) = mac(r3, k, MODULUS.0[3], carry);
+        let (r4, carry2) = adc(r4, 0, carry);
+
+        let k = r1.wrapping_mul(INV);
+        let (_, carry) = mac(r1, k, MODULUS.0[0], 0);
+        let (r2, carry) = mac(r2, k, MODULUS.0[1], carry);
+        let (r3, carry) = mac(r3, k, MODULUS.0[2], carry);
+        let (r4, carry) = mac(r4, k, MODULUS.0[3], carry);
+        let (r5, carry2) = adc(r5, carry2, carry);
+
+        let k = r2.wrapping_mul(INV);
+        let (_, carry) = mac(r2, k, MODULUS.0[0], 0);
+        let (r3, carry) = mac(r3, k, MODULUS.0[1], carry);
+        let (r4, carry) = mac(r4, k, MODULUS.0[2], carry);
+        let (r5, carry) = mac(r5, k, MODULUS.0[3], carry);
+        let (r6, carry2) = adc(r6, carry2, carry);
+
+        let k = r3.wrapping_mul(INV);
+        let (_, carry) = mac(r3, k, MODULUS.0[0], 0);
+        let (r4, carry) = mac(r4, k, MODULUS.0[1], carry);
+        let (r5, carry) = mac(r5, k, MODULUS.0[2], carry);
+        let (r6, carry) = mac(r6, k, MODULUS.0[3], carry);
+        let (r7, _) = adc(r7, carry2, carry);
+
+        let (d0, borrow) = sbb(r4, MODULUS.0[0], 0);
+        let (d1, borrow) = sbb(r5, MODULUS.0[1], borrow);
+        let (d2, borrow) = sbb(r6, MODULUS.0[2], borrow);
+        let (d3, borrow) = sbb(r7, MODULUS.0[3], borrow);
+
+        // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
+        // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
+        let (d0, carry) = adc(d0, MODULUS.0[0] & borrow, 0);
+        let (d1, carry) = adc(d1, MODULUS.0[1] & borrow, carry);
+        let (d2, carry) = adc(d2, MODULUS.0[2] & borrow, carry);
+        let (d3, _) = adc(d3, MODULUS.0[3] & borrow, carry);
+
+        Fq([d0, d1, d2, d3])
+    }
+}
+
+#[cfg(all(feature = "asm", target_arch = "x86_64"))]
+assembly_field!(Fq, MODULUS, INV);
+
+#[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
+impl Fq {
+    /// Doubles this field element.
+    #[inline]
+    pub const fn double(&self) -> Fq {
+        // TODO: This can be achieved more efficiently with a bitshift.
+        self.add(self)
     }
 
     /// Squares this element.
@@ -598,11 +658,11 @@ impl ff::PrimeField for Fq {
     fn to_repr(&self) -> Self::Repr {
         // Turn into canonical form by computing
         // (a.R) / R = a
-        #[cfg(feature = "asm")]
+        #[cfg(all(feature = "asm", target_arch = "x86_64"))]
         let tmp =
             Self::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
 
-        #[cfg(not(feature = "asm"))]
+        #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
         let tmp = Self::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
 
         let mut res = [0; 32];
@@ -690,10 +750,10 @@ impl FieldExt for Fq {
     /// Gets the lower 128 bits of this field element when expressed
     /// canonically.
     fn get_lower_128(&self) -> u128 {
-        #[cfg(feature = "asm")]
+        #[cfg(all(feature = "asm", target_arch = "x86_64"))]
         let tmp = Fq::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
 
-        #[cfg(not(feature = "asm"))]
+        #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
         let tmp = Fq::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
 
         u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)

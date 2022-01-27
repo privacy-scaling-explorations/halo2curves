@@ -1,18 +1,6 @@
 macro_rules! assembly_field {
     ($field:ident, $modulus:ident, $inv:ident) => {
         impl $field {
-            /// Returns zero, the additive identity.
-            #[inline]
-            pub const fn zero() -> $field {
-                $field([0, 0, 0, 0])
-            }
-
-            /// Returns one, the multiplicative identity.
-            #[inline]
-            pub const fn one() -> $field {
-                R
-            }
-
             /// Doubles this field element.
             #[inline]
             pub fn double(&self) -> $field {
@@ -66,92 +54,6 @@ macro_rules! assembly_field {
                     );
                 }
                 $field([r0, r1, r2, r3])
-            }
-
-            fn from_u512(limbs: [u64; 8]) -> $field {
-                // We reduce an arbitrary 512-bit number by decomposing it into two 256-bit digits
-                // with the higher bits multiplied by 2^256. Thus, we perform two reductions
-                //
-                // 1. the lower bits are multiplied by R^2, as normal
-                // 2. the upper bits are multiplied by R^2 * 2^256 = R^3
-                //
-                // and computing their sum in the field. It remains to see that arbitrary 256-bit
-                // numbers can be placed into Montgomery form safely using the reduction. The
-                // reduction works so long as the product is less than R=2^256 multiplied by
-                // the modulus. This holds because for any `c` smaller than the modulus, we have
-                // that (2^256 - 1)*c is an acceptable product for the reduction. Therefore, the
-                // reduction always works so long as `c` is in the field; in this case it is either the
-                // constant `R2` or `R3`.
-                let d0 = $field([limbs[0], limbs[1], limbs[2], limbs[3]]);
-                let d1 = $field([limbs[4], limbs[5], limbs[6], limbs[7]]);
-                // Convert to Montgomery form
-                d0 * R2 + d1 * R3
-            }
-
-            /// Converts from an integer represented in little endian
-            /// into its (congruent) `Fr` representation.
-            pub const fn from_raw(val: [u64; 4]) -> $field {
-                let (r0, carry) = mac(0, val[0], R2.0[0], 0);
-                let (r1, carry) = mac(0, val[0], R2.0[1], carry);
-                let (r2, carry) = mac(0, val[0], R2.0[2], carry);
-                let (r3, r4) = mac(0, val[0], R2.0[3], carry);
-
-                let (r1, carry) = mac(r1, val[1], R2.0[0], 0);
-                let (r2, carry) = mac(r2, val[1], R2.0[1], carry);
-                let (r3, carry) = mac(r3, val[1], R2.0[2], carry);
-                let (r4, r5) = mac(r4, val[1], R2.0[3], carry);
-
-                let (r2, carry) = mac(r2, val[2], R2.0[0], 0);
-                let (r3, carry) = mac(r3, val[2], R2.0[1], carry);
-                let (r4, carry) = mac(r4, val[2], R2.0[2], carry);
-                let (r5, r6) = mac(r5, val[2], R2.0[3], carry);
-
-                let (r3, carry) = mac(r3, val[3], R2.0[0], 0);
-                let (r4, carry) = mac(r4, val[3], R2.0[1], carry);
-                let (r5, carry) = mac(r5, val[3], R2.0[2], carry);
-                let (r6, r7) = mac(r6, val[3], R2.0[3], carry);
-
-                let k = r0.wrapping_mul(INV);
-                let (_, carry) = mac(r0, k, $modulus.0[0], 0);
-                let (r1, carry) = mac(r1, k, $modulus.0[1], carry);
-                let (r2, carry) = mac(r2, k, $modulus.0[2], carry);
-                let (r3, carry) = mac(r3, k, $modulus.0[3], carry);
-                let (r4, carry2) = adc(r4, 0, carry);
-
-                let k = r1.wrapping_mul(INV);
-                let (_, carry) = mac(r1, k, $modulus.0[0], 0);
-                let (r2, carry) = mac(r2, k, $modulus.0[1], carry);
-                let (r3, carry) = mac(r3, k, $modulus.0[2], carry);
-                let (r4, carry) = mac(r4, k, $modulus.0[3], carry);
-                let (r5, carry2) = adc(r5, carry2, carry);
-
-                let k = r2.wrapping_mul(INV);
-                let (_, carry) = mac(r2, k, $modulus.0[0], 0);
-                let (r3, carry) = mac(r3, k, $modulus.0[1], carry);
-                let (r4, carry) = mac(r4, k, $modulus.0[2], carry);
-                let (r5, carry) = mac(r5, k, $modulus.0[3], carry);
-                let (r6, carry2) = adc(r6, carry2, carry);
-
-                let k = r3.wrapping_mul(INV);
-                let (_, carry) = mac(r3, k, $modulus.0[0], 0);
-                let (r4, carry) = mac(r4, k, $modulus.0[1], carry);
-                let (r5, carry) = mac(r5, k, $modulus.0[2], carry);
-                let (r6, carry) = mac(r6, k, $modulus.0[3], carry);
-                let (r7, _) = adc(r7, carry2, carry);
-
-                let (d0, borrow) = sbb(r4, $modulus.0[0], 0);
-                let (d1, borrow) = sbb(r5, $modulus.0[1], borrow);
-                let (d2, borrow) = sbb(r6, $modulus.0[2], borrow);
-                let (d3, borrow) = sbb(r7, $modulus.0[3], borrow);
-
-                // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
-                // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-                let (d0, carry) = adc(d0, $modulus.0[0] & borrow, 0);
-                let (d1, carry) = adc(d1, $modulus.0[1] & borrow, carry);
-                let (d2, carry) = adc(d2, $modulus.0[2] & borrow, carry);
-                let (d3, _) = adc(d3, $modulus.0[3] & borrow, carry);
-
-                $field([d0, d1, d2, d3])
             }
 
             /// Squares this element.
