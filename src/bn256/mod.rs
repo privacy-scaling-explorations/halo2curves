@@ -1,3 +1,4 @@
+mod common;
 mod engine;
 mod fq;
 mod fq12;
