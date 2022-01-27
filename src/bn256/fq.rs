@@ -7,6 +7,9 @@ use rand::RngCore;
 use std::io::{self, Read, Write};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
+#[cfg(feature = "asm")]
+use super::assembly::assembly_field;
+
 #[derive(Clone, Copy, Eq)]
 pub struct Fq(pub(crate) [u64; 4]);
 
@@ -211,6 +214,9 @@ impl<'a, 'b> Mul<&'b Fq> for &'a Fq {
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
 
+#[cfg(feature = "asm")]
+assembly_field!(Fq, MODULUS, INV);
+
 impl Fq {
     pub const fn size() -> usize {
         32
@@ -248,6 +254,10 @@ impl Fq {
     pub fn to_bytes(&self) -> [u8; 32] {
         // Turn into canonical form by computing
         // (a.R) / R = a
+        #[cfg(feature = "asm")]
+        let tmp = Fq::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
+
+        #[cfg(not(feature = "asm"))]
         let tmp = Fq::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
 
         let mut res = [0; 32];
@@ -277,7 +287,10 @@ impl Fq {
             LegendreSymbol::QuadraticNonResidue
         }
     }
+}
 
+#[cfg(not(feature = "asm"))]
+impl Fq {
     /// Returns zero, the additive identity.
     #[inline]
     pub const fn zero() -> Fq {
@@ -585,6 +598,11 @@ impl ff::PrimeField for Fq {
     fn to_repr(&self) -> Self::Repr {
         // Turn into canonical form by computing
         // (a.R) / R = a
+        #[cfg(feature = "asm")]
+        let tmp =
+            Self::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
+
+        #[cfg(not(feature = "asm"))]
         let tmp = Self::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
 
         let mut res = [0; 32];
@@ -672,6 +690,10 @@ impl FieldExt for Fq {
     /// Gets the lower 128 bits of this field element when expressed
     /// canonically.
     fn get_lower_128(&self) -> u128 {
+        #[cfg(feature = "asm")]
+        let tmp = Fq::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
+
+        #[cfg(not(feature = "asm"))]
         let tmp = Fq::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
 
         u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)

@@ -6,6 +6,9 @@ mod fq6;
 mod fr;
 mod g;
 
+#[cfg(feature = "asm")]
+mod assembly;
+
 pub use engine::*;
 pub use fq::*;
 use fq2::*;

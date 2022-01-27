@@ -8,6 +8,9 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::arithmetic::{adc, mac, sbb, BaseExt, FieldExt, Group};
 
+#[cfg(feature = "asm")]
+use super::assembly::assembly_field;
+
 #[derive(Clone, Copy, Eq, Hash)]
 pub struct Fr(pub(crate) [u64; 4]);
 
@@ -219,11 +222,17 @@ impl<'a, 'b> Mul<&'b Fr> for &'a Fr {
 impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
 
+#[cfg(feature = "asm")]
+assembly_field!(Fr, MODULUS, INV);
+
 impl Fr {
     pub fn legendre(&self) -> LegendreSymbol {
         unimplemented!()
     }
+}
 
+#[cfg(not(feature = "asm"))]
+impl Fr {
     /// Returns zero, the additive identity.
     #[inline]
     pub const fn zero() -> Fr {
@@ -529,6 +538,10 @@ impl ff::PrimeField for Fr {
     fn to_repr(&self) -> Self::Repr {
         // Turn into canonical form by computing
         // (a.R) / R = a
+        #[cfg(feature = "asm")]
+        let tmp = Fr::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
+
+        #[cfg(not(feature = "asm"))]
         let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
 
         let mut res = [0; 32];
@@ -659,6 +672,10 @@ impl FieldExt for Fr {
     /// Gets the lower 128 bits of this field element when expressed
     /// canonically.
     fn get_lower_128(&self) -> u128 {
+        #[cfg(feature = "asm")]
+        let tmp = Fr::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
+
+        #[cfg(not(feature = "asm"))]
         let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
 
         u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)
