@@ -581,6 +581,6 @@ fn test_frobenius() {
 }
 
 #[test]
-fn field_tests() {
-    crate::tests::field::random_field_tests::<Fq12>();
+fn test_field() {
+    crate::tests::field::random_field_tests::<Fq12>("fq12".to_string());
 }

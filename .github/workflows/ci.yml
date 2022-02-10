@@ -1,0 +1,77 @@
+name: CI Check
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    if: github.event.pull_request.draft == false
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          override: false
+      - name: Build all features
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --all-features
+
+  test:
+    if: github.event.pull_request.draft == false
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          override: false
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose --release --all --all-features
+
+  fmt:
+    if: github.event.pull_request.draft == false
+    name: Rustfmt
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          override: false
+      - run: rustup component add rustfmt
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  bench:
+    if: github.event.pull_request.draft == false
+    name: Bench
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          override: false
+      - name: bench arithmetic
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --profile bench test_field -- --nocapture
+      - name: bench assembly arithmetic
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --profile bench test_field --features asm -- --nocapture
