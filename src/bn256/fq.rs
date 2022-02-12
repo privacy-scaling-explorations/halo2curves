@@ -1,15 +1,15 @@
+#[cfg(all(feature = "asm", target_arch = "x86_64"))]
+use super::assembly::assembly_field;
 use super::common::common_field;
 use super::LegendreSymbol;
 use crate::arithmetic::{adc, mac, sbb, BaseExt, FieldExt, Group};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
+use ff::PrimeField;
 use rand::RngCore;
 use std::io::{self, Read, Write};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-#[cfg(all(feature = "asm", target_arch = "x86_64"))]
-use super::assembly::assembly_field;
 
 #[derive(Clone, Copy, Eq)]
 pub struct Fq(pub(crate) [u64; 4]);
@@ -63,9 +63,6 @@ const BASEEXT_MODULUS: &'static str =
 const TWO_INV: Fq = Fq::from_raw([0, 0, 0, 0]);
 const ROOT_OF_UNITY_INV: Fq = Fq::from_raw([0, 0, 0, 0]);
 const DELTA: Fq = Fq::from_raw([0, 0, 0, 0]);
-const RESCUE_ALPHA: u64 = 0;
-const RESCUE_INVALPHA: [u64; 4] = [0, 0, 0, 0];
-const T_MINUS1_OVER2: [u64; 4] = [0, 0, 0, 0];
 const ZETA: Fq = Fq::from_raw([0, 0, 0, 0]);
 
 impl_binops_additive!(Fq, Fq);
@@ -78,9 +75,6 @@ common_field!(
     TWO_INV,
     ROOT_OF_UNITY_INV,
     DELTA,
-    RESCUE_ALPHA,
-    RESCUE_INVALPHA,
-    T_MINUS1_OVER2,
     ZETA
 );
 

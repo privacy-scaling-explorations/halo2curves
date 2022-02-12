@@ -1,4 +1,4 @@
-use crate::arithmetic::{Engine, FieldExt, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
+use crate::arithmetic::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use crate::bn256::fq::*;
 use crate::bn256::fq12::*;
 use crate::bn256::fq2::*;
@@ -8,7 +8,7 @@ use crate::bn256::g::*;
 use core::borrow::Borrow;
 use core::iter::Sum;
 use core::ops::{Add, Mul, MulAssign, Neg, Sub};
-use ff::Field;
+use ff::{Field, PrimeField};
 use group::cofactor::CofactorCurveAffine;
 use group::Group;
 use rand_core::RngCore;
@@ -143,7 +143,7 @@ impl<'a, 'b> Mul<&'b Fr> for &'a Gt {
         let mut acc = Gt::identity();
 
         for bit in other
-            .to_bytes()
+            .to_repr()
             .iter()
             .rev()
             .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))

@@ -1,4 +1,4 @@
-use crate::arithmetic::{BaseExt, Coordinates, CurveAffine, CurveExt, FieldExt, Group};
+use crate::arithmetic::{BaseExt, Coordinates, CurveAffine, CurveExt, Group};
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
@@ -6,7 +6,7 @@ use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::Field;
+use ff::{Field, PrimeField};
 use group::{
     cofactor::CofactorGroup, prime::PrimeCurveAffine, Curve as _, Group as _, GroupEncoding,
 };

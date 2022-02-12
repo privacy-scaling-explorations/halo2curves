@@ -1,6 +1,6 @@
 macro_rules! common_field {
     ($field:ident, $modulus:ident, $inv:ident, $baseext_modulus:ident, $two_inv:ident, $root_of_unity_inv:ident,
-        $delta:ident, $rescue_alpha:ident, $rescue_invalpha:ident, $t_minus1_over2:ident, $zeta:ident) => {
+        $delta:ident, $zeta:ident) => {
         impl $field {
             /// Returns zero, the additive identity.
             #[inline]
@@ -120,7 +120,7 @@ macro_rules! common_field {
 
         impl ::std::fmt::Display for $field {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                let tmp = self.to_bytes();
+                let tmp = self.to_repr();
                 write!(f, "0x")?;
                 for &b in tmp.iter().rev() {
                     write!(f, "{:02x}", b)?;
@@ -131,7 +131,7 @@ macro_rules! common_field {
 
         impl fmt::Debug for $field {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                let tmp = self.to_bytes();
+                let tmp = self.to_repr();
                 write!(f, "0x")?;
                 for &b in tmp.iter().rev() {
                     write!(f, "{:02x}", b)?;
@@ -181,8 +181,8 @@ macro_rules! common_field {
 
         impl std::cmp::Ord for $field {
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                let left = self.to_bytes();
-                let right = other.to_bytes();
+                let left = self.to_repr();
+                let right = other.to_repr();
                 left.iter()
                     .zip(right.iter())
                     .rev()
@@ -426,13 +426,13 @@ macro_rules! common_field {
 
         impl From<$field> for [u8; 32] {
             fn from(value: $field) -> [u8; 32] {
-                value.to_bytes()
+                value.to_repr()
             }
         }
 
         impl<'a> From<&'a $field> for [u8; 32] {
             fn from(value: &'a $field) -> [u8; 32] {
-                value.to_bytes()
+                value.to_repr()
             }
         }
 
@@ -460,7 +460,7 @@ macro_rules! common_field {
 
             /// Writes this element in its normalized, little endian form into a buffer.
             fn write<W: Write>(&self, writer: &mut W) -> io::Result<()> {
-                let compressed = self.to_bytes();
+                let compressed = self.to_repr();
                 writer.write_all(&compressed[..])
             }
 
@@ -469,7 +469,7 @@ macro_rules! common_field {
             fn read<R: Read>(reader: &mut R) -> io::Result<Self> {
                 let mut compressed = [0u8; 32];
                 reader.read_exact(&mut compressed[..])?;
-                Option::from(Self::from_bytes(&compressed)).ok_or_else(|| {
+                Option::from(Self::from_repr(compressed)).ok_or_else(|| {
                     io::Error::new(io::ErrorKind::Other, "invalid point encoding in proof")
                 })
             }
@@ -479,26 +479,23 @@ macro_rules! common_field {
             const TWO_INV: Self = $two_inv;
             const ROOT_OF_UNITY_INV: Self = $root_of_unity_inv;
             const DELTA: Self = $delta;
-            const RESCUE_ALPHA: u64 = $rescue_alpha;
-            const RESCUE_INVALPHA: [u64; 4] = $rescue_invalpha;
-            const T_MINUS1_OVER2: [u64; 4] = $t_minus1_over2;
             const ZETA: Self = $zeta;
 
             fn from_u128(v: u128) -> Self {
                 $field::from_raw([v as u64, (v >> 64) as u64, 0, 0])
             }
 
-            /// Attempts to convert a little-endian byte representation of
-            /// a scalar into a `Fr`, failing if the input is not canonical.
-            fn from_bytes(bytes: &[u8; 32]) -> CtOption<$field> {
-                <Self as ff::PrimeField>::from_repr(*bytes)
-            }
+            // /// Attempts to convert a little-endian byte representation of
+            // /// a scalar into a `Fr`, failing if the input is not canonical.
+            // fn from_bytes(bytes: &[u8; 32]) -> CtOption<$field> {
+            //     <Self as ff::PrimeField>::from_repr(*bytes)
+            // }
 
-            /// Converts an element of `Fr` into a byte representation in
-            /// little-endian byte order.
-            fn to_bytes(&self) -> [u8; 32] {
-                <Self as ff::PrimeField>::to_repr(self)
-            }
+            // /// Converts an element of `Fr` into a byte representation in
+            // /// little-endian byte order.
+            // fn to_bytes(&self) -> [u8; 32] {
+            //     <Self as ff::PrimeField>::to_repr(self)
+            // }
 
             /// Gets the lower 128 bits of this field element when expressed
             /// canonically.

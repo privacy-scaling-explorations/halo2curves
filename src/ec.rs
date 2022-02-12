@@ -692,7 +692,7 @@ macro_rules! new_curve_impl {
                 //
                 // NOTE: We skip the leading bit because it's always unset.
                 for bit in other
-                    .to_bytes()
+                    .to_repr()
                     .iter()
                     .rev()
                     .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))
@@ -803,7 +803,7 @@ macro_rules! new_curve_impl {
                 //
                 // NOTE: We skip the leading bit because it's always unset.
                 for bit in other
-                    .to_bytes()
+                    .to_repr()
                     .iter()
                     .rev()
                     .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))

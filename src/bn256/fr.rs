@@ -1,16 +1,15 @@
+#[cfg(all(feature = "asm", target_arch = "x86_64"))]
+use super::assembly::assembly_field;
 use super::common::common_field;
 use super::LegendreSymbol;
+use crate::arithmetic::{adc, mac, sbb, BaseExt, FieldExt, Group};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
+use ff::PrimeField;
 use rand::RngCore;
 use std::io::{self, Read, Write};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-use crate::arithmetic::{adc, mac, sbb, BaseExt, FieldExt, Group};
-
-#[cfg(all(feature = "asm", target_arch = "x86_64"))]
-use super::assembly::assembly_field;
 
 #[derive(Clone, Copy, Eq, Hash)]
 pub struct Fr(pub(crate) [u64; 4]);
@@ -90,22 +89,6 @@ const DELTA: Fr = Fr::from_raw([
     0x09226b6e22c6f0ca,
 ]);
 
-const RESCUE_ALPHA: u64 = 5;
-
-const RESCUE_INVALPHA: [u64; 4] = [
-    0xcfe7f7a98ccccccd,
-    0x535cb9d394945a0d,
-    0x93736af8679aad17,
-    0x26b6a528b427b354,
-];
-
-const T_MINUS1_OVER2: [u64; 4] = [
-    0xcdcb848a1f0fac9f,
-    0x0c0ac2e9419f4243,
-    0x098d014dc2822db4,
-    0x0000000183227397,
-];
-
 const ZETA: Fr = Fr::from_raw([
     0xb8ca0b2d36636f23,
     0xcc37a73fec2bc5e9,
@@ -123,9 +106,6 @@ common_field!(
     TWO_INV,
     ROOT_OF_UNITY_INV,
     DELTA,
-    RESCUE_ALPHA,
-    RESCUE_INVALPHA,
-    T_MINUS1_OVER2,
     ZETA
 );
 
@@ -257,7 +237,7 @@ impl ff::PrimeField for Fr {
 }
 
 #[cfg(test)]
-use ff::{Field, PrimeField};
+use ff::Field;
 
 #[test]
 fn test_zeta() {

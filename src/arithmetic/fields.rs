@@ -2,7 +2,7 @@
 //! code that generalizes over a pair of fields.
 use core::mem::size_of;
 use static_assertions::const_assert;
-use subtle::{Choice, ConstantTimeEq, CtOption};
+use subtle::{Choice, ConstantTimeEq};
 
 use super::Group;
 
@@ -51,31 +51,6 @@ pub trait BaseExt: ff::Field + Ord + ConstantTimeEq {
         }
         res
     }
-
-    /// Performs a batch inversion using Montgomery's trick, returns the product
-    /// of every inverse. Zero inputs are ignored.
-    fn batch_invert(v: &mut [Self]) -> Self {
-        let mut tmp = Vec::with_capacity(v.len());
-
-        let mut acc = Self::one();
-        for p in v.iter() {
-            tmp.push(acc);
-            acc = Self::conditional_select(&(acc * p), &acc, p.ct_is_zero());
-        }
-
-        acc = acc.invert().unwrap();
-        let allinv = acc;
-
-        for (p, tmp) in v.iter_mut().rev().zip(tmp.into_iter().rev()) {
-            let skip = p.ct_is_zero();
-
-            let tmp = tmp * acc;
-            acc = Self::conditional_select(&(acc * *p), &acc, skip);
-            *p = Self::conditional_select(&tmp, p, skip);
-        }
-
-        allinv
-    }
 }
 
 pub trait FieldExt: ff::PrimeField + BaseExt + Group<Scalar = Self> {
@@ -85,18 +60,8 @@ pub trait FieldExt: ff::PrimeField + BaseExt + Group<Scalar = Self> {
     /// Inverse of `ROOT_OF_UNITY`
     const ROOT_OF_UNITY_INV: Self;
 
-    /// The value $(T-1)/2$ such that $2^S \cdot T = p - 1$ with $T$ odd.
-    const T_MINUS1_OVER2: [u64; 4];
-
     /// Generator of the $t-order$ multiplicative subgroup
     const DELTA: Self;
-
-    /// Ideally the smallest prime $\alpha$ such that gcd($p - 1$, $\alpha$) = $1$
-    const RESCUE_ALPHA: u64;
-
-    /// $RESCUE_INVALPHA \cdot RESCUE_ALPHA = 1 \mod p - 1$ such that
-    /// `(a^RESCUE_ALPHA)^RESCUE_INVALPHA = a`.
-    const RESCUE_INVALPHA: [u64; 4];
 
     /// Element of multiplicative order $3$.
     const ZETA: Self;
@@ -104,13 +69,13 @@ pub trait FieldExt: ff::PrimeField + BaseExt + Group<Scalar = Self> {
     /// Obtains a field element congruent to the integer `v`.
     fn from_u128(v: u128) -> Self;
 
-    /// Converts this field element to its normalized, little endian byte
-    /// representation.
-    fn to_bytes(&self) -> [u8; 32];
+    // /// Converts this field element to its normalized, little endian byte
+    // /// representation.
+    // fn to_bytes(&self) -> [u8; 32];
 
-    /// Attempts to obtain a field element from its normalized, little endian
-    /// byte representation.
-    fn from_bytes(bytes: &[u8; 32]) -> CtOption<Self>;
+    // /// Attempts to obtain a field element from its normalized, little endian
+    // /// byte representation.
+    // fn from_bytes(bytes: &[u8; 32]) -> CtOption<Self>;
 
     /// Gets the lower 128 bits of this field element when expressed
     /// canonically.
