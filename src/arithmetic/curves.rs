@@ -98,6 +98,11 @@ pub struct Coordinates<C: CurveAffine> {
 }
 
 impl<C: CurveAffine> Coordinates<C> {
+    // Crates new coordinates
+    pub fn new(x: C::Base, y: C::Base) -> Self {
+        Self { x, y }
+    }
+
     /// Returns the x-coordinate.
     ///
     /// Equivalent to `Coordinates::u`.
