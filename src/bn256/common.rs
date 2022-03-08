@@ -299,7 +299,7 @@ macro_rules! common_field {
 
             #[allow(clippy::too_many_arguments)]
             #[inline(always)]
-            const fn montgomery_reduce(
+            pub const fn montgomery_reduce(
                 r0: u64,
                 r1: u64,
                 r2: u64,

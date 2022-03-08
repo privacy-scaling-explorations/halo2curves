@@ -346,7 +346,7 @@ macro_rules! assembly_field {
             }
 
             #[inline(always)]
-            fn montgomery_reduce(a: &[u64; 8]) -> $field {
+            pub fn montgomery_reduce(a: &[u64; 8]) -> $field {
                 let mut r0: u64;
                 let mut r1: u64;
                 let mut r2: u64;
