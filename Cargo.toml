@@ -29,6 +29,7 @@ rand_core = { version = "0.6", default-features = false }
 [features]
 default = []
 asm = []
+prefetch = []
 
 [profile.bench]
 opt-level = 3
