@@ -53,7 +53,7 @@ pub trait BaseExt: ff::Field + Ord + ConstantTimeEq {
     }
 }
 
-pub trait FieldExt: ff::PrimeField + BaseExt + Group<Scalar = Self> {
+pub trait FieldExt: ff::PrimeField + BaseExt + Group<Scalar = Self> + From<bool> {
     /// Inverse of $2$ in the field.
     const TWO_INV: Self;
 
