@@ -11,6 +11,7 @@ license = "MIT/Apache-2.0"
 edition = "2018"
 repository = "https://github.com/kilic/pairing"
 readme = "README.md"
+description = "BN254 elliptic curve and pairing implementation"
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }
