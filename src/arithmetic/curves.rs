@@ -88,6 +88,23 @@ pub trait CurveAffine:
 
     /// Returns the curve constant $b$.
     fn b() -> Self::Base;
+
+    /// Obtains the endomorphism base.
+    fn get_endomorphism_base(base: &Self) -> Self;
+
+    /// Obtains the endomorphism scalars.
+    fn get_endomorphism_scalars(k: &Self::ScalarExt) -> (u128, u128);
+
+    /// Batched point addition.
+    /// If COMPLETE is set to false the points need to be linearly independent.
+    fn batch_add<const COMPLETE: bool, const LOAD_POINTS: bool>(
+        points: &mut [Self],
+        output_indices: &[u32],
+        num_points: usize,
+        offset: usize,
+        bases: &[Self],
+        base_positions: &[u32],
+    );
 }
 
 /// The affine coordinates of a point on an elliptic curve.

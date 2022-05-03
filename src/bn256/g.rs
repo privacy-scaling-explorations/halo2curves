@@ -1,4 +1,5 @@
-use crate::arithmetic::{BaseExt, Coordinates, CurveAffine, CurveExt, Group};
+use crate::arithmetic::mul_512;
+use crate::arithmetic::{BaseExt, Coordinates, CurveAffine, CurveExt, FieldExt, Group};
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
@@ -22,6 +23,7 @@ new_curve_impl!(
     Fr,
     (G1_GENERATOR_X,G1_GENERATOR_Y),
     G1_B,
+    ENDO_G1_CUBE_ROOT,
     "bn256_g1"
 );
 
@@ -34,12 +36,38 @@ new_curve_impl!(
     Fr,
     (G2_GENERATOR_X, G2_GENERATOR_Y),
     G2_B,
+    ENDO_G2_CUBE_ROOT,
     "bn256_g2"
 );
 
 const G1_GENERATOR_X: Fq = Fq::one();
 const G1_GENERATOR_Y: Fq = Fq::from_raw([2, 0, 0, 0]);
 const G1_B: Fq = Fq::from_raw([3, 0, 0, 0]);
+const ENDO_G1: [u64; 4] = [
+    0x7a7bd9d4391eb18du64,
+    0x4ccef014a773d2cfu64,
+    0x0000000000000002u64,
+    0u64,
+];
+const ENDO_G2: [u64; 4] = [0xd91d232ec7e0b3d7u64, 0x0000000000000002u64, 0u64, 0u64];
+const ENDO_MINUS_B1: [u64; 4] = [0x8211bbeb7d4f1128u64, 0x6f4d8248eeb859fcu64, 0u64, 0u64];
+const ENDO_B2: [u64; 4] = [0x89d3256894d213e3u64, 0u64, 0u64, 0u64];
+const ENDO_BETA: Fr = Fr::from_raw([
+    0x8b17ea66b99c90ddu64,
+    0x5bfc41088d8daaa7u64,
+    0xb3c4d79d41a91758u64,
+    0x0u64,
+]);
+const ENDO_G1_CUBE_ROOT: Fq = Fq::from_raw([
+    0x5763473177fffffeu64,
+    0xd4f263f1acdb5c4fu64,
+    0x59e26bcea0d48bacu64,
+    0x0u64,
+]);
+const ENDO_G2_CUBE_ROOT: Fq2 = Fq2 {
+    c0: Fq::zero(),
+    c1: Fq::zero(),
+};
 
 impl group::cofactor::CofactorGroup for G1 {
     type Subgroup = G1;

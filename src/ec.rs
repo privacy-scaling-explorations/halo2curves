@@ -7,6 +7,7 @@ macro_rules! new_curve_impl {
     $scalar:ident,
     $generator:expr,
     $constant_b:expr,
+    $cube_root:expr,
     $curve_id:literal
     ) => {
 
@@ -21,7 +22,6 @@ macro_rules! new_curve_impl {
         $($privacy)* struct $name_affine {
             pub x: $base,
             pub y: $base,
-            infinity: Choice,
         }
 
         #[derive(Copy, Clone)]
@@ -48,12 +48,15 @@ macro_rules! new_curve_impl {
                 Self {
                     x: $generator.0,
                     y: $generator.1,
-                    infinity: Choice::from(0u8),
                 }
             }
 
             const fn curve_constant_b() -> $base {
                 $constant_b
+            }
+
+            const fn curve_cube_root() -> $base {
+                $cube_root
             }
 
             pub fn random(mut rng: impl RngCore) -> Self {
@@ -70,7 +73,6 @@ macro_rules! new_curve_impl {
                         let p = $name_affine {
                             x,
                             y,
-                            infinity: Choice::from(0u8),
                         };
                         return p
                     }
@@ -235,7 +237,6 @@ macro_rules! new_curve_impl {
 
                     q.x = p.x * tmp2;
                     q.y = p.y * tmp3;
-                    q.infinity = Choice::from(0u8);
 
                     *q = $name_affine::conditional_select(&q, &$name_affine::identity(), skip);
                 }
@@ -251,7 +252,6 @@ macro_rules! new_curve_impl {
                 let tmp = $name_affine {
                     x,
                     y,
-                    infinity: Choice::from(0u8),
                 };
 
                 $name_affine::conditional_select(&tmp, &$name_affine::identity(), zinv.ct_is_zero())
@@ -357,7 +357,7 @@ macro_rules! new_curve_impl {
 
         impl std::fmt::Debug for $name_affine {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-                if self.infinity.into() {
+                if self.is_identity().into() {
                     write!(f, "Infinity")
                 } else {
                     write!(f, "({:?}, {:?})", self.x, self.y)
@@ -385,8 +385,8 @@ macro_rules! new_curve_impl {
 
         impl subtle::ConstantTimeEq for $name_affine {
             fn ct_eq(&self, other: &Self) -> Choice {
-                let z1 = self.infinity;
-                let z2 = other.infinity;
+                let z1 = self.is_identity();
+                let z2 = other.is_identity();
 
                 (z1 & z2) | ((!z1) & (!z2) & (self.x.ct_eq(&other.x)) & (self.y.ct_eq(&other.y)))
             }
@@ -397,7 +397,6 @@ macro_rules! new_curve_impl {
                 $name_affine {
                     x: $base::conditional_select(&a.x, &b.x, choice),
                     y: $base::conditional_select(&a.y, &b.y, choice),
-                    infinity: Choice::conditional_select(&a.infinity, &b.infinity, choice),
                 }
             }
         }
@@ -431,7 +430,6 @@ macro_rules! new_curve_impl {
                                 $name_affine {
                                     x,
                                     y,
-                                    infinity: Choice::from(0u8),
                                 },
                                 Choice::from(1u8),
                             )
@@ -470,19 +468,18 @@ macro_rules! new_curve_impl {
                 Self {
                     x: $base::zero(),
                     y: $base::zero(),
-                    infinity: Choice::from(1u8),
                 }
             }
 
             fn is_identity(&self) -> Choice {
-                self.infinity
+                self.x.is_zero() & self.y.is_zero()
             }
 
             fn to_curve(&self) -> Self::Curve {
                 $name {
                     x: self.x,
                     y: self.y,
-                    z: $base::conditional_select(&$base::one(), &$base::zero(), self.infinity),
+                    z: $base::conditional_select(&$base::one(), &$base::zero(), self.is_identity()),
                 }
             }
         }
@@ -516,7 +513,7 @@ macro_rules! new_curve_impl {
             fn is_on_curve(&self) -> Choice {
                 // y^2 - x^3 - ax ?= b
                 (self.y.square() - self.x.square() * self.x).ct_eq(&$name::curve_constant_b())
-                    | self.infinity
+                    | self.is_identity()
             }
 
             fn coordinates(&self) -> CtOption<Coordinates<Self>> {
@@ -526,13 +523,169 @@ macro_rules! new_curve_impl {
 
             fn from_xy(x: Self::Base, y: Self::Base) -> CtOption<Self> {
                 let p = $name_affine {
-                    x, y, infinity: 0u8.into()
+                    x, y
                 };
                 CtOption::new(p, p.is_on_curve())
             }
 
             fn b() -> Self::Base {
                 $name::curve_constant_b()
+            }
+
+            fn get_endomorphism_base(base: &Self) -> Self {
+                let x = Self::curve_cube_root() * base.x;
+                let y = -base.y;
+                Self::from_xy(x, y).unwrap()
+            }
+
+            fn get_endomorphism_scalars(k: &Self::ScalarExt) -> (u128, u128) {
+                #[cfg(all(feature = "asm", target_arch = "x86_64"))]
+                let input = Fr::montgomery_reduce(&[
+                    k.0[0], k.0[1], k.0[2], k.0[3], 0, 0, 0, 0,
+                ]).0;
+
+                #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
+                let input = Fr::montgomery_reduce(
+                    k.0[0], k.0[1], k.0[2], k.0[3], 0, 0, 0, 0,
+                ).0;
+
+                let c1_512 = mul_512(ENDO_G2, input);
+                let c2_512 = mul_512(ENDO_G1, input);
+
+                let c1_hi = [c1_512[4], c1_512[5], c1_512[6], c1_512[7]];
+                let c2_hi = [c2_512[4], c2_512[5], c2_512[6], c2_512[7]];
+
+                let q1_512 = mul_512(c1_hi, ENDO_MINUS_B1);
+                let q2_512 = mul_512(c2_hi, ENDO_B2);
+
+                let q1_lo = Self::ScalarExt::from_raw([q1_512[0], q1_512[1], q1_512[2], q1_512[3]]);
+                let q2_lo = Self::ScalarExt::from_raw([q2_512[0], q2_512[1], q2_512[2], q2_512[3]]);
+
+                let k1 = q2_lo - q1_lo;
+                let k2 = (k1 * ENDO_BETA) + k;
+
+                (k2.get_lower_128(), k1.get_lower_128())
+            }
+
+            fn batch_add<const COMPLETE: bool, const LOAD_POINTS: bool>(points: &mut [Self], output_indices: &[u32], num_points: usize, offset: usize, bases: &[Self], base_positions: &[u32]) {
+                let get_point = |point_data: u32| -> Self {
+                    let negate = point_data & 0x80000000 != 0;
+                    let base_idx = (point_data & 0x7FFFFFFF) as usize;
+                    if negate {
+                        bases[base_idx].neg()
+                    } else {
+                        bases[base_idx]
+                    }
+                };
+
+                // Affine addition formula (P != Q):
+                // - lambda = (y_2 - y_1) / (x_2 - x_1)
+                // - x_3 = lambda^2 - (x_2 + x_1)
+                // - y_3 = lambda * (x_1 - x_3) - y_1
+
+                // Batch invert accumulator
+                let mut acc = Self::Base::one();
+
+                for i in (0..num_points).step_by(2) {
+                    // Where that result of the point addition will be stored
+                    let out_idx = output_indices[i >> 1] as usize - offset;
+
+                    #[cfg(feature = "prefetch")]
+                    if i < num_points - 2 {
+                        if LOAD_POINTS {
+                            crate::prefetch::<Self>(bases, base_positions[i+2] as usize);
+                            crate::prefetch::<Self>(bases, base_positions[i+3] as usize);
+                        }
+                        crate::prefetch::<Self>(points, output_indices[(i >> 1) + 1] as usize - offset);
+                    }
+                    if LOAD_POINTS {
+                        points[i] = get_point(base_positions[i]);
+                        points[i + 1] = get_point(base_positions[i + 1]);
+                    }
+
+                    if COMPLETE {
+                        // Nothing to do here if one of the points is zero
+                        if (points[i].is_identity() | points[i + 1].is_identity()).into() {
+                            continue;
+                        }
+
+                        if points[i].x == points[i + 1].x {
+                            if points[i].y == points[i + 1].y {
+                                // Point doubling (P == Q)
+                                // - s = (3 * x^2) / (2 * y)
+                                // - x_2 = s^2 - (2 * x)
+                                // - y_2 = s * (x - x_2) - y
+
+                                // (2 * x)
+                                points[out_idx].x = points[i].x + points[i].x;
+                                // x^2
+                                let xx = points[i].x.square();
+                                // (2 * y)
+                                points[i + 1].x = points[i].y + points[i].y;
+                                // (3 * x^2) * acc
+                                points[i + 1].y = (xx + xx + xx) * acc;
+                                // acc * (2 * y)
+                                acc *= points[i + 1].x;
+                                continue;
+                            } else {
+                                // Zero
+                                points[i] = Self::identity();
+                                points[i + 1] = Self::identity();
+                                continue;
+                            }
+                        }
+                    }
+
+                    // (x_2 + x_1)
+                    points[out_idx].x = points[i].x + points[i + 1].x;
+                    // (x_2 - x_1)
+                    points[i + 1].x -= points[i].x;
+                    // (y2 - y1) * acc
+                    points[i + 1].y = (points[i + 1].y - points[i].y) * acc;
+                    // acc * (x_2 - x_1)
+                    acc *= points[i + 1].x;
+                }
+
+                // Batch invert
+                if COMPLETE {
+                    if (!acc.is_zero()).into() {
+                        acc = acc.invert().unwrap();
+                    }
+                } else {
+                    acc = acc.invert().unwrap();
+                }
+
+                for i in (0..num_points).step_by(2).rev() {
+                    // Where that result of the point addition will be stored
+                    let out_idx = output_indices[i >> 1] as usize - offset;
+
+                    #[cfg(feature = "prefetch")]
+                    if i > 0 {
+                        crate::prefetch::<Self>(points, output_indices[(i >> 1) - 1] as usize - offset);
+                    }
+
+                    if COMPLETE {
+                        // points[i] is zero so the sum is points[i + 1]
+                        if points[i].is_identity().into() {
+                            points[out_idx] = points[i + 1];
+                            continue;
+                        }
+                        // points[i + 1] is zero so the sum is points[i]
+                        if points[i + 1].is_identity().into() {
+                            points[out_idx] = points[i];
+                            continue;
+                        }
+                    }
+
+                    // lambda
+                    points[i + 1].y *= acc;
+                    // acc * (x_2 - x_1)
+                    acc *= points[i + 1].x;
+                    // x_3 = lambda^2 - (x_2 + x_1)
+                    points[out_idx].x = points[i + 1].y.square() - points[out_idx].x;
+                    // y_3 = lambda * (x_1 - x_3) - y_1
+                    points[out_idx].y = points[i + 1].y * (points[i].x - points[out_idx].x) - points[i].y;
+                }
             }
         }
 
@@ -713,7 +866,6 @@ macro_rules! new_curve_impl {
                 $name_affine {
                     x: self.x,
                     y: -self.y,
-                    infinity: self.infinity,
                 }
             }
         }
