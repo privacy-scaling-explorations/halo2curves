@@ -194,7 +194,7 @@ impl G2 {
 #[cfg(test)]
 mod tests {
 
-    use crate::bn256::{G1, G2};
+    use crate::bn256::{Fr, G1Affine, G1, G2};
     use ff::Field;
 
     use crate::{CurveExt, _CurveAffine};
@@ -455,6 +455,36 @@ mod tests {
         assert!(!bool::from(a.is_torsion_free()));
         a = a.clear_cofactor();
         assert!(bool::from(a.is_torsion_free()));
+    }
+
+    #[test]
+    fn test_endomorphism() {
+        use crate::bn256::g::CurveAffine;
+        use crate::FieldExt;
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+
+        let scalar = Fr::random(&mut rng);
+        let point = G1Affine::random(&mut rng);
+
+        let expected = point * scalar;
+        let (part1, part2) = G1Affine::get_endomorphism_scalars(&scalar);
+
+        let k1 = Fr::from_u128(part1);
+        let k2 = Fr::from_u128(part2);
+
+        let t1 = point * k1;
+        let base = G1Affine::get_endomorphism_base(&point);
+
+        let t2 = base * k2;
+        let result = t1 + t2;
+
+        let res_affine: G1Affine = result.into();
+        let exp_affine: G1Affine = expected.into();
+
+        assert_eq!(res_affine, exp_affine);
     }
 
     #[test]
