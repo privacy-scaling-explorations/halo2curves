@@ -99,18 +99,30 @@ macro_rules! common_field {
 
                 $field([d0, d1, d2, d3])
             }
+
+            /// Attempts to convert a little-endian byte representation of
+            /// a scalar into a `Fr`, failing if the input is not canonical.
+            pub fn from_bytes(bytes: &[u8; 32]) -> CtOption<$field> {
+                <Self as ff::PrimeField>::from_repr(*bytes)
+            }
+
+            /// Converts an element of `Fr` into a byte representation in
+            /// little-endian byte order.
+            pub fn to_bytes(&self) -> [u8; 32] {
+                <Self as ff::PrimeField>::to_repr(self)
+            }
         }
 
         impl Group for $field {
-            type Scalar = $field;
+            type Scalar = Self;
 
-            fn group_zero() -> $field {
+            fn group_zero() -> Self {
                 Self::zero()
             }
-            fn group_add(&mut self, rhs: &$field) {
+            fn group_add(&mut self, rhs: &Self) {
                 *self += *rhs;
             }
-            fn group_sub(&mut self, rhs: &$field) {
+            fn group_sub(&mut self, rhs: &Self) {
                 *self -= *rhs;
             }
             fn group_scale(&mut self, by: &Self::Scalar) {
@@ -436,11 +448,18 @@ macro_rules! common_field {
             }
         }
 
-        impl BaseExt for $field {
+        impl FieldExt for $field {
             const MODULUS: &'static str = $baseext_modulus;
 
-            /// Converts a 512-bit little endian integer into
-            /// a `Fr` by reducing by the modulus.
+            const TWO_INV: Self = $two_inv;
+            const ROOT_OF_UNITY_INV: Self = $root_of_unity_inv;
+            const DELTA: Self = $delta;
+            const ZETA: Self = $zeta;
+
+            fn from_u128(v: u128) -> Self {
+                $field::from_raw([v as u64, (v >> 64) as u64, 0, 0])
+            }
+
             fn from_bytes_wide(bytes: &[u8; 64]) -> Self {
                 Self::from_u512([
                     u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
@@ -453,49 +472,6 @@ macro_rules! common_field {
                     u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
                 ])
             }
-
-            fn ct_is_zero(&self) -> Choice {
-                self.ct_eq(&Self::zero())
-            }
-
-            /// Writes this element in its normalized, little endian form into a buffer.
-            fn write<W: Write>(&self, writer: &mut W) -> io::Result<()> {
-                let compressed = self.to_repr();
-                writer.write_all(&compressed[..])
-            }
-
-            /// Reads a normalized, little endian represented field element from a
-            /// buffer.
-            fn read<R: Read>(reader: &mut R) -> io::Result<Self> {
-                let mut compressed = [0u8; 32];
-                reader.read_exact(&mut compressed[..])?;
-                Option::from(Self::from_repr(compressed)).ok_or_else(|| {
-                    io::Error::new(io::ErrorKind::Other, "invalid point encoding in proof")
-                })
-            }
-        }
-
-        impl FieldExt for $field {
-            const TWO_INV: Self = $two_inv;
-            const ROOT_OF_UNITY_INV: Self = $root_of_unity_inv;
-            const DELTA: Self = $delta;
-            const ZETA: Self = $zeta;
-
-            fn from_u128(v: u128) -> Self {
-                $field::from_raw([v as u64, (v >> 64) as u64, 0, 0])
-            }
-
-            // /// Attempts to convert a little-endian byte representation of
-            // /// a scalar into a `Fr`, failing if the input is not canonical.
-            // fn from_bytes(bytes: &[u8; 32]) -> CtOption<$field> {
-            //     <Self as ff::PrimeField>::from_repr(*bytes)
-            // }
-
-            // /// Converts an element of `Fr` into a byte representation in
-            // /// little-endian byte order.
-            // fn to_bytes(&self) -> [u8; 32] {
-            //     <Self as ff::PrimeField>::to_repr(self)
-            // }
 
             /// Gets the lower 128 bits of this field element when expressed
             /// canonically.
@@ -527,6 +503,28 @@ macro_rules! common_field {
             inv = inv.wrapping_neg();
 
             assert_eq!(inv, INV);
+        }
+
+        #[test]
+        fn test_inv_2() {
+            use ff::Field;
+            assert_eq!($field::TWO_INV, $field::from(2).invert().unwrap());
+        }
+
+        #[test]
+        fn test_ser() {
+            use ff::Field;
+            use rand::SeedableRng;
+            use rand_xorshift::XorShiftRng;
+            let mut rng = XorShiftRng::from_seed([
+                0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+                0xbc, 0xe5,
+            ]);
+
+            let a0 = $field::random(&mut rng);
+            let a_bytes = a0.to_bytes();
+            let a1 = $field::from_bytes(&a_bytes).unwrap();
+            assert_eq!(a0, a1);
         }
     };
 }

@@ -1,21 +1,29 @@
 #[cfg(all(feature = "asm", target_arch = "x86_64"))]
 use super::assembly::assembly_field;
+
 use super::common::common_field;
-use super::LegendreSymbol;
-use crate::arithmetic::{adc, mac, sbb, BaseExt, FieldExt, Group};
+use crate::arithmetic::{adc, mac, sbb};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use ff::PrimeField;
+use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio};
 use rand::RngCore;
-use std::io::{self, Read, Write};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
+/// This represents an element of $\mathbb{F}_r$ where
+///
+/// `r = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001`
+///
+/// is the scalar field of the BN254 curve.
+// The internal representation of this type is four 64-bit unsigned
+// integers in little-endian order. `Fr` values are always in
+// Montgomery form; i.e., Fr(a) = aR mod r, with R = 2^256.
 #[derive(Clone, Copy, Eq, Hash)]
 pub struct Fr(pub(crate) [u64; 4]);
 
 /// Constant representing the modulus
-/// q = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001
+/// r = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001
 pub const MODULUS: Fr = Fr([
     0x43e1f593f0000001,
     0x2833e84879b97091,
@@ -23,11 +31,13 @@ pub const MODULUS: Fr = Fr([
     0x30644e72e131a029,
 ]);
 
-/// INV = -(q^{-1} mod 2^64) mod 2^64
+const MODULUS_STR: &str = "0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001";
+
+/// INV = -(r^{-1} mod 2^64) mod 2^64
 const INV: u64 = 0xc2e1f593efffffff;
 
-/// R = 2^256 mod q
-/// 0xe0a77c19a07df2f666ea36f7879462e36fc76959f60cd29ac96341c4ffffffb
+/// `R = 2^256 mod r`
+/// `0xe0a77c19a07df2f666ea36f7879462e36fc76959f60cd29ac96341c4ffffffb`
 const R: Fr = Fr([
     0xac96341c4ffffffb,
     0x36fc76959f60cd29,
@@ -35,8 +45,8 @@ const R: Fr = Fr([
     0x0e0a77c19a07df2f,
 ]);
 
-/// R^2 = 2^512 mod q
-/// 0x216d0b17f4e44a58c49833d53bb808553fe3ab1e35c59e31bb8e645ae216da7
+/// `R^2 = 2^512 mod r`
+/// `0x216d0b17f4e44a58c49833d53bb808553fe3ab1e35c59e31bb8e645ae216da7`
 const R2: Fr = Fr([
     0x1bb8e645ae216da7,
     0x53fe3ab1e35c59e3,
@@ -44,8 +54,8 @@ const R2: Fr = Fr([
     0x0216d0b17f4e44a5,
 ]);
 
-/// R^3 = 2^768 mod q
-/// 0xcf8594b7fcc657c893cc664a19fcfed2a489cbe1cfbb6b85e94d8e1b4bf0040
+/// `R^3 = 2^768 mod r`
+/// `0xcf8594b7fcc657c893cc664a19fcfed2a489cbe1cfbb6b85e94d8e1b4bf0040``
 const R3: Fr = Fr([
     0x5e94d8e1b4bf0040,
     0x2a489cbe1cfbb6b8,
@@ -53,10 +63,16 @@ const R3: Fr = Fr([
     0x0cf8594b7fcc657c,
 ]);
 
+/// `GENERATOR = 7 mod r` is a generator of the `r - 1` order multiplicative
+/// subgroup, or in other words a primitive root of the field.
 const GENERATOR: Fr = Fr::from_raw([0x07, 0x00, 0x00, 0x00]);
 
 const S: u32 = 28;
 
+/// GENERATOR^t where t * 2^s + 1 = r
+/// with t odd. In other words, this
+/// is a 2^s root of unity.
+/// `0x3ddb9f5166d18b798865ea93dd31f743215cf6dd39329c8d34f1ed960c37c9c`
 const ROOT_OF_UNITY: Fr = Fr::from_raw([
     0xd34f1ed960c37c9c,
     0x3215cf6dd39329c8,
@@ -64,9 +80,7 @@ const ROOT_OF_UNITY: Fr = Fr::from_raw([
     0x03ddb9f5166d18b7,
 ]);
 
-const BASEEXT_MODULUS: &'static str =
-    "0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001";
-
+/// 1 / 2 mod r
 const TWO_INV: Fr = Fr::from_raw([
     0xa1f0fac9f8000001,
     0x9419f4243cdcb848,
@@ -74,6 +88,7 @@ const TWO_INV: Fr = Fr::from_raw([
     0x183227397098d014,
 ]);
 
+/// 1 / ROOT_OF_UNITY mod r
 const ROOT_OF_UNITY_INV: Fr = Fr::from_raw([
     0x0ed3e50a414e6dba,
     0xb22625f59115aba7,
@@ -81,6 +96,9 @@ const ROOT_OF_UNITY_INV: Fr = Fr::from_raw([
     0x048127174daabc26,
 ]);
 
+/// GENERATOR^{2^s} where t * 2^s + 1 = r
+/// with t odd. In other words, this
+/// is a t root of unity.
 // 0x09226b6e22c6f0ca64ec26aad4c86e715b5f898e5e963f25870e56bbe533e9a2
 const DELTA: Fr = Fr::from_raw([
     0x870e56bbe533e9a2,
@@ -89,31 +107,39 @@ const DELTA: Fr = Fr::from_raw([
     0x09226b6e22c6f0ca,
 ]);
 
+/// `ZETA^3 = 1 mod r` where `ZETA^2 != 1 mod r`
 const ZETA: Fr = Fr::from_raw([
     0xb8ca0b2d36636f23,
     0xcc37a73fec2bc5e9,
     0x048b6e193fd84104,
     0x30644e72e131a029,
+    // 0x5763473177fffffeu64,
+    // 0xd4f263f1acdb5c4fu64,
+    // 0x59e26bcea0d48bacu64,
+    // 0x0u64,
 ]);
+
+/// `(t - 1) // 2` where t * 2^s + 1 = p with t odd.
+const T_MINUS1_OVER2: [u64; 4] = [
+    0xcdcb848a1f0fac9f,
+    0x0c0ac2e9419f4243,
+    0x098d014dc2822db4,
+    0x0000000183227397,
+];
 
 impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
+
 common_field!(
     Fr,
     MODULUS,
     INV,
-    BASEEXT_MODULUS,
+    MODULUS_STR,
     TWO_INV,
     ROOT_OF_UNITY_INV,
     DELTA,
     ZETA
 );
-
-impl Fr {
-    pub fn legendre(&self) -> LegendreSymbol {
-        unimplemented!()
-    }
-}
 
 #[cfg(all(feature = "asm", target_arch = "x86_64"))]
 assembly_field!(Fr, MODULUS, INV);
@@ -140,10 +166,6 @@ impl ff::Field for Fr {
         Self::one()
     }
 
-    fn is_zero(&self) -> Choice {
-        self.ct_is_zero()
-    }
-
     fn double(&self) -> Self {
         self.double()
     }
@@ -155,7 +177,7 @@ impl ff::Field for Fr {
 
     /// Computes the square root of this element, if it exists.
     fn sqrt(&self) -> CtOption<Self> {
-        unimplemented!()
+        crate::arithmetic::sqrt_tonelli_shanks(self, &T_MINUS1_OVER2)
     }
 
     /// Computes the multiplicative inverse of this element,
@@ -236,8 +258,56 @@ impl ff::PrimeField for Fr {
     }
 }
 
+impl SqrtRatio for Fr {
+    const T_MINUS1_OVER2: [u64; 4] = T_MINUS1_OVER2;
+
+    fn pow_by_t_minus1_over2(&self) -> Self {
+        unimplemented!();
+    }
+
+    fn get_lower_32(&self) -> u32 {
+        unimplemented!();
+    }
+
+    #[cfg(feature = "sqrt-table")]
+    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
+        unimplemented!();
+    }
+
+    #[cfg(feature = "sqrt-table")]
+    fn sqrt_alt(&self) -> (Choice, Self) {
+        unimplemented!();
+    }
+}
+
 #[cfg(test)]
 use ff::Field;
+
+#[test]
+fn test_sqrt_fr() {
+    use ff::Field;
+    use rand::SeedableRng;
+    use rand_xorshift::XorShiftRng;
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+
+    let v = (Fr::TWO_INV).square().sqrt().unwrap();
+    assert!(v == Fr::TWO_INV || (-v) == Fr::TWO_INV);
+
+    for _ in 0..10000 {
+        let a = Fr::random(&mut rng);
+        let mut b = a;
+        b = b.square();
+
+        let b = b.sqrt().unwrap();
+        let mut negb = b;
+        negb = negb.neg();
+
+        assert!(a == b || a == negb);
+    }
+}
 
 #[test]
 fn test_zeta() {
@@ -246,7 +316,6 @@ fn test_zeta() {
     let b = a * a;
     assert!(b != Fr::one());
     let c = b * a;
-    println!("{:?}", c);
     assert!(c == Fr::one());
 }
 
@@ -264,8 +333,12 @@ fn test_inv_root_of_unity() {
 }
 
 #[test]
-fn test_inv_2() {
-    assert_eq!(Fr::TWO_INV, Fr::from(2).invert().unwrap());
+fn test_delta() {
+    assert_eq!(Fr::DELTA, GENERATOR.pow(&[1u64 << Fr::S, 0, 0, 0]));
+    assert_eq!(
+        Fr::DELTA,
+        Fr::multiplicative_generator().pow(&[1u64 << Fr::S, 0, 0, 0])
+    );
 }
 
 #[test]

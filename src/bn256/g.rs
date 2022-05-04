@@ -1,8 +1,8 @@
 use crate::arithmetic::mul_512;
-use crate::arithmetic::{BaseExt, Coordinates, CurveAffine, CurveExt, FieldExt, Group};
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
+use crate::{Coordinates, CurveExt, FieldExt, Group, _CurveAffine};
 use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
@@ -11,6 +11,7 @@ use ff::{Field, PrimeField};
 use group::{
     cofactor::CofactorGroup, prime::PrimeCurveAffine, Curve as _, Group as _, GroupEncoding,
 };
+
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -196,7 +197,7 @@ mod tests {
     use crate::bn256::{G1, G2};
     use ff::Field;
 
-    use crate::arithmetic::{CurveAffine, CurveExt};
+    use crate::{CurveExt, _CurveAffine};
     use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine};
     use rand::SeedableRng;
     use rand_xorshift::XorShiftRng;
@@ -505,4 +506,25 @@ impl group::UncompressedEncoding for G2Affine {
     fn to_uncompressed(&self) -> Self::Uncompressed {
         unimplemented!();
     }
+}
+
+pub trait CurveAffine: _CurveAffine {
+    // type Base = $base;
+    // type CurveExt = $name;
+    /// Obtains the endomorphism base.
+    fn get_endomorphism_base(base: &Self) -> Self;
+
+    /// Obtains the endomorphism scalars.
+    fn get_endomorphism_scalars(k: &Self::ScalarExt) -> (u128, u128);
+
+    /// Batched point addition.
+    /// If COMPLETE is set to false the points need to be linearly independent.
+    fn batch_add<const COMPLETE: bool, const LOAD_POINTS: bool>(
+        points: &mut [Self],
+        output_indices: &[u32],
+        num_points: usize,
+        offset: usize,
+        bases: &[Self],
+        base_positions: &[u32],
+    );
 }

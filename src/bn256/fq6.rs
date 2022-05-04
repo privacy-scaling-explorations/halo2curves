@@ -618,7 +618,7 @@ fn test_fq6_mul_by_1() {
         a.mul_by_1(&c1);
         b.mul_assign(&Fq6 {
             c0: Fq2::zero(),
-            c1: c1,
+            c1,
             c2: Fq2::zero(),
         });
 
@@ -641,8 +641,8 @@ fn test_fq6_mul_by_01() {
 
         a.mul_by_01(&c0, &c1);
         b.mul_assign(&Fq6 {
-            c0: c0,
-            c1: c1,
+            c0,
+            c1,
             c2: Fq2::zero(),
         });
 

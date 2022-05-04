@@ -1,10 +1,10 @@
-use crate::arithmetic::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use crate::bn256::fq::*;
 use crate::bn256::fq12::*;
 use crate::bn256::fq2::*;
 use crate::bn256::fq6::FROBENIUS_COEFF_FQ6_C1;
 use crate::bn256::fr::*;
 use crate::bn256::g::*;
+use crate::pairing::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use core::borrow::Borrow;
 use core::iter::Sum;
 use core::ops::{Add, Mul, MulAssign, Neg, Sub};

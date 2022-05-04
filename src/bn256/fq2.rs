@@ -1,12 +1,11 @@
 use super::fq::{Fq, NEGATIVE_ONE};
 use super::LegendreSymbol;
-use crate::arithmetic::BaseExt;
 use core::convert::TryInto;
 use core::ops::{Add, Mul, Neg, Sub};
 use ff::Field;
+use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio};
 use rand::RngCore;
 use std::cmp::Ordering;
-use std::io::{self, Read, Write};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// An element of Fq2, represented by c0 + c1 * u.
@@ -118,6 +117,10 @@ impl_binops_additive!(Fq2, Fq2);
 impl_binops_multiplicative!(Fq2, Fq2);
 
 impl Fq2 {
+    pub const fn new(c0: Fq, c1: Fq) -> Self {
+        Fq2 { c0, c1 }
+    }
+
     pub const fn size() -> usize {
         64
     }
@@ -394,29 +397,169 @@ impl Field for Fq2 {
     }
 }
 
-impl BaseExt for Fq2 {
+impl From<bool> for Fq2 {
+    fn from(bit: bool) -> Fq2 {
+        if bit {
+            Fq2::one()
+        } else {
+            Fq2::zero()
+        }
+    }
+}
+
+impl From<u64> for Fq2 {
+    fn from(val: u64) -> Self {
+        Fq2 {
+            c0: Fq::from(val),
+            c1: Fq::zero(),
+        }
+    }
+}
+
+impl FieldExt for Fq2 {
     const MODULUS: &'static str =
         "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
 
+    // TODO
+    const ROOT_OF_UNITY_INV: Self = Fq2 {
+        c0: Fq([0, 0, 0, 0]),
+        c1: Fq([0, 0, 0, 0]),
+    };
+    const DELTA: Self = Fq2 {
+        c0: Fq([0, 0, 0, 0]),
+        c1: Fq([0, 0, 0, 0]),
+    };
+    const TWO_INV: Self = Fq2 {
+        c0: Fq([0, 0, 0, 0]),
+        c1: Fq([0, 0, 0, 0]),
+    };
+    const ZETA: Self = Fq2 {
+        c0: Fq([0, 0, 0, 0]),
+        c1: Fq([0, 0, 0, 0]),
+    };
+
     /// Converts a 512-bit little endian integer into
     /// a `Fq` by reducing by the modulus.
-    fn from_bytes_wide(_: &[u8; 64]) -> Self {
+    fn from_bytes_wide(bytes: &[u8; 64]) -> Self {
+        Self::new(Fq::from_bytes_wide(bytes), Fq::zero())
+    }
+
+    fn from_u128(v: u128) -> Self {
+        Fq2 {
+            c0: Fq::from_raw([v as u64, (v >> 64) as u64, 0, 0]),
+            c1: Fq::zero(),
+        }
+    }
+
+    fn get_lower_128(&self) -> u128 {
+        self.c0.get_lower_128()
+    }
+
+    // /// Writes this element in its normalized, little endian form into a buffer.
+    // fn write<W: Write>(&self, writer: &mut W) -> io::Result<()> {
+    //     let compressed = self.to_bytes();
+    //     writer.write_all(&compressed[..])
+    // }
+
+    // /// Reads a normalized, little endian represented field element from a
+    // /// buffer.
+    // fn read<R: Read>(reader: &mut R) -> io::Result<Self> {
+    //     let mut compressed = [0u8; 64];
+    //     reader.read_exact(&mut compressed[..])?;
+    //     Option::from(Self::from_bytes(&compressed))
+    //         .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "invalid point encoding in proof"))
+    // }
+}
+
+impl SqrtRatio for Fq2 {
+    const T_MINUS1_OVER2: [u64; 4] = [0, 0, 0, 0];
+
+    fn pow_by_t_minus1_over2(&self) -> Self {
         unimplemented!();
     }
 
-    /// Writes this element in its normalized, little endian form into a buffer.
-    fn write<W: Write>(&self, writer: &mut W) -> io::Result<()> {
-        let compressed = self.to_bytes();
-        writer.write_all(&compressed[..])
+    fn get_lower_32(&self) -> u32 {
+        unimplemented!();
     }
 
-    /// Reads a normalized, little endian represented field element from a
-    /// buffer.
-    fn read<R: Read>(reader: &mut R) -> io::Result<Self> {
-        let mut compressed = [0u8; 64];
-        reader.read_exact(&mut compressed[..])?;
-        Option::from(Self::from_bytes(&compressed))
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "invalid point encoding in proof"))
+    #[cfg(feature = "sqrt-table")]
+    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
+        unimplemented!();
+    }
+
+    #[cfg(feature = "sqrt-table")]
+    fn sqrt_alt(&self) -> (Choice, Self) {
+        unimplemented!();
+    }
+}
+
+impl Group for Fq2 {
+    type Scalar = Fq2;
+
+    fn group_zero() -> Self {
+        Self::zero()
+    }
+    fn group_add(&mut self, rhs: &Self) {
+        *self += *rhs;
+    }
+    fn group_sub(&mut self, rhs: &Self) {
+        *self -= *rhs;
+    }
+    fn group_scale(&mut self, by: &Self::Scalar) {
+        *self *= *by;
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Fq2Bytes([u8; 64]);
+
+impl Default for Fq2Bytes {
+    fn default() -> Self {
+        Self([0u8; 64])
+    }
+}
+
+impl AsMut<[u8]> for Fq2Bytes {
+    fn as_mut(&mut self) -> &mut [u8] {
+        &mut self.0
+    }
+}
+
+impl AsRef<[u8]> for Fq2Bytes {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl ff::PrimeField for Fq2 {
+    type Repr = Fq2Bytes;
+
+    const NUM_BITS: u32 = 254;
+    const CAPACITY: u32 = 253;
+
+    const S: u32 = 0;
+
+    fn from_repr(repr: Self::Repr) -> CtOption<Self> {
+        let c0 = Fq::from_bytes(&repr.0[..32].try_into().unwrap());
+        let c1 = Fq::from_bytes(&repr.0[32..].try_into().unwrap());
+        // Disallow overflow representation
+        CtOption::new(Fq2::new(c0.unwrap(), c1.unwrap()), Choice::from(1))
+    }
+
+    fn to_repr(&self) -> Self::Repr {
+        unimplemented!();
+    }
+
+    fn is_odd(&self) -> Choice {
+        Choice::from(self.to_repr().as_ref()[0] & 1)
+    }
+
+    fn multiplicative_generator() -> Self {
+        unimplemented!()
+    }
+
+    fn root_of_unity() -> Self {
+        unimplemented!()
     }
 }
 

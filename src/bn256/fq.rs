@@ -1,16 +1,26 @@
 #[cfg(all(feature = "asm", target_arch = "x86_64"))]
 use super::assembly::assembly_field;
+
 use super::common::common_field;
 use super::LegendreSymbol;
-use crate::arithmetic::{adc, mac, sbb, BaseExt, FieldExt, Group};
+use crate::arithmetic::{adc, mac, sbb};
+use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio};
+
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use ff::PrimeField;
 use rand::RngCore;
-use std::io::{self, Read, Write};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
+/// This represents an element of $\mathbb{F}_q$ where
+///
+/// `p = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47`
+///
+/// is the base field of the BN254 curve.
+// The internal representation of this type is four 64-bit unsigned
+// integers in little-endian order. `Fq` values are always in
+// Montgomery form; i.e., Fq(a) = aR mod q, with R = 2^256.
 #[derive(Clone, Copy, Eq)]
 pub struct Fq(pub(crate) [u64; 4]);
 
@@ -57,21 +67,32 @@ pub const NEGATIVE_ONE: Fq = Fq([
     0x2259d6b14729c0fa,
 ]);
 
-const BASEEXT_MODULUS: &'static str =
-    "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
+const MODULUS_STR: &str = "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
 
-const TWO_INV: Fq = Fq::from_raw([0, 0, 0, 0]);
-const ROOT_OF_UNITY_INV: Fq = Fq::from_raw([0, 0, 0, 0]);
-const DELTA: Fq = Fq::from_raw([0, 0, 0, 0]);
-const ZETA: Fq = Fq::from_raw([0, 0, 0, 0]);
+const TWO_INV: Fq = Fq::from_raw([
+    0x9e10460b6c3e7ea4,
+    0xcbc0b548b438e546,
+    0xdc2822db40c0ac2e,
+    0x183227397098d014,
+]);
+
+// Unused constant for base field
+const ROOT_OF_UNITY_INV: Fq = Fq::zero();
+
+// Unused constant for base field
+const DELTA: Fq = Fq::zero();
+
+// Unused constant for base field
+const ZETA: Fq = Fq::zero();
 
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
+
 common_field!(
     Fq,
     MODULUS,
     INV,
-    BASEEXT_MODULUS,
+    MODULUS_STR,
     TWO_INV,
     ROOT_OF_UNITY_INV,
     DELTA,
@@ -81,53 +102,6 @@ common_field!(
 impl Fq {
     pub const fn size() -> usize {
         32
-    }
-    /// Attempts to convert a little-endian byte representation of
-    /// a scalar into a `Fq`, failing if the input is not canonical.
-    pub fn from_bytes(bytes: &[u8; 32]) -> CtOption<Fq> {
-        let mut tmp = Fq([0, 0, 0, 0]);
-
-        tmp.0[0] = u64::from_le_bytes(bytes[0..8].try_into().unwrap());
-        tmp.0[1] = u64::from_le_bytes(bytes[8..16].try_into().unwrap());
-        tmp.0[2] = u64::from_le_bytes(bytes[16..24].try_into().unwrap());
-        tmp.0[3] = u64::from_le_bytes(bytes[24..32].try_into().unwrap());
-
-        // Try to subtract the modulus
-        let (_, borrow) = sbb(tmp.0[0], MODULUS.0[0], 0);
-        let (_, borrow) = sbb(tmp.0[1], MODULUS.0[1], borrow);
-        let (_, borrow) = sbb(tmp.0[2], MODULUS.0[2], borrow);
-        let (_, borrow) = sbb(tmp.0[3], MODULUS.0[3], borrow);
-
-        // If the element is smaller than MODULUS then the
-        // subtraction will underflow, producing a borrow value
-        // of 0xffff...ffff. Otherwise, it'll be zero.
-        let is_some = (borrow as u8) & 1;
-
-        // Convert to Montgomery form by computing
-        // (a.R^0 * R^2) / R = a.R
-        tmp *= &R2;
-
-        CtOption::new(tmp, Choice::from(is_some))
-    }
-
-    /// Converts an element of `Fq` into a byte representation in
-    /// little-endian byte order.
-    pub fn to_bytes(&self) -> [u8; 32] {
-        // Turn into canonical form by computing
-        // (a.R) / R = a
-        #[cfg(all(feature = "asm", target_arch = "x86_64"))]
-        let tmp = Fq::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
-
-        #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
-        let tmp = Fq::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
-
-        let mut res = [0; 32];
-        res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
-        res[8..16].copy_from_slice(&tmp.0[1].to_le_bytes());
-        res[16..24].copy_from_slice(&tmp.0[2].to_le_bytes());
-        res[24..32].copy_from_slice(&tmp.0[3].to_le_bytes());
-
-        res
     }
 
     pub fn legendre(&self) -> LegendreSymbol {
@@ -167,10 +141,6 @@ impl ff::Field for Fq {
 
     fn one() -> Self {
         Self::one()
-    }
-
-    fn is_zero(&self) -> Choice {
-        self.ct_is_zero()
     }
 
     fn double(&self) -> Self {
@@ -274,32 +244,41 @@ impl ff::PrimeField for Fq {
     }
 }
 
-#[cfg(test)]
-use ff::Field;
-#[cfg(test)]
-use rand::SeedableRng;
-#[cfg(test)]
-use rand_xorshift::XorShiftRng;
+impl SqrtRatio for Fq {
+    const T_MINUS1_OVER2: [u64; 4] = [0, 0, 0, 0];
 
-#[test]
-fn test_ser() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
+    fn pow_by_t_minus1_over2(&self) -> Self {
+        unimplemented!();
+    }
 
-    let a0 = Fq::random(&mut rng);
-    let a_bytes = a0.to_bytes();
-    let a1 = Fq::from_bytes(&a_bytes).unwrap();
-    assert_eq!(a0, a1);
+    fn get_lower_32(&self) -> u32 {
+        unimplemented!();
+    }
+
+    #[cfg(feature = "sqrt-table")]
+    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
+        unimplemented!();
+    }
+
+    #[cfg(feature = "sqrt-table")]
+    fn sqrt_alt(&self) -> (Choice, Self) {
+        unimplemented!();
+    }
 }
 
 #[test]
-pub fn test_sqrt() {
+fn test_sqrt_fq() {
+    use ff::Field;
+    use rand::SeedableRng;
+    use rand_xorshift::XorShiftRng;
     let mut rng = XorShiftRng::from_seed([
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
         0xe5,
     ]);
+
+    let v = (Fq::TWO_INV).square().sqrt().unwrap();
+    assert!(v == Fq::TWO_INV || (-v) == Fq::TWO_INV);
+
     for _ in 0..10000 {
         let a = Fq::random(&mut rng);
         let mut b = a;
