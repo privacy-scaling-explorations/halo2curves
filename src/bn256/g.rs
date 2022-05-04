@@ -509,8 +509,6 @@ impl group::UncompressedEncoding for G2Affine {
 }
 
 pub trait CurveAffine: _CurveAffine {
-    // type Base = $base;
-    // type CurveExt = $name;
     /// Obtains the endomorphism base.
     fn get_endomorphism_base(base: &Self) -> Self;
 

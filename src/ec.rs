@@ -860,7 +860,7 @@ macro_rules! new_curve_impl {
                     // Where that result of the point addition will be stored
                     let out_idx = output_indices[i >> 1] as usize - offset;
 
-                    #[cfg(feature = "prefetch")]
+                    #[cfg(all(feature = "prefetch", target_arch = "x86_64"))]
                     if i < num_points - 2 {
                         if LOAD_POINTS {
                             crate::prefetch::<Self>(bases, base_positions[i + 2] as usize);
@@ -929,7 +929,7 @@ macro_rules! new_curve_impl {
                     // Where that result of the point addition will be stored
                     let out_idx = output_indices[i >> 1] as usize - offset;
 
-                    #[cfg(feature = "prefetch")]
+                    #[cfg(all(feature = "prefetch", target_arch = "x86_64"))]
                     if i > 0 {
                         crate::prefetch::<Self>(points, output_indices[(i >> 1) - 1] as usize - offset);
                     }

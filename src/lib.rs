@@ -20,7 +20,7 @@ pub use pasta_curves::arithmetic::{
 #[cfg(test)]
 pub mod tests;
 
-#[cfg(feature = "prefetch")]
+#[cfg(all(feature = "prefetch", target_arch = "x86_64"))]
 #[inline(always)]
 pub fn prefetch<T>(data: &[T], offset: usize) {
     use core::arch::x86_64::_mm_prefetch;
