@@ -5,17 +5,16 @@
 mod ec;
 #[macro_use]
 mod binops;
+mod arithmetic;
 
-pub mod arithmetic;
 pub mod bn256;
 pub mod pairing;
+pub mod pasta;
 
-pub extern crate group;
-// pub use curves::CurveAffine;
-pub use pairing::*;
 pub use pasta_curves::arithmetic::{
-    Coordinates, CurveAffine as _CurveAffine, CurveExt, FieldExt, Group,
+    Coordinates, CurveAffine as _CurveAffine, CurveAffine, CurveExt, FieldExt, Group,
 };
+pub extern crate group;
 
 #[cfg(test)]
 pub mod tests;
