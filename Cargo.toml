@@ -1,6 +1,6 @@
 [package]
-name = "pairing_bn256"
-version = "0.2.0-beta.0"
+name = "halo2curves"
+version = "0.1.0"
 authors = [
   "Sean Bowe <ewillbefull@gmail.com>",
   "Jack Grigg <jack@z.cash>",
