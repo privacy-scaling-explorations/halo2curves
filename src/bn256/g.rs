@@ -2,7 +2,8 @@ use crate::arithmetic::mul_512;
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
-use crate::{Coordinates, CurveAffine, CurveExt, Group};
+use crate::CurveAffine;
+use crate::{Coordinates, CurveExt, Group, _CurveAffine};
 use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
@@ -38,6 +39,14 @@ new_curve_impl!(
     G2_B,
     "bn256_g2",
 );
+
+impl CurveAffine for G1Affine {
+    batch_add!();
+}
+
+impl CurveAffine for G2Affine {
+    batch_add!();
+}
 
 const G1_GENERATOR_X: Fq = Fq::one();
 const G1_GENERATOR_Y: Fq = Fq::from_raw([2, 0, 0, 0]);
@@ -238,7 +247,7 @@ mod tests {
     };
     use ff::Field;
 
-    use crate::{CurveAffine, CurveExt};
+    use crate::{CurveExt, _CurveAffine};
     use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine};
     use rand::SeedableRng;
     use rand_xorshift::XorShiftRng;

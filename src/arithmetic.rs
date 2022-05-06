@@ -6,6 +6,17 @@
 
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
+pub trait CurveAffine: pasta_curves::arithmetic::CurveAffine {
+    fn batch_add<const COMPLETE: bool, const LOAD_POINTS: bool>(
+        points: &mut [Self],
+        output_indices: &[u32],
+        num_points: usize,
+        offset: usize,
+        bases: &[Self],
+        base_positions: &[u32],
+    );
+}
+
 pub(crate) fn sqrt_tonelli_shanks<F: ff::PrimeField, S: AsRef<[u64]>>(
     f: &F,
     tm1d2: S,

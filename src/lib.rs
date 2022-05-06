@@ -11,7 +11,10 @@ pub mod bn256;
 pub mod pairing;
 pub mod pasta;
 
-pub use pasta_curves::arithmetic::{Coordinates, CurveAffine, CurveExt, FieldExt, Group};
+pub use arithmetic::CurveAffine;
+use pasta_curves::arithmetic::CurveAffine as _CurveAffine;
+pub use pasta_curves::arithmetic::{Coordinates, CurveExt, FieldExt, Group};
+
 pub extern crate group;
 
 #[cfg(test)]
