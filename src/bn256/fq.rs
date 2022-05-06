@@ -82,8 +82,13 @@ const ROOT_OF_UNITY_INV: Fq = Fq::zero();
 // Unused constant for base field
 const DELTA: Fq = Fq::zero();
 
-// Unused constant for base field
-const ZETA: Fq = Fq::zero();
+/// `ZETA^3 = 1 mod r` where `ZETA^2 != 1 mod r`
+const ZETA: Fq = Fq::from_raw([
+    0x5763473177fffffeu64,
+    0xd4f263f1acdb5c4fu64,
+    0x59e26bcea0d48bacu64,
+    0x0u64,
+]);
 
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);

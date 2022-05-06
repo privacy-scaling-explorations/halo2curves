@@ -2,16 +2,16 @@ use crate::arithmetic::mul_512;
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
-use crate::{Coordinates, CurveExt, FieldExt, Group, _CurveAffine};
+use crate::{Coordinates, CurveAffine, CurveExt, Group};
 use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
 use ff::{Field, PrimeField};
-use group::{
-    cofactor::CofactorGroup, prime::PrimeCurveAffine, Curve as _, Group as _, GroupEncoding,
-};
+use group::Curve;
+use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group as _, GroupEncoding};
 
+use pasta_curves::arithmetic::FieldExt;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -24,8 +24,7 @@ new_curve_impl!(
     Fr,
     (G1_GENERATOR_X,G1_GENERATOR_Y),
     G1_B,
-    ENDO_G1_CUBE_ROOT,
-    "bn256_g1"
+    "bn256_g1",
 );
 
 new_curve_impl!(
@@ -37,8 +36,7 @@ new_curve_impl!(
     Fr,
     (G2_GENERATOR_X, G2_GENERATOR_Y),
     G2_B,
-    ENDO_G2_CUBE_ROOT,
-    "bn256_g2"
+    "bn256_g2",
 );
 
 const G1_GENERATOR_X: Fq = Fq::one();
@@ -59,32 +57,6 @@ const ENDO_BETA: Fr = Fr::from_raw([
     0xb3c4d79d41a91758u64,
     0x0u64,
 ]);
-const ENDO_G1_CUBE_ROOT: Fq = Fq::from_raw([
-    0x5763473177fffffeu64,
-    0xd4f263f1acdb5c4fu64,
-    0x59e26bcea0d48bacu64,
-    0x0u64,
-]);
-const ENDO_G2_CUBE_ROOT: Fq2 = Fq2 {
-    c0: Fq::zero(),
-    c1: Fq::zero(),
-};
-
-impl group::cofactor::CofactorGroup for G1 {
-    type Subgroup = G1;
-
-    fn clear_cofactor(&self) -> Self {
-        *self
-    }
-
-    fn into_subgroup(self) -> CtOption<Self::Subgroup> {
-        CtOption::new(self, 1.into())
-    }
-
-    fn is_torsion_free(&self) -> Choice {
-        1.into()
-    }
-}
 
 const G2_B: Fq2 = Fq2 {
     c0: Fq::from_raw([
@@ -131,6 +103,72 @@ const G2_GENERATOR_Y: Fq2 = Fq2 {
         0x090689d0585ff075,
     ]),
 };
+
+trait CurveEndo: CurveExt {
+    fn endomorphism_base(&self) -> Self;
+    fn endomorphism_scalars(k: &Self::ScalarExt) -> (u128, u128);
+}
+
+impl CurveEndo for G1 {
+    fn endomorphism_base(&self) -> Self {
+        Self {
+            x: self.x * Self::Base::ZETA,
+            y: -self.y,
+            z: self.z,
+        }
+    }
+
+    fn endomorphism_scalars(k: &Self::ScalarExt) -> (u128, u128) {
+        #[cfg(all(feature = "asm", target_arch = "x86_64"))]
+        let input = Fr::montgomery_reduce(&[k.0[0], k.0[1], k.0[2], k.0[3], 0, 0, 0, 0]).0;
+
+        #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
+        let input = Fr::montgomery_reduce(k.0[0], k.0[1], k.0[2], k.0[3], 0, 0, 0, 0).0;
+
+        let c1_512 = mul_512(ENDO_G2, input);
+        let c2_512 = mul_512(ENDO_G1, input);
+
+        let c1_hi = [c1_512[4], c1_512[5], c1_512[6], c1_512[7]];
+        let c2_hi = [c2_512[4], c2_512[5], c2_512[6], c2_512[7]];
+
+        let q1_512 = mul_512(c1_hi, ENDO_MINUS_B1);
+        let q2_512 = mul_512(c2_hi, ENDO_B2);
+
+        let q1_lo = Self::ScalarExt::from_raw([q1_512[0], q1_512[1], q1_512[2], q1_512[3]]);
+        let q2_lo = Self::ScalarExt::from_raw([q2_512[0], q2_512[1], q2_512[2], q2_512[3]]);
+
+        let k1 = q2_lo - q1_lo;
+        let k2 = (k1 * ENDO_BETA) + k;
+
+        (k2.get_lower_128(), k1.get_lower_128())
+    }
+}
+
+impl CurveEndo for G2 {
+    fn endomorphism_base(&self) -> Self {
+        unimplemented!();
+    }
+
+    fn endomorphism_scalars(_: &Self::ScalarExt) -> (u128, u128) {
+        unimplemented!();
+    }
+}
+
+impl group::cofactor::CofactorGroup for G1 {
+    type Subgroup = G1;
+
+    fn clear_cofactor(&self) -> Self {
+        *self
+    }
+
+    fn into_subgroup(self) -> CtOption<Self::Subgroup> {
+        CtOption::new(self, 1.into())
+    }
+
+    fn is_torsion_free(&self) -> Choice {
+        1.into()
+    }
+}
 
 impl CofactorGroup for G2 {
     type Subgroup = G2;
@@ -194,10 +232,13 @@ impl G2 {
 #[cfg(test)]
 mod tests {
 
-    use crate::bn256::{Fr, G1Affine, G1, G2};
+    use crate::bn256::{
+        g::{CurveEndo, ENDO_BETA},
+        Fr, G1Affine, G1, G2,
+    };
     use ff::Field;
 
-    use crate::{CurveExt, _CurveAffine};
+    use crate::{CurveAffine, CurveExt};
     use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine};
     use rand::SeedableRng;
     use rand_xorshift::XorShiftRng;
@@ -458,8 +499,13 @@ mod tests {
     }
 
     #[test]
+    fn test_endo_consistency() {
+        let g = G1::generator();
+        assert_eq!(g * (-ENDO_BETA), g.endo());
+    }
+
+    #[test]
     fn test_endomorphism() {
-        use crate::bn256::g::CurveAffine;
         use crate::FieldExt;
         let mut rng = XorShiftRng::from_seed([
             0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
@@ -470,13 +516,14 @@ mod tests {
         let point = G1Affine::random(&mut rng);
 
         let expected = point * scalar;
-        let (part1, part2) = G1Affine::get_endomorphism_scalars(&scalar);
+
+        let (part1, part2) = G1::endomorphism_scalars(&scalar);
 
         let k1 = Fr::from_u128(part1);
         let k2 = Fr::from_u128(part2);
 
         let t1 = point * k1;
-        let base = G1Affine::get_endomorphism_base(&point);
+        let base = G1::endomorphism_base(&point.into());
 
         let t2 = base * k2;
         let result = t1 + t2;
@@ -536,23 +583,4 @@ impl group::UncompressedEncoding for G2Affine {
     fn to_uncompressed(&self) -> Self::Uncompressed {
         unimplemented!();
     }
-}
-
-pub trait CurveAffine: _CurveAffine {
-    /// Obtains the endomorphism base.
-    fn get_endomorphism_base(base: &Self) -> Self;
-
-    /// Obtains the endomorphism scalars.
-    fn get_endomorphism_scalars(k: &Self::ScalarExt) -> (u128, u128);
-
-    /// Batched point addition.
-    /// If COMPLETE is set to false the points need to be linearly independent.
-    fn batch_add<const COMPLETE: bool, const LOAD_POINTS: bool>(
-        points: &mut [Self],
-        output_indices: &[u32],
-        num_points: usize,
-        offset: usize,
-        bases: &[Self],
-        base_positions: &[u32],
-    );
 }

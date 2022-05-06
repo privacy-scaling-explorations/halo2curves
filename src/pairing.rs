@@ -1,4 +1,4 @@
-use crate::{bn256::CurveAffine, FieldExt, Group as _Group};
+use crate::{CurveAffine, FieldExt, Group as _Group};
 use core::ops::Mul;
 use group::{
     prime::PrimeCurve, Group, GroupOps, GroupOpsOwned, ScalarMul, ScalarMulOwned,

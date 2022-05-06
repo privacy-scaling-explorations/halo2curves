@@ -491,6 +491,16 @@ macro_rules! common_field {
         }
 
         #[test]
+        fn test_zeta() {
+            let a = $field::ZETA;
+            assert!(a != $field::one());
+            let b = a * a;
+            assert!(b != $field::one());
+            let c = b * a;
+            assert!(c == $field::one());
+        }
+
+        #[test]
         fn test_inv() {
             // Compute -(r^{-1} mod 2^64) mod 2^64 by exponentiating
             // by totient(2**64) - 1

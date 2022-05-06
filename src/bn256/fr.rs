@@ -113,10 +113,6 @@ const ZETA: Fr = Fr::from_raw([
     0xcc37a73fec2bc5e9,
     0x048b6e193fd84104,
     0x30644e72e131a029,
-    // 0x5763473177fffffeu64,
-    // 0xd4f263f1acdb5c4fu64,
-    // 0x59e26bcea0d48bacu64,
-    // 0x0u64,
 ]);
 
 /// `(t - 1) // 2` where t * 2^s + 1 = p with t odd.
@@ -307,16 +303,6 @@ fn test_sqrt_fr() {
 
         assert!(a == b || a == negb);
     }
-}
-
-#[test]
-fn test_zeta() {
-    let a = Fr::ZETA;
-    assert!(a != Fr::one());
-    let b = a * a;
-    assert!(b != Fr::one());
-    let c = b * a;
-    assert!(c == Fr::one());
 }
 
 #[test]

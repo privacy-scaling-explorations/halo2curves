@@ -420,22 +420,26 @@ impl FieldExt for Fq2 {
     const MODULUS: &'static str =
         "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
 
-    // TODO
     const ROOT_OF_UNITY_INV: Self = Fq2 {
-        c0: Fq([0, 0, 0, 0]),
-        c1: Fq([0, 0, 0, 0]),
+        c0: Fq::zero(),
+        c1: Fq::zero(),
     };
     const DELTA: Self = Fq2 {
-        c0: Fq([0, 0, 0, 0]),
-        c1: Fq([0, 0, 0, 0]),
+        c0: Fq::zero(),
+        c1: Fq::zero(),
     };
     const TWO_INV: Self = Fq2 {
-        c0: Fq([0, 0, 0, 0]),
+        c0: Fq::from_raw([
+            0x9e10460b6c3e7ea4,
+            0xcbc0b548b438e546,
+            0xdc2822db40c0ac2e,
+            0x183227397098d014,
+        ]),
         c1: Fq([0, 0, 0, 0]),
     };
     const ZETA: Self = Fq2 {
-        c0: Fq([0, 0, 0, 0]),
-        c1: Fq([0, 0, 0, 0]),
+        c0: Fq::zero(),
+        c1: Fq::zero(),
     };
 
     /// Converts a 512-bit little endian integer into
