@@ -648,7 +648,7 @@ macro_rules! new_curve_impl {
         }
 
 
-        impl _CurveAffine for $name_affine {
+        impl CurveAffine for $name_affine {
             type ScalarExt = $scalar;
             type Base = $base;
             type CurveExt = $name;

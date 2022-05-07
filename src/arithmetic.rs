@@ -6,7 +6,7 @@
 
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
-pub trait CurveAffine: pasta_curves::arithmetic::CurveAffine {
+pub trait CurveAffineExt: pasta_curves::arithmetic::CurveAffine {
     fn batch_add<const COMPLETE: bool, const LOAD_POINTS: bool>(
         points: &mut [Self],
         output_indices: &[u32],
