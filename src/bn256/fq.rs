@@ -1,9 +1,9 @@
 #[cfg(all(feature = "asm", target_arch = "x86_64"))]
 use super::assembly::assembly_field;
 
-use super::common::common_field;
 use super::LegendreSymbol;
 use crate::arithmetic::{adc, mac, sbb};
+use crate::common::common_field;
 use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio};
 
 use core::convert::TryInto;

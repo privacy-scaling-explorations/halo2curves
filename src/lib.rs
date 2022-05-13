@@ -5,11 +5,14 @@
 mod ec;
 #[macro_use]
 mod binops;
+#[macro_use]
+mod common;
 mod arithmetic;
 
 pub mod bn256;
 pub mod pairing;
 pub mod pasta;
+pub mod secp256k1;
 
 pub use arithmetic::CurveAffineExt;
 pub use pasta_curves::arithmetic::{Coordinates, CurveAffine, CurveExt, FieldExt, Group};
