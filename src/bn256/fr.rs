@@ -1,8 +1,8 @@
 #[cfg(all(feature = "asm", target_arch = "x86_64"))]
 use super::assembly::assembly_field;
 
+use super::common::common_field;
 use crate::arithmetic::{adc, mac, sbb};
-use crate::common::common_field;
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};

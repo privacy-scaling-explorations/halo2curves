@@ -5,8 +5,6 @@
 mod ec;
 #[macro_use]
 mod binops;
-#[macro_use]
-mod common;
 mod arithmetic;
 
 pub mod bn256;

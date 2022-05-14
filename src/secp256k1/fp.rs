@@ -220,12 +220,12 @@ impl Fp {
     }
 
     /// Attempts to convert a little-endian byte representation of
-    /// a scalar into a `Fr`, failing if the input is not canonical.
+    /// a scalar into a `Fp`, failing if the input is not canonical.
     pub fn from_bytes(bytes: &[u8; 32]) -> CtOption<Self> {
         <Self as ff::PrimeField>::from_repr(*bytes)
     }
 
-    /// Converts an element of `Fr` into a byte representation in
+    /// Converts an element of `Fp` into a byte representation in
     /// little-endian byte order.
     pub fn to_bytes(&self) -> [u8; 32] {
         <Self as ff::PrimeField>::to_repr(self)
