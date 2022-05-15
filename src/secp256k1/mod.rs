@@ -1,3 +1,4 @@
+mod common;
 mod curve;
 mod fp;
 mod fq;
