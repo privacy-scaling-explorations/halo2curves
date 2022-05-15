@@ -671,40 +671,7 @@ impl SqrtRatio for Fp {
     }
 }
 
-#[cfg(feature = "kzg")]
-impl BaseExt for Fp {
-    const MODULUS: &'static str = MODULUS_STR;
-
-    fn write<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        let bytes = self.to_repr();
-        writer.write_all(&bytes[..])
-    }
-
-    /// Reads a normalized, little endian represented field element from a
-    /// buffer.
-    fn read<R: Read>(reader: &mut R) -> io::Result<Self> {
-        let mut compressed = [0u8; 32];
-        reader.read_exact(&mut compressed[..])?;
-        Option::from(Self::from_repr(compressed))
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "invalid point encoding in proof"))
-    }
-
-    fn from_bytes_wide(bytes: &[u8; 64]) -> Fp {
-        Fp::from_u512([
-            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
-            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
-            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
-            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
-            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
-            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
-            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
-        ])
-    }
-}
-
 impl FieldExt for Fp {
-    #[cfg(not(feature = "kzg"))]
     const MODULUS: &'static str = MODULUS_STR;
     const ROOT_OF_UNITY_INV: Self = Self::zero();
     const DELTA: Self = Self::zero();
@@ -723,7 +690,6 @@ impl FieldExt for Fp {
 
     /// Converts a 512-bit little endian integer into
     /// a `Fp` by reducing by the modulus.
-    #[cfg(not(feature = "kzg"))]
     fn from_bytes_wide(bytes: &[u8; 64]) -> Fp {
         Fp::from_u512([
             u64::from_le_bytes(bytes[0..8].try_into().unwrap()),

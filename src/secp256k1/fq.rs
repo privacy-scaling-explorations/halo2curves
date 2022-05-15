@@ -515,12 +515,6 @@ impl ff::Field for Fq {
         CtOption::new(res, is_square)
     }
 
-    #[cfg(feature = "kzg")]
-    fn sqrt(&self) -> CtOption<Self> {
-        unimplemented!()
-        // crate::arithmetic::sqrt_tonelli_shanks(self, &Self::T_MINUS1_OVER2)
-    }
-
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
 
@@ -666,7 +660,6 @@ lazy_static! {
     static ref FQ_TABLES: SqrtTables<Fq> = SqrtTables::new(0x116A9E, 1206);
 }
 
-#[cfg(not(feature = "kzg"))]
 impl SqrtRatio for Fq {
     const T_MINUS1_OVER2: [u64; 4] = [0, 0, 0, 0];
 
@@ -687,39 +680,6 @@ impl SqrtRatio for Fq {
 
     fn sqrt_alt(&self) -> (Choice, Self) {
         FQ_TABLES.sqrt_alt(self)
-    }
-}
-
-#[cfg(feature = "kzg")]
-impl BaseExt for Fq {
-    const MODULUS: &'static str = MODULUS_STR;
-
-    /// Writes this element in its normalized, little endian form into a buffer.
-    fn write<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        let bytes = self.to_repr();
-        writer.write_all(&bytes[..])
-    }
-
-    /// Reads a normalized, little endian represented field element from a
-    /// buffer.
-    fn read<R: Read>(reader: &mut R) -> io::Result<Self> {
-        let mut compressed = [0u8; 32];
-        reader.read_exact(&mut compressed[..])?;
-        Option::from(Self::from_repr(compressed))
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "invalid point encoding in proof"))
-    }
-
-    fn from_bytes_wide(bytes: &[u8; 64]) -> Self {
-        Fq::from_u512([
-            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
-            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
-            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
-            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
-            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
-            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
-            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
-        ])
     }
 }
 
