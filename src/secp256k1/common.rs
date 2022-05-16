@@ -1,4 +1,3 @@
-/// Common traits for secp256k1 fields
 macro_rules! common_field {
     ($field:ident, $modulus:ident, $inv:ident, $baseext_modulus:ident, $two_inv:ident, $root_of_unity_inv:ident,
         $delta:ident, $zeta:ident) => {
@@ -370,19 +369,19 @@ macro_rules! common_field {
                 $field([d0 & mask, d1 & mask, d2 & mask, d3 & mask])
             }
         }
-        impl From<Fp> for [u8; 32] {
-            fn from(value: Fp) -> [u8; 32] {
+        impl From<$field> for [u8; 32] {
+            fn from(value: $field) -> [u8; 32] {
                 value.to_repr()
             }
         }
 
-        impl<'a> From<&'a Fp> for [u8; 32] {
-            fn from(value: &'a Fp) -> [u8; 32] {
+        impl<'a> From<&'a $field> for [u8; 32] {
+            fn from(value: &'a $field) -> [u8; 32] {
                 value.to_repr()
             }
         }
 
-        impl FieldExt for Fp {
+        impl FieldExt for $field {
             const MODULUS: &'static str = $baseext_modulus;
 
             const TWO_INV: Self = $two_inv;
@@ -391,13 +390,13 @@ macro_rules! common_field {
             const ZETA: Self = $zeta;
 
             fn from_u128(v: u128) -> Self {
-                Fp::from_raw([v as u64, (v >> 64) as u64, 0, 0])
+                $field::from_raw([v as u64, (v >> 64) as u64, 0, 0])
             }
 
             /// Converts a 512-bit little endian integer into
-            /// a `Fp` by reducing by the modulus.
-            fn from_bytes_wide(bytes: &[u8; 64]) -> Fp {
-                Fp::from_u512([
+            /// a `$field` by reducing by the modulus.
+            fn from_bytes_wide(bytes: &[u8; 64]) -> $field {
+                $field::from_u512([
                     u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
                     u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
                     u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
@@ -410,11 +409,133 @@ macro_rules! common_field {
             }
 
             fn get_lower_128(&self) -> u128 {
-                let tmp =
-                    Fp::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+                let tmp = $field::montgomery_reduce(
+                    self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0,
+                );
 
                 u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)
             }
+        }
+
+        // #[test]
+        // fn test_zeta() {
+        //     let a = $field::ZETA;
+        //     assert!(a != $field::one());
+        //     let b = a * a;
+        //     assert!(b != $field::one());
+        //     let c = b * a;
+        //     assert!(c == $field::one());
+        // }
+
+        #[test]
+        fn test_inv() {
+            // Compute -(r^{-1} mod 2^64) mod 2^64 by exponentiating
+            // by totient(2**64) - 1
+
+            let mut inv = 1u64;
+            for _ in 0..63 {
+                inv = inv.wrapping_mul(inv);
+                inv = inv.wrapping_mul(MODULUS.0[0]);
+            }
+            inv = inv.wrapping_neg();
+
+            assert_eq!(inv, INV);
+        }
+
+        use num_bigint::BigUint;
+        use num_traits::Num;
+        #[test]
+        fn test_inv_2() {
+            use ff::Field;
+            assert_eq!($field::TWO_INV, $field::from(2).invert().unwrap());
+        }
+
+        #[cfg(test)]
+        fn big_modulus() -> BigUint {
+            use num_bigint::BigUint;
+            BigUint::from_str_radix(&$baseext_modulus[2..], 16).unwrap()
+        }
+
+        #[cfg(test)]
+        fn f_to_big(fe: $field) -> BigUint {
+            let u: [u8; 32] = fe.to_repr();
+            BigUint::from_bytes_le(&u[..])
+        }
+
+        #[test]
+        fn test_add_against_big() {
+            use ff::Field;
+            let modulus = &big_modulus();
+            for _ in 0..1000 {
+                let a = $field::random(rand::rngs::OsRng);
+                let b = $field::random(rand::rngs::OsRng);
+                let c = a + b;
+
+                let c_big_0 = f_to_big(c);
+                let c_big_1 = (f_to_big(a) + f_to_big(b)) % modulus;
+
+                assert_eq!(c_big_0, c_big_1);
+            }
+        }
+
+        #[test]
+        fn test_sub_against_big() {
+            use ff::Field;
+            let modulus = &big_modulus();
+            for _ in 0..1000 {
+                let a = $field::random(rand::rngs::OsRng);
+                let b = $field::random(rand::rngs::OsRng);
+                let c = a - b;
+
+                let c_big_0 = f_to_big(c);
+                let c_big_1 = f_to_big(a) + modulus;
+                let c_big_1 = (c_big_1 - f_to_big(b)) % modulus;
+
+                assert_eq!(c_big_0, c_big_1);
+            }
+        }
+
+        #[test]
+        fn test_mul_against_big() {
+            use ff::Field;
+            let modulus = &big_modulus();
+            for _ in 0..1000 {
+                let a = $field::random(rand::rngs::OsRng);
+                let b = $field::random(rand::rngs::OsRng);
+                let c = a * b;
+                let c_big_0 = f_to_big(c);
+                let c_big_1 = (f_to_big(a) * f_to_big(b)) % modulus;
+                assert_eq!(c_big_0, c_big_1);
+            }
+        }
+
+        #[test]
+        fn test_square_against_big() {
+            use ff::Field;
+            let modulus = &big_modulus();
+            for _ in 0..1000 {
+                let a = $field::random(rand::rngs::OsRng);
+                let c = a.square();
+                let c_big_0 = f_to_big(c);
+                let c_big_1 = (f_to_big(a) * f_to_big(a)) % modulus;
+                assert_eq!(c_big_0, c_big_1);
+            }
+        }
+
+        #[test]
+        fn test_ser() {
+            use ff::Field;
+            use rand::SeedableRng;
+            use rand_xorshift::XorShiftRng;
+            let mut rng = XorShiftRng::from_seed([
+                0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+                0xbc, 0xe5,
+            ]);
+
+            let a0 = $field::random(&mut rng);
+            let a_bytes = a0.to_bytes();
+            let a1 = $field::from_bytes(&a_bytes).unwrap();
+            assert_eq!(a0, a1);
         }
     };
 }

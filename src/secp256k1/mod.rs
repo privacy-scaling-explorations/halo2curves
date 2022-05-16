@@ -1,3 +1,4 @@
+#[macro_use]
 mod common;
 mod curve;
 mod fp;
