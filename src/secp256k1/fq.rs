@@ -8,12 +8,12 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::arithmetic::{adc, mac, sbb};
 
-#[cfg(feature = "bits")]
-use ff::{FieldBits, PrimeFieldBits};
-
 use lazy_static::lazy_static;
 
 use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio, SqrtTables};
+
+#[cfg(feature = "bits")]
+use ff::{FieldBits, PrimeFieldBits};
 
 /// This represents an element of $\mathbb{F}_q$ where
 ///

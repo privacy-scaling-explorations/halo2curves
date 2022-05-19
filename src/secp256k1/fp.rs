@@ -317,8 +317,6 @@ impl SqrtRatio for Fp {
 mod test {
     use super::*;
     use ff::Field;
-    use num_bigint::BigUint;
-    use num_traits::Num;
 
     #[test]
     fn test_sqrt() {
