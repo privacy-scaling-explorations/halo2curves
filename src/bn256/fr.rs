@@ -1,7 +1,6 @@
 #[cfg(all(feature = "asm", target_arch = "x86_64"))]
 use super::assembly::assembly_field;
 
-use super::common::common_field;
 use crate::arithmetic::{adc, mac, sbb};
 use core::convert::TryInto;
 use core::fmt;
@@ -115,18 +114,14 @@ const ZETA: Fr = Fr::from_raw([
     0x30644e72e131a029,
 ]);
 
-/// `(t - 1) // 2` where t * 2^s + 1 = p with t odd.
-const T_MINUS1_OVER2: [u64; 4] = [
-    0xcdcb848a1f0fac9f,
-    0x0c0ac2e9419f4243,
-    0x098d014dc2822db4,
-    0x0000000183227397,
-];
-
+use crate::{
+    field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+};
 impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
-
-common_field!(
+field_common!(
     Fr,
     MODULUS,
     INV,
@@ -136,7 +131,8 @@ common_field!(
     DELTA,
     ZETA
 );
-
+#[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
+field_arithmetic!(Fr, sparse);
 #[cfg(all(feature = "asm", target_arch = "x86_64"))]
 assembly_field!(Fr, MODULUS, INV);
 
@@ -173,7 +169,7 @@ impl ff::Field for Fr {
 
     /// Computes the square root of this element, if it exists.
     fn sqrt(&self) -> CtOption<Self> {
-        crate::arithmetic::sqrt_tonelli_shanks(self, &T_MINUS1_OVER2)
+        crate::arithmetic::sqrt_tonelli_shanks(self, &<Self as SqrtRatio>::T_MINUS1_OVER2)
     }
 
     /// Computes the multiplicative inverse of this element,
@@ -255,101 +251,90 @@ impl ff::PrimeField for Fr {
 }
 
 impl SqrtRatio for Fr {
-    const T_MINUS1_OVER2: [u64; 4] = T_MINUS1_OVER2;
-
-    fn pow_by_t_minus1_over2(&self) -> Self {
-        unimplemented!();
-    }
+    /// `(t - 1) // 2` where t * 2^s + 1 = p with t odd.
+    const T_MINUS1_OVER2: [u64; 4] = [
+        0xcdcb848a1f0fac9f,
+        0x0c0ac2e9419f4243,
+        0x098d014dc2822db4,
+        0x0000000183227397,
+    ];
 
     fn get_lower_32(&self) -> u32 {
-        unimplemented!();
-    }
-
-    #[cfg(feature = "sqrt-table")]
-    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
-        unimplemented!();
-    }
-
-    #[cfg(feature = "sqrt-table")]
-    fn sqrt_alt(&self) -> (Choice, Self) {
-        unimplemented!();
+        let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+        tmp.0[0] as u32
     }
 }
 
 #[cfg(test)]
-use ff::Field;
-
-#[test]
-fn test_sqrt_fr() {
+mod test {
+    use super::*;
     use ff::Field;
-    use rand::SeedableRng;
-    use rand_xorshift::XorShiftRng;
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
+    use rand_core::OsRng;
 
-    let v = (Fr::TWO_INV).square().sqrt().unwrap();
-    assert!(v == Fr::TWO_INV || (-v) == Fr::TWO_INV);
+    #[test]
+    fn test_sqrt() {
+        let v = (Fr::TWO_INV).square().sqrt().unwrap();
+        assert!(v == Fr::TWO_INV || (-v) == Fr::TWO_INV);
 
-    for _ in 0..10000 {
-        let a = Fr::random(&mut rng);
-        let mut b = a;
-        b = b.square();
+        for _ in 0..10000 {
+            let a = Fr::random(OsRng);
+            let mut b = a;
+            b = b.square();
 
-        let b = b.sqrt().unwrap();
-        let mut negb = b;
-        negb = negb.neg();
+            let b = b.sqrt().unwrap();
+            let mut negb = b;
+            negb = negb.neg();
 
-        assert!(a == b || a == negb);
+            assert!(a == b || a == negb);
+        }
     }
-}
 
-#[test]
-fn test_root_of_unity() {
-    assert_eq!(
-        Fr::root_of_unity().pow_vartime(&[1 << Fr::S, 0, 0, 0]),
-        Fr::one()
-    );
-}
+    #[test]
+    fn test_root_of_unity() {
+        assert_eq!(
+            Fr::root_of_unity().pow_vartime(&[1 << Fr::S, 0, 0, 0]),
+            Fr::one()
+        );
+    }
 
-#[test]
-fn test_inv_root_of_unity() {
-    assert_eq!(Fr::ROOT_OF_UNITY_INV, Fr::root_of_unity().invert().unwrap());
-}
+    #[test]
+    fn test_inv_root_of_unity() {
+        assert_eq!(Fr::ROOT_OF_UNITY_INV, Fr::root_of_unity().invert().unwrap());
+    }
 
-#[test]
-fn test_delta() {
-    assert_eq!(Fr::DELTA, GENERATOR.pow(&[1u64 << Fr::S, 0, 0, 0]));
-    assert_eq!(
-        Fr::DELTA,
-        Fr::multiplicative_generator().pow(&[1u64 << Fr::S, 0, 0, 0])
-    );
-}
+    #[test]
+    fn test_field() {
+        crate::tests::field::random_field_tests::<Fr>("bn256 scalar".to_string());
+    }
 
-#[test]
-fn test_from_u512() {
-    assert_eq!(
-        Fr::from_raw([
-            0x7e7140b5196b9e6f,
-            0x9abac9e4157b6172,
-            0xf04bc41062fd7322,
-            0x1185fa9c9fef6326,
-        ]),
-        Fr::from_u512([
-            0xaaaaaaaaaaaaaaaa,
-            0xaaaaaaaaaaaaaaaa,
-            0xaaaaaaaaaaaaaaaa,
-            0xaaaaaaaaaaaaaaaa,
-            0xaaaaaaaaaaaaaaaa,
-            0xaaaaaaaaaaaaaaaa,
-            0xaaaaaaaaaaaaaaaa,
-            0xaaaaaaaaaaaaaaaa
-        ])
-    );
-}
+    #[test]
+    fn test_delta() {
+        assert_eq!(Fr::DELTA, GENERATOR.pow(&[1u64 << Fr::S, 0, 0, 0]));
+        assert_eq!(
+            Fr::DELTA,
+            Fr::multiplicative_generator().pow(&[1u64 << Fr::S, 0, 0, 0])
+        );
+    }
 
-#[test]
-fn test_field() {
-    crate::tests::field::random_field_tests::<Fr>("fr".to_string());
+    #[test]
+    fn test_from_u512() {
+        assert_eq!(
+            Fr::from_raw([
+                0x7e7140b5196b9e6f,
+                0x9abac9e4157b6172,
+                0xf04bc41062fd7322,
+                0x1185fa9c9fef6326,
+            ]),
+            Fr::from_u512([
+                0xaaaaaaaaaaaaaaaa,
+                0xaaaaaaaaaaaaaaaa,
+                0xaaaaaaaaaaaaaaaa,
+                0xaaaaaaaaaaaaaaaa,
+                0xaaaaaaaaaaaaaaaa,
+                0xaaaaaaaaaaaaaaaa,
+                0xaaaaaaaaaaaaaaaa,
+                0xaaaaaaaaaaaaaaaa
+            ])
+        );
+    }
 }

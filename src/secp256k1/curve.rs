@@ -49,6 +49,12 @@ const SECP_GENERATOR_Y: Fp = Fp::from_raw([
 ]);
 const SECP_B: Fp = Fp::from_raw([7, 0, 0, 0]);
 
+use crate::{
+    batch_add, impl_add_binop_specify_output, impl_binops_additive,
+    impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, new_curve_impl,
+};
+
 new_curve_impl!(
     (pub),
     Secp256k1,
@@ -63,4 +69,9 @@ new_curve_impl!(
 
 impl CurveAffineExt for Secp256k1Affine {
     batch_add!();
+}
+
+#[test]
+fn test_curve() {
+    crate::tests::curve::curve_tests::<Secp256k1>();
 }

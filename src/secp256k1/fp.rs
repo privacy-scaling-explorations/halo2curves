@@ -10,9 +10,6 @@ use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio};
 
 use crate::arithmetic::{adc, mac, sbb};
 
-#[cfg(feature = "bits")]
-use ff::{FieldBits, PrimeFieldBits};
-
 /// This represents an element of $\mathbb{F}_p$ where
 ///
 /// `p = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f`
@@ -64,10 +61,7 @@ const R2: Fp = Fp([0x000007a2000e90a1, 0x1, 0, 0]);
 /// 0x100000b73002bb1e33795f671
 const R3: Fp = Fp([0x002bb1e33795f671, 0x100000b73, 0, 0]);
 
-// unused?
-const ROOT_OF_UNITY_INV: Fp = Fp::zero();
-// unused?
-const DELTA: Fp = Fp::zero();
+/// 1 / 2 mod p
 const TWO_INV: Fp = Fp::from_raw([
     0xffffffff7ffffe18,
     0xffffffffffffffff,
@@ -75,12 +69,18 @@ const TWO_INV: Fp = Fp::from_raw([
     0x7fffffffffffffff,
 ]);
 
-// unused?
 const ZETA: Fp = Fp::zero();
+const DELTA: Fp = Fp::zero();
+const ROOT_OF_UNITY_INV: Fp = Fp::zero();
 
+use crate::{
+    field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+};
 impl_binops_additive!(Fp, Fp);
 impl_binops_multiplicative!(Fp, Fp);
-common_field!(
+field_common!(
     Fp,
     MODULUS,
     INV,
@@ -90,21 +90,11 @@ common_field!(
     DELTA,
     ZETA
 );
+field_arithmetic!(Fp, dense);
 
-impl Group for Fp {
-    type Scalar = Fp;
-
-    fn group_zero() -> Self {
-        Self::zero()
-    }
-    fn group_add(&mut self, rhs: &Self) {
-        *self += *rhs;
-    }
-    fn group_sub(&mut self, rhs: &Self) {
-        *self -= *rhs;
-    }
-    fn group_scale(&mut self, by: &Self::Scalar) {
-        *self *= *by;
+impl Fp {
+    pub const fn size() -> usize {
+        32
     }
 }
 
@@ -243,73 +233,12 @@ impl ff::PrimeField for Fp {
     }
 }
 
-#[cfg(all(feature = "bits", not(target_pointer_width = "64")))]
-type ReprBits = [u32; 8];
-
-#[cfg(all(feature = "bits", target_pointer_width = "64"))]
-type ReprBits = [u64; 4];
-
-#[cfg(feature = "bits")]
-impl PrimeFieldBits for Fp {
-    type ReprBits = ReprBits;
-
-    fn to_le_bits(&self) -> FieldBits<Self::ReprBits> {
-        let bytes = self.to_repr();
-
-        #[cfg(not(target_pointer_width = "64"))]
-        let limbs = [
-            u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
-            u32::from_le_bytes(bytes[4..8].try_into().unwrap()),
-            u32::from_le_bytes(bytes[8..12].try_into().unwrap()),
-            u32::from_le_bytes(bytes[12..16].try_into().unwrap()),
-            u32::from_le_bytes(bytes[16..20].try_into().unwrap()),
-            u32::from_le_bytes(bytes[20..24].try_into().unwrap()),
-            u32::from_le_bytes(bytes[24..28].try_into().unwrap()),
-            u32::from_le_bytes(bytes[28..32].try_into().unwrap()),
-        ];
-
-        #[cfg(target_pointer_width = "64")]
-        let limbs = [
-            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
-            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
-            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
-        ];
-
-        FieldBits::new(limbs)
-    }
-
-    fn char_le_bits() -> FieldBits<Self::ReprBits> {
-        #[cfg(not(target_pointer_width = "64"))]
-        {
-            FieldBits::new(MODULUS_LIMBS_32)
-        }
-
-        #[cfg(target_pointer_width = "64")]
-        FieldBits::new(MODULUS.0)
-    }
-}
-
 impl SqrtRatio for Fp {
     const T_MINUS1_OVER2: [u64; 4] = [0, 0, 0, 0];
 
-    fn pow_by_t_minus1_over2(&self) -> Self {
-        unimplemented!();
-    }
-
     fn get_lower_32(&self) -> u32 {
-        // TODO: don't reduce, just hash the Montgomery form. (Requires rebuilding perfect hash table.)
         let tmp = Fp::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
-
         tmp.0[0] as u32
-    }
-
-    fn sqrt_ratio(_: &Self, _: &Self) -> (Choice, Self) {
-        unimplemented!();
-    }
-
-    fn sqrt_alt(&self) -> (Choice, Self) {
-        unimplemented!();
     }
 }
 
@@ -317,11 +246,29 @@ impl SqrtRatio for Fp {
 mod test {
     use super::*;
     use ff::Field;
+    use rand_core::OsRng;
 
     #[test]
     fn test_sqrt() {
         // NB: TWO_INV is standing in as a "random" field element
         let v = (Fp::TWO_INV).square().sqrt().unwrap();
         assert!(v == Fp::TWO_INV || (-v) == Fp::TWO_INV);
+
+        for _ in 0..10000 {
+            let a = Fp::random(OsRng);
+            let mut b = a;
+            b = b.square();
+
+            let b = b.sqrt().unwrap();
+            let mut negb = b;
+            negb = negb.neg();
+
+            assert!(a == b || a == negb);
+        }
+    }
+
+    #[test]
+    fn test_field() {
+        crate::tests::field::random_field_tests::<Fp>("secp256k1 base".to_string());
     }
 }

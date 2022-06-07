@@ -1,3 +1,9 @@
+#[macro_use]
+pub mod curve;
+#[macro_use]
+pub mod field;
+
+#[macro_export]
 macro_rules! impl_add_binop_specify_output {
     ($lhs:ident, $rhs:ident, $output:ident) => {
         impl<'b> ::core::ops::Add<&'b $rhs> for $lhs {
@@ -29,6 +35,7 @@ macro_rules! impl_add_binop_specify_output {
     };
 }
 
+#[macro_export]
 macro_rules! impl_sub_binop_specify_output {
     ($lhs:ident, $rhs:ident, $output:ident) => {
         impl<'b> ::core::ops::Sub<&'b $rhs> for $lhs {
@@ -60,6 +67,7 @@ macro_rules! impl_sub_binop_specify_output {
     };
 }
 
+#[macro_export]
 macro_rules! impl_binops_additive_specify_output {
     ($lhs:ident, $rhs:ident, $output:ident) => {
         impl_add_binop_specify_output!($lhs, $rhs, $output);
@@ -67,6 +75,7 @@ macro_rules! impl_binops_additive_specify_output {
     };
 }
 
+#[macro_export]
 macro_rules! impl_binops_multiplicative_mixed {
     ($lhs:ident, $rhs:ident, $output:ident) => {
         impl<'b> ::core::ops::Mul<&'b $rhs> for $lhs {
@@ -98,6 +107,7 @@ macro_rules! impl_binops_multiplicative_mixed {
     };
 }
 
+#[macro_export]
 macro_rules! impl_binops_additive {
     ($lhs:ident, $rhs:ident) => {
         impl_binops_additive_specify_output!($lhs, $rhs, $lhs);
@@ -132,6 +142,7 @@ macro_rules! impl_binops_additive {
     };
 }
 
+#[macro_export]
 macro_rules! impl_binops_multiplicative {
     ($lhs:ident, $rhs:ident) => {
         impl_binops_multiplicative_mixed!($lhs, $rhs, $lhs);

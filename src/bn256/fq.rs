@@ -1,7 +1,6 @@
 #[cfg(all(feature = "asm", target_arch = "x86_64"))]
 use super::assembly::assembly_field;
 
-use super::common::common_field;
 use super::LegendreSymbol;
 use crate::arithmetic::{adc, mac, sbb};
 use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio};
@@ -90,10 +89,14 @@ const ZETA: Fq = Fq::from_raw([
     0x0u64,
 ]);
 
+use crate::{
+    field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+};
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
-
-common_field!(
+field_common!(
     Fq,
     MODULUS,
     INV,
@@ -103,6 +106,10 @@ common_field!(
     DELTA,
     ZETA
 );
+#[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
+field_arithmetic!(Fq, sparse);
+#[cfg(all(feature = "asm", target_arch = "x86_64"))]
+assembly_field!(Fq, MODULUS, INV);
 
 impl Fq {
     pub const fn size() -> usize {
@@ -128,9 +135,6 @@ impl Fq {
         }
     }
 }
-
-#[cfg(all(feature = "asm", target_arch = "x86_64"))]
-assembly_field!(Fq, MODULUS, INV);
 
 impl ff::Field for Fq {
     fn random(mut rng: impl RngCore) -> Self {
@@ -252,92 +256,78 @@ impl ff::PrimeField for Fq {
 impl SqrtRatio for Fq {
     const T_MINUS1_OVER2: [u64; 4] = [0, 0, 0, 0];
 
-    fn pow_by_t_minus1_over2(&self) -> Self {
-        unimplemented!();
-    }
-
     fn get_lower_32(&self) -> u32 {
-        unimplemented!();
-    }
-
-    #[cfg(feature = "sqrt-table")]
-    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
-        unimplemented!();
-    }
-
-    #[cfg(feature = "sqrt-table")]
-    fn sqrt_alt(&self) -> (Choice, Self) {
-        unimplemented!();
+        let tmp = Fq::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+        tmp.0[0] as u32
     }
 }
 
-#[test]
-fn test_sqrt_fq() {
+#[cfg(test)]
+mod test {
+    use super::*;
     use ff::Field;
-    use rand::SeedableRng;
-    use rand_xorshift::XorShiftRng;
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
+    use rand_core::OsRng;
 
-    let v = (Fq::TWO_INV).square().sqrt().unwrap();
-    assert!(v == Fq::TWO_INV || (-v) == Fq::TWO_INV);
+    #[test]
+    fn test_sqrt_fq() {
+        let v = (Fq::TWO_INV).square().sqrt().unwrap();
+        assert!(v == Fq::TWO_INV || (-v) == Fq::TWO_INV);
 
-    for _ in 0..10000 {
-        let a = Fq::random(&mut rng);
-        let mut b = a;
-        b = b.square();
-        assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
+        for _ in 0..10000 {
+            let a = Fq::random(OsRng);
+            let mut b = a;
+            b = b.square();
+            assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
 
-        let b = b.sqrt().unwrap();
-        let mut negb = b;
-        negb = negb.neg();
+            let b = b.sqrt().unwrap();
+            let mut negb = b;
+            negb = negb.neg();
 
-        assert!(a == b || a == negb);
-    }
-
-    let mut c = Fq::one();
-    for _ in 0..10000 {
-        let mut b = c;
-        b = b.square();
-        assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
-
-        b = b.sqrt().unwrap();
-
-        if b != c {
-            b = b.neg();
+            assert!(a == b || a == negb);
         }
 
-        assert_eq!(b, c);
+        let mut c = Fq::one();
+        for _ in 0..10000 {
+            let mut b = c;
+            b = b.square();
+            assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
 
-        c += &Fq::one();
+            b = b.sqrt().unwrap();
+
+            if b != c {
+                b = b.neg();
+            }
+
+            assert_eq!(b, c);
+
+            c += &Fq::one();
+        }
     }
-}
 
-#[test]
-fn test_from_u512() {
-    assert_eq!(
-        Fq::from_raw([
-            0x1f8905a172affa8a,
-            0xde45ad177dcf3306,
-            0xaaa7987907d73ae2,
-            0x24d349431d468e30,
-        ]),
-        Fq::from_u512([
-            0xaaaaaaaaaaaaaaaa,
-            0xaaaaaaaaaaaaaaaa,
-            0xaaaaaaaaaaaaaaaa,
-            0xaaaaaaaaaaaaaaaa,
-            0xaaaaaaaaaaaaaaaa,
-            0xaaaaaaaaaaaaaaaa,
-            0xaaaaaaaaaaaaaaaa,
-            0xaaaaaaaaaaaaaaaa
-        ])
-    );
-}
+    #[test]
+    fn test_from_u512() {
+        assert_eq!(
+            Fq::from_raw([
+                0x1f8905a172affa8a,
+                0xde45ad177dcf3306,
+                0xaaa7987907d73ae2,
+                0x24d349431d468e30,
+            ]),
+            Fq::from_u512([
+                0xaaaaaaaaaaaaaaaa,
+                0xaaaaaaaaaaaaaaaa,
+                0xaaaaaaaaaaaaaaaa,
+                0xaaaaaaaaaaaaaaaa,
+                0xaaaaaaaaaaaaaaaa,
+                0xaaaaaaaaaaaaaaaa,
+                0xaaaaaaaaaaaaaaaa,
+                0xaaaaaaaaaaaaaaaa
+            ])
+        );
+    }
 
-#[test]
-fn test_field() {
-    crate::tests::field::random_field_tests::<Fq>("fq".to_string());
+    #[test]
+    fn test_field() {
+        crate::tests::field::random_field_tests::<Fq>("fq".to_string());
+    }
 }

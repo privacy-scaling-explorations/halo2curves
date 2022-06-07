@@ -8,12 +8,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::arithmetic::{adc, mac, sbb};
 
-use lazy_static::lazy_static;
-
-use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio, SqrtTables};
-
-#[cfg(feature = "bits")]
-use ff::{FieldBits, PrimeFieldBits};
+use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio};
 
 /// This represents an element of $\mathbb{F}_q$ where
 ///
@@ -28,7 +23,6 @@ pub struct Fq(pub(crate) [u64; 4]);
 
 /// Constant representing the modulus
 /// q = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
-
 const MODULUS: Fq = Fq([
     0xbfd25e8cd0364141,
     0xbaaedce6af48a03b,
@@ -77,10 +71,30 @@ const R3: Fq = Fq([
     0x555d800c18ef116d,
 ]);
 
-// unused?
-const ROOT_OF_UNITY_INV: Fq = Fq::zero();
-// unused?
-const DELTA: Fq = Fq::zero();
+/// `GENERATOR = 7 mod r` is a generator of the `q - 1` order multiplicative
+/// subgroup, or in other words a primitive root of the field.
+const GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00]);
+
+/// GENERATOR^t where t * 2^s + 1 = r
+/// with t odd. In other words, this
+/// is a 2^s root of unity.
+/// `0xc1dc060e7a91986df9879a3fbc483a898bdeab680756045992f4b5402b052f2`
+const ROOT_OF_UNITY: Fq = Fq::from_raw([
+    0x992f4b5402b052f2,
+    0x98bdeab680756045,
+    0xdf9879a3fbc483a8,
+    0xc1dc060e7a91986,
+]);
+
+/// 1 / ROOT_OF_UNITY mod q
+const ROOT_OF_UNITY_INV: Fq = Fq::from_raw([
+    0xb6fb30a0884f0d1c,
+    0x77a275910aa413c3,
+    0xefc7b0c75b8cbb72,
+    0xfd3ae181f12d7096,
+]);
+
+/// 1 / 2 mod q
 const TWO_INV: Fq = Fq::from_raw([
     0xdfe92f46681b20a1,
     0x5d576e7357a4501d,
@@ -88,12 +102,17 @@ const TWO_INV: Fq = Fq::from_raw([
     0x7fffffffffffffff,
 ]);
 
-// unused?
 const ZETA: Fq = Fq::zero();
+const DELTA: Fq = Fq::zero();
 
+use crate::{
+    field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+};
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
-common_field!(
+field_common!(
     Fq,
     MODULUS,
     INV,
@@ -103,21 +122,11 @@ common_field!(
     DELTA,
     ZETA
 );
+field_arithmetic!(Fq, dense);
 
-impl Group for Fq {
-    type Scalar = Fq;
-
-    fn group_zero() -> Self {
-        Self::zero()
-    }
-    fn group_add(&mut self, rhs: &Self) {
-        *self += *rhs;
-    }
-    fn group_sub(&mut self, rhs: &Self) {
-        *self -= *rhs;
-    }
-    fn group_scale(&mut self, by: &Self::Scalar) {
-        *self *= *by;
+impl Fq {
+    pub const fn size() -> usize {
+        32
     }
 }
 
@@ -154,13 +163,11 @@ impl ff::Field for Fq {
 
     /// Computes the square root of this element, if it exists.
     fn sqrt(&self) -> CtOption<Self> {
-        let (is_square, res) = FQ_TABLES.sqrt_alt(self);
-        CtOption::new(res, is_square)
+        crate::arithmetic::sqrt_tonelli_shanks(self, &<Self as SqrtRatio>::T_MINUS1_OVER2)
     }
 
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
-
     fn invert(&self) -> CtOption<Self> {
         let tmp = self.pow_vartime(&[
             0xbfd25e8cd036413f,
@@ -243,85 +250,68 @@ impl ff::PrimeField for Fq {
     }
 
     fn multiplicative_generator() -> Self {
-        unimplemented!();
+        GENERATOR
     }
 
     fn root_of_unity() -> Self {
-        unimplemented!();
+        ROOT_OF_UNITY
     }
-}
-
-#[cfg(all(feature = "bits", not(target_pointer_width = "64")))]
-type ReprBits = [u32; 8];
-
-#[cfg(all(feature = "bits", target_pointer_width = "64"))]
-type ReprBits = [u64; 4];
-
-#[cfg(feature = "bits")]
-impl PrimeFieldBits for Fq {
-    type ReprBits = ReprBits;
-
-    fn to_le_bits(&self) -> FieldBits<Self::ReprBits> {
-        let bytes = self.to_repr();
-
-        #[cfg(not(target_pointer_width = "64"))]
-        let limbs = [
-            u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
-            u32::from_le_bytes(bytes[4..8].try_into().unwrap()),
-            u32::from_le_bytes(bytes[8..12].try_into().unwrap()),
-            u32::from_le_bytes(bytes[12..16].try_into().unwrap()),
-            u32::from_le_bytes(bytes[16..20].try_into().unwrap()),
-            u32::from_le_bytes(bytes[20..24].try_into().unwrap()),
-            u32::from_le_bytes(bytes[24..28].try_into().unwrap()),
-            u32::from_le_bytes(bytes[28..32].try_into().unwrap()),
-        ];
-
-        #[cfg(target_pointer_width = "64")]
-        let limbs = [
-            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
-            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
-            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
-        ];
-
-        FieldBits::new(limbs)
-    }
-
-    fn char_le_bits() -> FieldBits<Self::ReprBits> {
-        #[cfg(not(target_pointer_width = "64"))]
-        {
-            FieldBits::new(MODULUS_LIMBS_32)
-        }
-
-        #[cfg(target_pointer_width = "64")]
-        FieldBits::new(MODULUS.0)
-    }
-}
-
-lazy_static! {
-    // The perfect hash parameters are found by `squareroottab.sage` in zcash/pasta.
-    static ref FQ_TABLES: SqrtTables<Fq> = SqrtTables::new(0x116A9E, 1206);
 }
 
 impl SqrtRatio for Fq {
-    const T_MINUS1_OVER2: [u64; 4] = [0, 0, 0, 0];
-
-    fn pow_by_t_minus1_over2(&self) -> Self {
-        unimplemented!()
-    }
+    const T_MINUS1_OVER2: [u64; 4] = [
+        0x777fa4bd19a06c82,
+        0xfd755db9cd5e9140,
+        0xffffffffffffffff,
+        0x01ffffffffffffff,
+    ];
 
     fn get_lower_32(&self) -> u32 {
-        // TODO: don't reduce, just hash the Montgomery form. (Requires rebuilding perfect hash table.)
         let tmp = Fq::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
-
         tmp.0[0] as u32
     }
+}
 
-    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
-        FQ_TABLES.sqrt_ratio(num, div)
+#[cfg(test)]
+mod test {
+    use super::*;
+    use ff::Field;
+    use rand_core::OsRng;
+
+    #[test]
+    fn test_sqrt() {
+        // NB: TWO_INV is standing in as a "random" field element
+        let v = (Fq::TWO_INV).square().sqrt().unwrap();
+        assert!(v == Fq::TWO_INV || (-v) == Fq::TWO_INV);
+
+        for _ in 0..10000 {
+            let a = Fq::random(OsRng);
+            let mut b = a;
+            b = b.square();
+
+            let b = b.sqrt().unwrap();
+            let mut negb = b;
+            negb = negb.neg();
+
+            assert!(a == b || a == negb);
+        }
     }
 
-    fn sqrt_alt(&self) -> (Choice, Self) {
-        FQ_TABLES.sqrt_alt(self)
+    #[test]
+    fn test_root_of_unity() {
+        assert_eq!(
+            Fq::root_of_unity().pow_vartime(&[1 << Fq::S, 0, 0, 0]),
+            Fq::one()
+        );
+    }
+
+    #[test]
+    fn test_inv_root_of_unity() {
+        assert_eq!(Fq::ROOT_OF_UNITY_INV, Fq::root_of_unity().invert().unwrap());
+    }
+
+    #[test]
+    fn test_field() {
+        crate::tests::field::random_field_tests::<Fq>("secp256k1 scalar".to_string());
     }
 }

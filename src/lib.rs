@@ -1,16 +1,15 @@
 #![feature(asm)]
 #![feature(asm_const)]
 
-#[macro_use]
-mod ec;
-#[macro_use]
-mod binops;
 mod arithmetic;
 
 pub mod bn256;
 pub mod pairing;
 pub mod pasta;
 pub mod secp256k1;
+
+#[macro_use]
+mod derive;
 
 pub use arithmetic::CurveAffineExt;
 pub use pasta_curves::arithmetic::{Coordinates, CurveAffine, CurveExt, FieldExt, Group};

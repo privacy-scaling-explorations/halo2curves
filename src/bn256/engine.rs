@@ -1,9 +1,9 @@
+use crate::bn256::curve::*;
 use crate::bn256::fq::*;
 use crate::bn256::fq12::*;
 use crate::bn256::fq2::*;
 use crate::bn256::fq6::FROBENIUS_COEFF_FQ6_C1;
 use crate::bn256::fr::*;
-use crate::bn256::g::*;
 use crate::pairing::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use core::borrow::Borrow;
 use core::iter::Sum;
@@ -157,6 +157,10 @@ impl<'a, 'b> Mul<&'b Fr> for &'a Gt {
     }
 }
 
+use crate::{
+    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
+    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+};
 impl_binops_additive!(Gt, Gt);
 impl_binops_multiplicative!(Gt, Fr);
 

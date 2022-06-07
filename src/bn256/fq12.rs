@@ -72,6 +72,10 @@ impl<'a, 'b> Mul<&'b Fq12> for &'a Fq12 {
     }
 }
 
+use crate::{
+    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
+    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+};
 impl_binops_additive!(Fq12, Fq12);
 impl_binops_multiplicative!(Fq12, Fq12);
 

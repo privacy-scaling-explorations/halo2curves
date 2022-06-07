@@ -1,3 +1,4 @@
+#[macro_export]
 macro_rules! batch_add {
     () => {
         fn batch_add<const COMPLETE: bool, const LOAD_POINTS: bool>(
@@ -133,6 +134,7 @@ macro_rules! batch_add {
     };
 }
 
+#[macro_export]
 macro_rules! new_curve_impl {
     (($($privacy:tt)*),
     $name:ident,
@@ -204,7 +206,11 @@ macro_rules! new_curve_impl {
                             x,
                             y,
                         };
-                        return p
+
+
+                        use crate::group::cofactor::CofactorGroup;
+                        let p = p.to_curve();
+                        return p.clear_cofactor().to_affine()
                     }
                 }
             }
@@ -679,6 +685,7 @@ macro_rules! new_curve_impl {
             }
         }
 
+
         impl_binops_additive!($name, $name);
         impl_binops_additive!($name, $name_affine);
         impl_binops_additive_specify_output!($name_affine, $name_affine, $name);
@@ -820,26 +827,19 @@ macro_rules! new_curve_impl {
             }
         }
 
+
+
         #[allow(clippy::suspicious_arithmetic_impl)]
         impl<'a, 'b> Mul<&'b $scalar> for &'a $name {
             type Output = $name;
 
             fn mul(self, other: &'b $scalar) -> Self::Output {
-                // TODO: make this faster
-
                 let mut acc = $name::identity();
-
-                // This is a simple double-and-add implementation of point
-                // multiplication, moving from most significant to least
-                // significant bit of the scalar.
-                //
-                // NOTE: We skip the leading bit because it's always unset.
                 for bit in other
                     .to_repr()
                     .iter()
                     .rev()
                     .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))
-                    .skip(1)
                 {
                     acc = acc.double();
                     acc = $name::conditional_select(&acc, &(acc + self), bit);
@@ -960,13 +960,3 @@ macro_rules! new_curve_impl {
         }
     };
 }
-
-// fn batch_add<const COMPLETE: bool, const LOAD_POINTS: bool>(
-//     points: &mut [Self],
-//     output_indices: &[u32],
-//     num_points: usize,
-//     offset: usize,
-//     bases: &[Self],
-//     base_positions: &[u32],
-// ) {
-// /
