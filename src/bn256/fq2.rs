@@ -555,7 +555,7 @@ impl ff::PrimeField for Fq2 {
     }
 
     fn to_repr(&self) -> Self::Repr {
-        unimplemented!();
+        Fq2Bytes(self.to_bytes())
     }
 
     fn is_odd(&self) -> Choice {
