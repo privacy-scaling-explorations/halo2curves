@@ -96,6 +96,7 @@ use crate::{
 };
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
+#[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
 field_common!(
     Fq,
     MODULUS,
@@ -109,7 +110,16 @@ field_common!(
 #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
 field_arithmetic!(Fq, sparse);
 #[cfg(all(feature = "asm", target_arch = "x86_64"))]
-assembly_field!(Fq, MODULUS, INV);
+assembly_field!(
+    Fq,
+    MODULUS,
+    INV,
+    MODULUS_STR,
+    TWO_INV,
+    ROOT_OF_UNITY_INV,
+    DELTA,
+    ZETA
+);
 
 impl Fq {
     pub const fn size() -> usize {
@@ -257,7 +267,12 @@ impl SqrtRatio for Fq {
     const T_MINUS1_OVER2: [u64; 4] = [0, 0, 0, 0];
 
     fn get_lower_32(&self) -> u32 {
+        #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
         let tmp = Fq::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+
+        #[cfg(all(feature = "asm", target_arch = "x86_64"))]
+        let tmp = Fq::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
+
         tmp.0[0] as u32
     }
 }

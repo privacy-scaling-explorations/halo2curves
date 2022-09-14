@@ -121,6 +121,7 @@ use crate::{
 };
 impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
+#[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
 field_common!(
     Fr,
     MODULUS,
@@ -134,7 +135,16 @@ field_common!(
 #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
 field_arithmetic!(Fr, sparse);
 #[cfg(all(feature = "asm", target_arch = "x86_64"))]
-assembly_field!(Fr, MODULUS, INV);
+assembly_field!(
+    Fr,
+    MODULUS,
+    INV,
+    MODULUS_STR,
+    TWO_INV,
+    ROOT_OF_UNITY_INV,
+    DELTA,
+    ZETA
+);
 
 impl ff::Field for Fr {
     fn random(mut rng: impl RngCore) -> Self {
@@ -260,7 +270,12 @@ impl SqrtRatio for Fr {
     ];
 
     fn get_lower_32(&self) -> u32 {
+        #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
         let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+
+        #[cfg(all(feature = "asm", target_arch = "x86_64"))]
+        let tmp = Fr::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
+
         tmp.0[0] as u32
     }
 }
