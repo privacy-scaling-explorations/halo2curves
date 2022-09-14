@@ -8,35 +8,49 @@ jobs:
     if: github.event.pull_request.draft == false
     name: Build
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - rust: 1.63.0
+            feature: default
+          - rust: nightly
+            feature: asm
 
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
-          override: false
+          rust-version: ${{ matrix.rust }}
       - name: Build all features
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --all-features
+          args: --features ${{ matrix.feature }}
 
   test:
     if: github.event.pull_request.draft == false
     name: Test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - rust: 1.63.0
+            feature: default
+          - rust: nightly
+            feature: asm
 
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
-          override: false
+          rust-version: ${{ matrix.rust }}
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
       - name: Build
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --verbose --release --all --all-features
+          args: --verbose --release --all --features ${{ matrix.feature }}
 
   fmt:
     if: github.event.pull_request.draft == false
