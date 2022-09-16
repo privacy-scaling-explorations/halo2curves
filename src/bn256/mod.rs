@@ -6,7 +6,7 @@ mod fq2;
 mod fq6;
 mod fr;
 
-#[cfg(all(feature = "asm", target_arch = "x86_64"))]
+#[cfg(feature = "asm")]
 mod assembly;
 
 pub use curve::*;

@@ -1,4 +1,4 @@
-#![cfg_attr(all(feature = "asm", target_arch = "x86_64"), feature(asm_const))]
+#![cfg_attr(feature = "asm", feature(asm_const))]
 
 mod arithmetic;
 

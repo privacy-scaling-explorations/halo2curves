@@ -1,4 +1,4 @@
-#[cfg(all(feature = "asm", target_arch = "x86_64"))]
+#[cfg(feature = "asm")]
 use super::assembly::assembly_field;
 
 use super::LegendreSymbol;
@@ -96,7 +96,7 @@ use crate::{
 };
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
-#[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
+#[cfg(not(feature = "asm"))]
 field_common!(
     Fq,
     MODULUS,
@@ -110,9 +110,9 @@ field_common!(
     R2,
     R3
 );
-#[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
+#[cfg(not(feature = "asm"))]
 field_arithmetic!(Fq, MODULUS, INV, sparse);
-#[cfg(all(feature = "asm", target_arch = "x86_64"))]
+#[cfg(feature = "asm")]
 assembly_field!(
     Fq,
     MODULUS,
@@ -240,11 +240,11 @@ impl ff::PrimeField for Fq {
     fn to_repr(&self) -> Self::Repr {
         // Turn into canonical form by computing
         // (a.R) / R = a
-        #[cfg(all(feature = "asm", target_arch = "x86_64"))]
+        #[cfg(feature = "asm")]
         let tmp =
             Self::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
 
-        #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
+        #[cfg(not(feature = "asm"))]
         let tmp = Self::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
 
         let mut res = [0; 32];
@@ -273,10 +273,10 @@ impl SqrtRatio for Fq {
     const T_MINUS1_OVER2: [u64; 4] = [0, 0, 0, 0];
 
     fn get_lower_32(&self) -> u32 {
-        #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
+        #[cfg(not(feature = "asm"))]
         let tmp = Fq::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
 
-        #[cfg(all(feature = "asm", target_arch = "x86_64"))]
+        #[cfg(feature = "asm")]
         let tmp = Fq::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
 
         tmp.0[0] as u32
