@@ -54,7 +54,7 @@ const R2: Fr = Fr([
 ]);
 
 /// `R^3 = 2^768 mod r`
-/// `0xcf8594b7fcc657c893cc664a19fcfed2a489cbe1cfbb6b85e94d8e1b4bf0040``
+/// `0xcf8594b7fcc657c893cc664a19fcfed2a489cbe1cfbb6b85e94d8e1b4bf0040`
 const R3: Fr = Fr([
     0x5e94d8e1b4bf0040,
     0x2a489cbe1cfbb6b8,
@@ -130,10 +130,13 @@ field_common!(
     TWO_INV,
     ROOT_OF_UNITY_INV,
     DELTA,
-    ZETA
+    ZETA,
+    R,
+    R2,
+    R3
 );
 #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
-field_arithmetic!(Fr, sparse);
+field_arithmetic!(Fr, MODULUS, INV, sparse);
 #[cfg(all(feature = "asm", target_arch = "x86_64"))]
 assembly_field!(
     Fr,
@@ -143,7 +146,10 @@ assembly_field!(
     TWO_INV,
     ROOT_OF_UNITY_INV,
     DELTA,
-    ZETA
+    ZETA,
+    R,
+    R2,
+    R3
 );
 
 impl ff::Field for Fr {

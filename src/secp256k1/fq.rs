@@ -120,9 +120,12 @@ field_common!(
     TWO_INV,
     ROOT_OF_UNITY_INV,
     DELTA,
-    ZETA
+    ZETA,
+    R,
+    R2,
+    R3
 );
-field_arithmetic!(Fq, dense);
+field_arithmetic!(Fq, MODULUS, INV, dense);
 
 impl Fq {
     pub const fn size() -> usize {

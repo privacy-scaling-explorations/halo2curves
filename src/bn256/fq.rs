@@ -105,10 +105,13 @@ field_common!(
     TWO_INV,
     ROOT_OF_UNITY_INV,
     DELTA,
-    ZETA
+    ZETA,
+    R,
+    R2,
+    R3
 );
 #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
-field_arithmetic!(Fq, sparse);
+field_arithmetic!(Fq, MODULUS, INV, sparse);
 #[cfg(all(feature = "asm", target_arch = "x86_64"))]
 assembly_field!(
     Fq,
@@ -118,7 +121,10 @@ assembly_field!(
     TWO_INV,
     ROOT_OF_UNITY_INV,
     DELTA,
-    ZETA
+    ZETA,
+    R,
+    R2,
+    R3
 );
 
 impl Fq {
