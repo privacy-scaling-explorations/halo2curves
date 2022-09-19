@@ -22,8 +22,9 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
-          rust-version: ${{ matrix.rust }}
-      - name: Build all features
+          override: true
+          toolchain: ${{ matrix.rust }}
+      - name: Build
         uses: actions-rs/cargo@v1
         with:
           command: build
@@ -45,10 +46,9 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
-          rust-version: ${{ matrix.rust }}
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-      - name: Build
+          override: true
+          toolchain: ${{ matrix.rust }}
+      - name: Test
         uses: actions-rs/cargo@v1
         with:
           command: test
@@ -63,8 +63,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
-        with:
-          override: false
       - run: rustup component add rustfmt
       - uses: actions-rs/cargo@v1
         with:
@@ -80,13 +78,14 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
-          override: false
-      - name: bench arithmetic
+          override: true
+          toolchain: nightly
+      - name: Bench arithmetic
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --profile bench test_field -- --nocapture
-      - name: bench assembly arithmetic
+      - name: Bench assembly arithmetic
         uses: actions-rs/cargo@v1
         with:
           command: test
