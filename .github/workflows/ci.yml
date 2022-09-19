@@ -1,7 +1,9 @@
 name: CI Check
 on:
   pull_request:
-    branches: [ master ]
+  push:
+    branches:
+      - main
 
 jobs:
   build:
