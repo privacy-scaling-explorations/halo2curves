@@ -1,7 +1,18 @@
 #[macro_export]
 macro_rules! field_common {
-    ($field:ident, $modulus:ident, $inv:ident, $modulus_str:ident, $two_inv:ident, $root_of_unity_inv:ident,
-      $delta:ident, $zeta:ident) => {
+    (
+        $field:ident,
+        $modulus:ident,
+        $inv:ident,
+        $modulus_str:ident,
+        $two_inv:ident,
+        $root_of_unity_inv:ident,
+        $delta:ident,
+        $zeta:ident,
+        $r:ident,
+        $r2:ident,
+        $r3:ident
+    ) => {
         impl $field {
             /// Returns zero, the additive identity.
             #[inline]
@@ -12,7 +23,7 @@ macro_rules! field_common {
             /// Returns one, the multiplicative identity.
             #[inline]
             pub const fn one() -> $field {
-                R
+                $r
             }
 
             fn from_u512(limbs: [u64; 8]) -> $field {
@@ -32,13 +43,13 @@ macro_rules! field_common {
                 let d0 = $field([limbs[0], limbs[1], limbs[2], limbs[3]]);
                 let d1 = $field([limbs[4], limbs[5], limbs[6], limbs[7]]);
                 // Convert to Montgomery form
-                d0 * R2 + d1 * R3
+                d0 * $r2 + d1 * $r3
             }
 
             /// Converts from an integer represented in little endian
             /// into its (congruent) `$field` representation.
             pub const fn from_raw(val: [u64; 4]) -> Self {
-                (&$field(val)).mul(&R2)
+                (&$field(val)).mul(&$r2)
             }
 
             /// Attempts to convert a little-endian byte representation of
@@ -101,7 +112,7 @@ macro_rules! field_common {
 
         impl From<u64> for $field {
             fn from(val: u64) -> $field {
-                $field([val, 0, 0, 0]) * R2
+                $field([val, 0, 0, 0]) * $r2
             }
         }
 
@@ -249,8 +260,8 @@ macro_rules! field_common {
 
 #[macro_export]
 macro_rules! field_arithmetic {
-    ($field:ident, $field_type:ident) => {
-        field_specific!($field, $field_type);
+    ($field:ident, $modulus:ident, $inv:ident, $field_type:ident) => {
+        field_specific!($field, $modulus, $inv, $field_type);
         impl $field {
             /// Doubles this field element.
             #[inline]
@@ -328,10 +339,10 @@ macro_rules! field_arithmetic {
 
                 // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
                 // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-                let (d0, carry) = adc(d0, MODULUS.0[0] & borrow, 0);
-                let (d1, carry) = adc(d1, MODULUS.0[1] & borrow, carry);
-                let (d2, carry) = adc(d2, MODULUS.0[2] & borrow, carry);
-                let (d3, _) = adc(d3, MODULUS.0[3] & borrow, carry);
+                let (d0, carry) = adc(d0, $modulus.0[0] & borrow, 0);
+                let (d1, carry) = adc(d1, $modulus.0[1] & borrow, carry);
+                let (d2, carry) = adc(d2, $modulus.0[2] & borrow, carry);
+                let (d3, _) = adc(d3, $modulus.0[3] & borrow, carry);
 
                 $field([d0, d1, d2, d3])
             }
@@ -342,10 +353,10 @@ macro_rules! field_arithmetic {
                 // Subtract `self` from `MODULUS` to negate. Ignore the final
                 // borrow because it cannot underflow; self is guaranteed to
                 // be in the field.
-                let (d0, borrow) = sbb(MODULUS.0[0], self.0[0], 0);
-                let (d1, borrow) = sbb(MODULUS.0[1], self.0[1], borrow);
-                let (d2, borrow) = sbb(MODULUS.0[2], self.0[2], borrow);
-                let (d3, _) = sbb(MODULUS.0[3], self.0[3], borrow);
+                let (d0, borrow) = sbb($modulus.0[0], self.0[0], 0);
+                let (d1, borrow) = sbb($modulus.0[1], self.0[1], borrow);
+                let (d2, borrow) = sbb($modulus.0[2], self.0[2], borrow);
+                let (d3, _) = sbb($modulus.0[3], self.0[3], borrow);
 
                 // `tmp` could be `MODULUS` if `self` was zero. Create a mask that is
                 // zero if `self` was zero, and `u64::max_value()` if self was nonzero.
@@ -360,7 +371,7 @@ macro_rules! field_arithmetic {
 
 #[macro_export]
 macro_rules! field_specific {
-    ($field:ident, sparse) => {
+    ($field:ident, $modulus:ident, $inv:ident, sparse) => {
         impl $field {
             /// Adds `rhs` to `self`, returning the result.
             #[inline]
@@ -372,7 +383,7 @@ macro_rules! field_specific {
 
                 // Attempt to subtract the modulus, to ensure the value
                 // is smaller than the modulus.
-                (&$field([d0, d1, d2, d3])).sub(&MODULUS)
+                (&$field([d0, d1, d2, d3])).sub(&$modulus)
             }
 
             #[allow(clippy::too_many_arguments)]
@@ -391,40 +402,40 @@ macro_rules! field_specific {
                 // Handbook of Applied Cryptography
                 // <http://cacr.uwaterloo.ca/hac/about/chap14.pdf>.
 
-                let k = r0.wrapping_mul(INV);
-                let (_, carry) = mac(r0, k, MODULUS.0[0], 0);
-                let (r1, carry) = mac(r1, k, MODULUS.0[1], carry);
-                let (r2, carry) = mac(r2, k, MODULUS.0[2], carry);
-                let (r3, carry) = mac(r3, k, MODULUS.0[3], carry);
+                let k = r0.wrapping_mul($inv);
+                let (_, carry) = mac(r0, k, $modulus.0[0], 0);
+                let (r1, carry) = mac(r1, k, $modulus.0[1], carry);
+                let (r2, carry) = mac(r2, k, $modulus.0[2], carry);
+                let (r3, carry) = mac(r3, k, $modulus.0[3], carry);
                 let (r4, carry2) = adc(r4, 0, carry);
 
-                let k = r1.wrapping_mul(INV);
-                let (_, carry) = mac(r1, k, MODULUS.0[0], 0);
-                let (r2, carry) = mac(r2, k, MODULUS.0[1], carry);
-                let (r3, carry) = mac(r3, k, MODULUS.0[2], carry);
-                let (r4, carry) = mac(r4, k, MODULUS.0[3], carry);
+                let k = r1.wrapping_mul($inv);
+                let (_, carry) = mac(r1, k, $modulus.0[0], 0);
+                let (r2, carry) = mac(r2, k, $modulus.0[1], carry);
+                let (r3, carry) = mac(r3, k, $modulus.0[2], carry);
+                let (r4, carry) = mac(r4, k, $modulus.0[3], carry);
                 let (r5, carry2) = adc(r5, carry2, carry);
 
-                let k = r2.wrapping_mul(INV);
-                let (_, carry) = mac(r2, k, MODULUS.0[0], 0);
-                let (r3, carry) = mac(r3, k, MODULUS.0[1], carry);
-                let (r4, carry) = mac(r4, k, MODULUS.0[2], carry);
-                let (r5, carry) = mac(r5, k, MODULUS.0[3], carry);
+                let k = r2.wrapping_mul($inv);
+                let (_, carry) = mac(r2, k, $modulus.0[0], 0);
+                let (r3, carry) = mac(r3, k, $modulus.0[1], carry);
+                let (r4, carry) = mac(r4, k, $modulus.0[2], carry);
+                let (r5, carry) = mac(r5, k, $modulus.0[3], carry);
                 let (r6, carry2) = adc(r6, carry2, carry);
 
-                let k = r3.wrapping_mul(INV);
-                let (_, carry) = mac(r3, k, MODULUS.0[0], 0);
-                let (r4, carry) = mac(r4, k, MODULUS.0[1], carry);
-                let (r5, carry) = mac(r5, k, MODULUS.0[2], carry);
-                let (r6, carry) = mac(r6, k, MODULUS.0[3], carry);
+                let k = r3.wrapping_mul($inv);
+                let (_, carry) = mac(r3, k, $modulus.0[0], 0);
+                let (r4, carry) = mac(r4, k, $modulus.0[1], carry);
+                let (r5, carry) = mac(r5, k, $modulus.0[2], carry);
+                let (r6, carry) = mac(r6, k, $modulus.0[3], carry);
                 let (r7, _) = adc(r7, carry2, carry);
 
                 // Result may be within MODULUS of the correct value
-                (&$field([r4, r5, r6, r7])).sub(&MODULUS)
+                (&$field([r4, r5, r6, r7])).sub(&$modulus)
             }
         }
     };
-    ($field:ident, dense) => {
+    ($field:ident, $modulus:ident, $inv:ident, dense) => {
         impl $field {
             /// Adds `rhs` to `self`, returning the result.
             #[inline]
@@ -436,16 +447,16 @@ macro_rules! field_specific {
 
                 // Attempt to subtract the modulus, to ensure the value
                 // is smaller than the modulus.
-                let (d0, borrow) = sbb(d0, MODULUS.0[0], 0);
-                let (d1, borrow) = sbb(d1, MODULUS.0[1], borrow);
-                let (d2, borrow) = sbb(d2, MODULUS.0[2], borrow);
-                let (d3, borrow) = sbb(d3, MODULUS.0[3], borrow);
+                let (d0, borrow) = sbb(d0, $modulus.0[0], 0);
+                let (d1, borrow) = sbb(d1, $modulus.0[1], borrow);
+                let (d2, borrow) = sbb(d2, $modulus.0[2], borrow);
+                let (d3, borrow) = sbb(d3, $modulus.0[3], borrow);
                 let (_, borrow) = sbb(carry, 0, borrow);
 
-                let (d0, carry) = adc(d0, MODULUS.0[0] & borrow, 0);
-                let (d1, carry) = adc(d1, MODULUS.0[1] & borrow, carry);
-                let (d2, carry) = adc(d2, MODULUS.0[2] & borrow, carry);
-                let (d3, _) = adc(d3, MODULUS.0[3] & borrow, carry);
+                let (d0, carry) = adc(d0, $modulus.0[0] & borrow, 0);
+                let (d1, carry) = adc(d1, $modulus.0[1] & borrow, carry);
+                let (d2, carry) = adc(d2, $modulus.0[2] & borrow, carry);
+                let (d3, _) = adc(d3, $modulus.0[3] & borrow, carry);
 
                 $field([d0, d1, d2, d3])
             }
@@ -466,45 +477,45 @@ macro_rules! field_specific {
                 // Handbook of Applied Cryptography
                 // <http://cacr.uwaterloo.ca/hac/about/chap14.pdf>.
 
-                let k = r0.wrapping_mul(INV);
-                let (_, carry) = mac(r0, k, MODULUS.0[0], 0);
-                let (r1, carry) = mac(r1, k, MODULUS.0[1], carry);
-                let (r2, carry) = mac(r2, k, MODULUS.0[2], carry);
-                let (r3, carry) = mac(r3, k, MODULUS.0[3], carry);
+                let k = r0.wrapping_mul($inv);
+                let (_, carry) = mac(r0, k, $modulus.0[0], 0);
+                let (r1, carry) = mac(r1, k, $modulus.0[1], carry);
+                let (r2, carry) = mac(r2, k, $modulus.0[2], carry);
+                let (r3, carry) = mac(r3, k, $modulus.0[3], carry);
                 let (r4, carry2) = adc(r4, 0, carry);
 
-                let k = r1.wrapping_mul(INV);
-                let (_, carry) = mac(r1, k, MODULUS.0[0], 0);
-                let (r2, carry) = mac(r2, k, MODULUS.0[1], carry);
-                let (r3, carry) = mac(r3, k, MODULUS.0[2], carry);
-                let (r4, carry) = mac(r4, k, MODULUS.0[3], carry);
+                let k = r1.wrapping_mul($inv);
+                let (_, carry) = mac(r1, k, $modulus.0[0], 0);
+                let (r2, carry) = mac(r2, k, $modulus.0[1], carry);
+                let (r3, carry) = mac(r3, k, $modulus.0[2], carry);
+                let (r4, carry) = mac(r4, k, $modulus.0[3], carry);
                 let (r5, carry2) = adc(r5, carry2, carry);
 
-                let k = r2.wrapping_mul(INV);
-                let (_, carry) = mac(r2, k, MODULUS.0[0], 0);
-                let (r3, carry) = mac(r3, k, MODULUS.0[1], carry);
-                let (r4, carry) = mac(r4, k, MODULUS.0[2], carry);
-                let (r5, carry) = mac(r5, k, MODULUS.0[3], carry);
+                let k = r2.wrapping_mul($inv);
+                let (_, carry) = mac(r2, k, $modulus.0[0], 0);
+                let (r3, carry) = mac(r3, k, $modulus.0[1], carry);
+                let (r4, carry) = mac(r4, k, $modulus.0[2], carry);
+                let (r5, carry) = mac(r5, k, $modulus.0[3], carry);
                 let (r6, carry2) = adc(r6, carry2, carry);
 
-                let k = r3.wrapping_mul(INV);
-                let (_, carry) = mac(r3, k, MODULUS.0[0], 0);
-                let (r4, carry) = mac(r4, k, MODULUS.0[1], carry);
-                let (r5, carry) = mac(r5, k, MODULUS.0[2], carry);
-                let (r6, carry) = mac(r6, k, MODULUS.0[3], carry);
+                let k = r3.wrapping_mul($inv);
+                let (_, carry) = mac(r3, k, $modulus.0[0], 0);
+                let (r4, carry) = mac(r4, k, $modulus.0[1], carry);
+                let (r5, carry) = mac(r5, k, $modulus.0[2], carry);
+                let (r6, carry) = mac(r6, k, $modulus.0[3], carry);
                 let (r7, carry2) = adc(r7, carry2, carry);
 
                 // Result may be within MODULUS of the correct value
-                let (d0, borrow) = sbb(r4, MODULUS.0[0], 0);
-                let (d1, borrow) = sbb(r5, MODULUS.0[1], borrow);
-                let (d2, borrow) = sbb(r6, MODULUS.0[2], borrow);
-                let (d3, borrow) = sbb(r7, MODULUS.0[3], borrow);
+                let (d0, borrow) = sbb(r4, $modulus.0[0], 0);
+                let (d1, borrow) = sbb(r5, $modulus.0[1], borrow);
+                let (d2, borrow) = sbb(r6, $modulus.0[2], borrow);
+                let (d3, borrow) = sbb(r7, $modulus.0[3], borrow);
                 let (_, borrow) = sbb(carry2, 0, borrow);
 
-                let (d0, carry) = adc(d0, MODULUS.0[0] & borrow, 0);
-                let (d1, carry) = adc(d1, MODULUS.0[1] & borrow, carry);
-                let (d2, carry) = adc(d2, MODULUS.0[2] & borrow, carry);
-                let (d3, _) = adc(d3, MODULUS.0[3] & borrow, carry);
+                let (d0, carry) = adc(d0, $modulus.0[0] & borrow, 0);
+                let (d1, carry) = adc(d1, $modulus.0[1] & borrow, carry);
+                let (d2, carry) = adc(d2, $modulus.0[2] & borrow, carry);
+                let (d3, _) = adc(d3, $modulus.0[3] & borrow, carry);
 
                 $field([d0, d1, d2, d3])
             }

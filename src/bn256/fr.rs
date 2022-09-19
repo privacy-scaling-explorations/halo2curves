@@ -1,4 +1,4 @@
-#[cfg(all(feature = "asm", target_arch = "x86_64"))]
+#[cfg(feature = "asm")]
 use super::assembly::assembly_field;
 
 use crate::arithmetic::{adc, mac, sbb};
@@ -54,7 +54,7 @@ const R2: Fr = Fr([
 ]);
 
 /// `R^3 = 2^768 mod r`
-/// `0xcf8594b7fcc657c893cc664a19fcfed2a489cbe1cfbb6b85e94d8e1b4bf0040``
+/// `0xcf8594b7fcc657c893cc664a19fcfed2a489cbe1cfbb6b85e94d8e1b4bf0040`
 const R3: Fr = Fr([
     0x5e94d8e1b4bf0040,
     0x2a489cbe1cfbb6b8,
@@ -121,6 +121,7 @@ use crate::{
 };
 impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
+#[cfg(not(feature = "asm"))]
 field_common!(
     Fr,
     MODULUS,
@@ -129,12 +130,27 @@ field_common!(
     TWO_INV,
     ROOT_OF_UNITY_INV,
     DELTA,
-    ZETA
+    ZETA,
+    R,
+    R2,
+    R3
 );
-#[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
-field_arithmetic!(Fr, sparse);
-#[cfg(all(feature = "asm", target_arch = "x86_64"))]
-assembly_field!(Fr, MODULUS, INV);
+#[cfg(not(feature = "asm"))]
+field_arithmetic!(Fr, MODULUS, INV, sparse);
+#[cfg(feature = "asm")]
+assembly_field!(
+    Fr,
+    MODULUS,
+    INV,
+    MODULUS_STR,
+    TWO_INV,
+    ROOT_OF_UNITY_INV,
+    DELTA,
+    ZETA,
+    R,
+    R2,
+    R3
+);
 
 impl ff::Field for Fr {
     fn random(mut rng: impl RngCore) -> Self {
@@ -222,10 +238,10 @@ impl ff::PrimeField for Fr {
     fn to_repr(&self) -> Self::Repr {
         // Turn into canonical form by computing
         // (a.R) / R = a
-        #[cfg(all(feature = "asm", target_arch = "x86_64"))]
+        #[cfg(feature = "asm")]
         let tmp = Fr::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
 
-        #[cfg(any(not(feature = "asm"), not(target_arch = "x86_64")))]
+        #[cfg(not(feature = "asm"))]
         let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
 
         let mut res = [0; 32];
@@ -260,7 +276,12 @@ impl SqrtRatio for Fr {
     ];
 
     fn get_lower_32(&self) -> u32 {
+        #[cfg(not(feature = "asm"))]
         let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+
+        #[cfg(feature = "asm")]
+        let tmp = Fr::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
+
         tmp.0[0] as u32
     }
 }

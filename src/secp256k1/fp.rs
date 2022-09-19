@@ -88,9 +88,12 @@ field_common!(
     TWO_INV,
     ROOT_OF_UNITY_INV,
     DELTA,
-    ZETA
+    ZETA,
+    R,
+    R2,
+    R3
 );
-field_arithmetic!(Fp, dense);
+field_arithmetic!(Fp, MODULUS, INV, dense);
 
 impl Fp {
     pub const fn size() -> usize {
