@@ -140,6 +140,7 @@ macro_rules! new_curve_impl {
     $name:ident,
     $name_affine:ident,
     $name_compressed:ident,
+    $compressed_size:expr,
     $base:ident,
     $scalar:ident,
     $generator:expr,
@@ -161,7 +162,7 @@ macro_rules! new_curve_impl {
         }
 
         #[derive(Copy, Clone)]
-        $($privacy)* struct $name_compressed([u8; $base::size()]);
+        $($privacy)* struct $name_compressed([u8; $compressed_size]);
 
 
         impl $name {
@@ -226,7 +227,7 @@ macro_rules! new_curve_impl {
 
         impl Default for $name_compressed {
             fn default() -> Self {
-                $name_compressed([0; $base::size()])
+                $name_compressed([0; $compressed_size])
             }
         }
 
@@ -563,10 +564,12 @@ macro_rules! new_curve_impl {
             fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
                 let bytes = &bytes.0;
                 let mut tmp = *bytes;
-                let ysign = Choice::from(tmp[$base::size() - 1] >> 7);
-                tmp[$base::size() - 1] &= 0b0111_1111;
+                let ysign = Choice::from(tmp[$compressed_size - 1] >> 7);
+                tmp[$compressed_size - 1] &= 0b0111_1111;
+                let mut xbytes = [0u8; $base::size()];
+                xbytes.copy_from_slice(&tmp[ ..$base::size()]);
 
-                $base::from_bytes(&tmp).and_then(|x| {
+                $base::from_bytes(&xbytes).and_then(|x| {
                     CtOption::new(Self::identity(), x.is_zero() & (!ysign)).or_else(|| {
                         let x3 = x.square() * x;
                         (x3 + $name::curve_constant_b()).sqrt().and_then(|y| {
@@ -596,8 +599,9 @@ macro_rules! new_curve_impl {
                 } else {
                     let (x, y) = (self.x, self.y);
                     let sign = (y.to_bytes()[0] & 1) << 7;
-                    let mut xbytes = x.to_bytes();
-                    xbytes[$base::size() - 1] |= sign;
+                    let mut xbytes = [0u8; $compressed_size];
+                    xbytes[..$base::size()].copy_from_slice(&x.to_bytes());
+                    xbytes[$compressed_size - 1] |= sign;
                     $name_compressed(xbytes)
                 }
             }
