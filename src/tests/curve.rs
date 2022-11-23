@@ -1,3 +1,4 @@
+use crate::group::GroupEncoding;
 use ff::Field;
 use group::prime::PrimeCurveAffine;
 use pasta_curves::arithmetic::{CurveAffine, CurveExt};
@@ -11,6 +12,32 @@ pub fn curve_tests<G: CurveExt>() {
     mixed_addition::<G>();
     multiplication::<G>();
     batch_normalize::<G>();
+    serdes::<G>();
+}
+
+fn serdes<G: CurveExt>() {
+    for _ in 0..100 {
+        let projective_point = G::random(OsRng);
+        let affine_point: G::AffineExt = projective_point.into();
+        let projective_repr = projective_point.to_bytes();
+        let affine_repr = affine_point.to_bytes();
+
+        println!(
+            "{:?} \n{:?}",
+            projective_repr.as_ref(),
+            affine_repr.as_ref()
+        );
+
+        let projective_point_rec = G::from_bytes(&projective_repr).unwrap();
+        let projective_point_rec_unchecked = G::from_bytes(&projective_repr).unwrap();
+        let affine_point_rec = G::AffineExt::from_bytes(&affine_repr).unwrap();
+        let affine_point_rec_unchecked = G::AffineExt::from_bytes(&affine_repr).unwrap();
+
+        assert_eq!(projective_point, projective_point_rec);
+        assert_eq!(projective_point, projective_point_rec_unchecked);
+        assert_eq!(affine_point, affine_point_rec);
+        assert_eq!(affine_point, affine_point_rec_unchecked);
+    }
 }
 
 fn is_on_curve<G: CurveExt>() {
