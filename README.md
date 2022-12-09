@@ -14,12 +14,12 @@ This implementation is mostly ported from [matterlabs/pairing](https://github.co
 
 ## Bench
 
-None Assembly
+No assembly
 ```
 $ cargo test --profile bench test_field -- --nocapture
 ```
 
-Assembly
+Assembly (returns rust nightly)
 ```
 $ cargo test --profile bench test_field --features asm -- --nocapture
 ```
