@@ -265,6 +265,7 @@ mod tests {
     #[test]
     fn test_endo_consistency() {
         let g = G1::generator();
+        dbg!(-ENDO_BETA);
         assert_eq!(g * (-ENDO_BETA), g.endo());
     }
 

@@ -36,10 +36,13 @@ macro_rules! batch_add {
                 #[cfg(all(feature = "prefetch", target_arch = "x86_64"))]
                 if i < num_points - 2 {
                     if LOAD_POINTS {
-                        crate::prefetch::<Self>(bases, base_positions[i + 2] as usize);
-                        crate::prefetch::<Self>(bases, base_positions[i + 3] as usize);
+                        $crate::prefetch::<Self>(bases, base_positions[i + 2] as usize);
+                        $crate::prefetch::<Self>(bases, base_positions[i + 3] as usize);
                     }
-                    crate::prefetch::<Self>(points, output_indices[(i >> 1) + 1] as usize - offset);
+                    $crate::prefetch::<Self>(
+                        points,
+                        output_indices[(i >> 1) + 1] as usize - offset,
+                    );
                 }
                 if LOAD_POINTS {
                     points[i] = get_point(base_positions[i]);
@@ -104,7 +107,10 @@ macro_rules! batch_add {
 
                 #[cfg(all(feature = "prefetch", target_arch = "x86_64"))]
                 if i > 0 {
-                    crate::prefetch::<Self>(points, output_indices[(i >> 1) - 1] as usize - offset);
+                    $crate::prefetch::<Self>(
+                        points,
+                        output_indices[(i >> 1) - 1] as usize - offset,
+                    );
                 }
 
                 if COMPLETE {
@@ -155,7 +161,7 @@ macro_rules! new_curve_impl {
             pub z: $base,
         }
 
-        #[derive(Copy, Clone)]
+        #[derive(Copy, Clone, PartialEq, Hash)]
         $($privacy)* struct $name_affine {
             pub x: $base,
             pub y: $base,
@@ -209,7 +215,7 @@ macro_rules! new_curve_impl {
                         };
 
 
-                        use crate::group::cofactor::CofactorGroup;
+                        use $crate::group::cofactor::CofactorGroup;
                         let p = p.to_curve();
                         return p.clear_cofactor().to_affine()
                     }
@@ -474,7 +480,7 @@ macro_rules! new_curve_impl {
             }
         }
 
-        impl crate::serde::SerdeObject for $name {
+        impl $crate::serde::SerdeObject for $name {
             fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
                 assert_eq!(bytes.len(), 3 * $base::size());
                 let [x, y, z] = [0, 1, 2]
@@ -590,12 +596,6 @@ macro_rules! new_curve_impl {
             }
         }
 
-        impl PartialEq for $name_affine {
-            fn eq(&self, other: &Self) -> bool {
-                self.ct_eq(other).into()
-            }
-        }
-
         impl cmp::Eq for $name_affine {}
 
         impl group::GroupEncoding for $name_affine {
@@ -647,7 +647,7 @@ macro_rules! new_curve_impl {
             }
         }
 
-        impl crate::serde::SerdeObject for $name_affine {
+        impl $crate::serde::SerdeObject for $name_affine {
             fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
                 assert_eq!(bytes.len(), 2 * $base::size());
                 let [x, y] =

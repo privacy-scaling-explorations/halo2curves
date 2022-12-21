@@ -103,7 +103,7 @@ impl<'a> Neg for &'a Gt {
     #[inline]
     fn neg(self) -> Gt {
         // The element is unitary, so we just conjugate.
-        let mut u = self.0.clone();
+        let mut u = self.0;
         u.conjugate();
         Gt(u)
     }
@@ -122,6 +122,7 @@ impl<'a, 'b> Add<&'b Gt> for &'a Gt {
     type Output = Gt;
 
     #[inline]
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn add(self, rhs: &'b Gt) -> Gt {
         Gt(self.0 * rhs.0)
     }
@@ -139,6 +140,7 @@ impl<'a, 'b> Sub<&'b Gt> for &'a Gt {
 impl<'a, 'b> Mul<&'b Fr> for &'a Gt {
     type Output = Gt;
 
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn mul(self, other: &'b Fr) -> Self::Output {
         let mut acc = Gt::identity();
 
@@ -561,7 +563,7 @@ impl MillerLoopResult for Gt {
 pub fn multi_miller_loop(terms: &[(&G1Affine, &G2Prepared)]) -> Gt {
     let mut pairs = vec![];
     for &(p, q) in terms {
-        if !bool::from(p.is_identity()) && !bool::from(q.is_zero()) {
+        if !bool::from(p.is_identity()) && !q.is_zero() {
             pairs.push((p, q.coeffs.iter()));
         }
     }
@@ -588,18 +590,18 @@ pub fn multi_miller_loop(terms: &[(&G1Affine, &G2Prepared)]) -> Gt {
             f.square_assign();
         }
         for &mut (p, ref mut coeffs) in &mut pairs {
-            ell(&mut f, coeffs.next().unwrap(), &p);
+            ell(&mut f, coeffs.next().unwrap(), p);
         }
         let x = SIX_U_PLUS_2_NAF[i - 1];
         match x {
             1 => {
                 for &mut (p, ref mut coeffs) in &mut pairs {
-                    ell(&mut f, coeffs.next().unwrap(), &p);
+                    ell(&mut f, coeffs.next().unwrap(), p);
                 }
             }
             -1 => {
                 for &mut (p, ref mut coeffs) in &mut pairs {
-                    ell(&mut f, coeffs.next().unwrap(), &p);
+                    ell(&mut f, coeffs.next().unwrap(), p);
                 }
             }
             _ => continue,
@@ -607,11 +609,11 @@ pub fn multi_miller_loop(terms: &[(&G1Affine, &G2Prepared)]) -> Gt {
     }
 
     for &mut (p, ref mut coeffs) in &mut pairs {
-        ell(&mut f, coeffs.next().unwrap(), &p);
+        ell(&mut f, coeffs.next().unwrap(), p);
     }
 
     for &mut (p, ref mut coeffs) in &mut pairs {
-        ell(&mut f, coeffs.next().unwrap(), &p);
+        ell(&mut f, coeffs.next().unwrap(), p);
     }
 
     for &mut (_p, ref mut coeffs) in &mut pairs {
@@ -750,7 +752,7 @@ fn random_bilinearity_tests() {
         let mut cd = c;
         cd.mul_assign(&d);
 
-        cd = cd * Fr([1, 0, 0, 0]);
+        cd *= Fr([1, 0, 0, 0]);
 
         let abcd = Gt(Bn256::pairing(&G1Affine::from(a), &G2Affine::from(b))
             .0
