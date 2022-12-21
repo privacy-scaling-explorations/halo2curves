@@ -70,11 +70,20 @@ new_curve_impl!(
 
 impl CurveAffineExt for Secp256k1Affine {
     batch_add!();
+
+    fn into_coordinates(self) -> (Self::Base, Self::Base) {
+        (self.x, self.y)
+    }
 }
 
 #[test]
 fn test_curve() {
     crate::tests::curve::curve_tests::<Secp256k1>();
+}
+
+#[test]
+fn test_serialization() {
+    crate::tests::curve::random_serialization_test::<Secp256k1>();
 }
 
 #[test]

@@ -206,13 +206,13 @@ impl Fq2 {
     }
 
     pub fn mul(&self, other: &Self) -> Self {
-        let mut t = other.clone();
+        let mut t = *other;
         t.mul_assign(self);
         t
     }
 
     pub fn square(&self) -> Self {
-        let mut t = self.clone();
+        let mut t = *self;
         t.square_assign();
         t
     }
@@ -571,6 +571,41 @@ impl ff::PrimeField for Fq2 {
     }
 }
 
+impl crate::serde::SerdeObject for Fq2 {
+    fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
+        assert_eq!(bytes.len(), 64);
+        let [c0, c1] = [0, 32].map(|i| Fq::from_raw_bytes_unchecked(&bytes[i..i + 32]));
+        Self { c0, c1 }
+    }
+    fn from_raw_bytes(bytes: &[u8]) -> Option<Self> {
+        if bytes.len() != 64 {
+            return None;
+        }
+        let [c0, c1] = [0, 32].map(|i| Fq::from_raw_bytes(&bytes[i..i + 32]));
+        c0.zip(c1).map(|(c0, c1)| Self { c0, c1 })
+    }
+    fn to_raw_bytes(&self) -> Vec<u8> {
+        let mut res = Vec::with_capacity(64);
+        for limb in self.c0.0.iter().chain(self.c1.0.iter()) {
+            res.extend_from_slice(&limb.to_le_bytes());
+        }
+        res
+    }
+    fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
+        let [c0, c1] = [(); 2].map(|_| Fq::read_raw_unchecked(reader));
+        Self { c0, c1 }
+    }
+    fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
+        let c0 = Fq::read_raw(reader)?;
+        let c1 = Fq::read_raw(reader)?;
+        Ok(Self { c0, c1 })
+    }
+    fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
+        self.c0.write_raw(writer)?;
+        self.c1.write_raw(writer)
+    }
+}
+
 pub const FROBENIUS_COEFF_FQ2_C1: [Fq; 2] = [
     // Fq(-1)**(((q^0) - 1) / 2)
     // it's 1 in Montgommery form
@@ -614,7 +649,7 @@ fn test_fq2_ordering() {
         c1: Fq::zero(),
     };
 
-    let mut b = a.clone();
+    let mut b = a;
 
     assert!(a.cmp(&b) == Ordering::Equal);
     b.c0 += &Fq::one();
@@ -695,7 +730,7 @@ fn test_fq2_mul_nonresidue() {
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
         0xe5,
     ]);
-    let nine = Fq::one().double().double().double() + &Fq::one();
+    let nine = Fq::one().double().double().double() + Fq::one();
     let nqr = Fq2 {
         c0: nine,
         c1: Fq::one(),
@@ -775,7 +810,7 @@ fn test_frobenius() {
     ]);
 
     for _ in 0..100 {
-        for i in 0..(14) {
+        for i in 0..14 {
             let mut a = Fq2::random(&mut rng);
             let mut b = a;
 
@@ -797,4 +832,9 @@ fn test_frobenius() {
 #[test]
 fn test_field() {
     crate::tests::field::random_field_tests::<Fq2>("fq2".to_string());
+}
+
+#[test]
+fn test_serialization() {
+    crate::tests::field::random_serialization_test::<Fq2>("fq2".to_string());
 }

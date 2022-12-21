@@ -317,4 +317,9 @@ mod test {
     fn test_field() {
         crate::tests::field::random_field_tests::<Fq>("secp256k1 scalar".to_string());
     }
+
+    #[test]
+    fn test_serialization() {
+        crate::tests::field::random_serialization_test::<Fq>("secp256k1 scalar".to_string());
+    }
 }
