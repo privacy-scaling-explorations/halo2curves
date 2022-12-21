@@ -1,3 +1,4 @@
+#![allow(clippy::eq_op)]
 use crate::group::GroupEncoding;
 use ff::Field;
 use group::prime::PrimeCurveAffine;

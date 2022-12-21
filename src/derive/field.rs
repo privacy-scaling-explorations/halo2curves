@@ -125,13 +125,6 @@ macro_rules! field_common {
             }
         }
 
-        impl PartialEq for $field {
-            #[inline]
-            fn eq(&self, other: &Self) -> bool {
-                self.ct_eq(other).unwrap_u8() == 1
-            }
-        }
-
         impl core::cmp::Ord for $field {
             fn cmp(&self, other: &Self) -> core::cmp::Ordering {
                 let left = self.to_repr();
