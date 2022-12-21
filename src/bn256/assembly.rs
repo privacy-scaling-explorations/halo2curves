@@ -187,13 +187,6 @@ macro_rules! assembly_field {
                 }
             }
 
-            impl PartialEq for $field {
-                #[inline]
-                fn eq(&self, other: &Self) -> bool {
-                    self.0.eq(&other.0)
-                }
-            }
-
             impl core::cmp::Ord for $field {
                 fn cmp(&self, other: &Self) -> core::cmp::Ordering {
                     let left = self.to_repr();
