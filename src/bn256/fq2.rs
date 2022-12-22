@@ -573,7 +573,7 @@ impl ff::PrimeField for Fq2 {
 
 impl crate::serde::SerdeObject for Fq2 {
     fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
-        assert_eq!(bytes.len(), 64);
+        debug_assert_eq!(bytes.len(), 64);
         let [c0, c1] = [0, 32].map(|i| Fq::from_raw_bytes_unchecked(&bytes[i..i + 32]));
         Self { c0, c1 }
     }

@@ -1,3 +1,4 @@
+#![allow(clippy::suspicious_arithmetic_impl)]
 use crate::bn256::curve::*;
 use crate::bn256::fq::*;
 use crate::bn256::fq12::*;
@@ -122,7 +123,6 @@ impl<'a, 'b> Add<&'b Gt> for &'a Gt {
     type Output = Gt;
 
     #[inline]
-    #[allow(clippy::suspicious_arithmetic_impl)]
     fn add(self, rhs: &'b Gt) -> Gt {
         Gt(self.0 * rhs.0)
     }
@@ -140,7 +140,6 @@ impl<'a, 'b> Sub<&'b Gt> for &'a Gt {
 impl<'a, 'b> Mul<&'b Fr> for &'a Gt {
     type Output = Gt;
 
-    #[allow(clippy::suspicious_arithmetic_impl)]
     fn mul(self, other: &'b Fr) -> Self::Output {
         let mut acc = Gt::identity();
 

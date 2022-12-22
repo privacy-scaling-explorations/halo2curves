@@ -482,7 +482,7 @@ macro_rules! new_curve_impl {
 
         impl $crate::serde::SerdeObject for $name {
             fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
-                assert_eq!(bytes.len(), 3 * $base::size());
+                debug_assert_eq!(bytes.len(), 3 * $base::size());
                 let [x, y, z] = [0, 1, 2]
                     .map(|i| $base::from_raw_bytes_unchecked(&bytes[i * $base::size()..(i + 1) * $base::size()]));
                 Self { x, y, z }
@@ -649,7 +649,7 @@ macro_rules! new_curve_impl {
 
         impl $crate::serde::SerdeObject for $name_affine {
             fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
-                assert_eq!(bytes.len(), 2 * $base::size());
+                debug_assert_eq!(bytes.len(), 2 * $base::size());
                 let [x, y] =
                     [0, $base::size()].map(|i| $base::from_raw_bytes_unchecked(&bytes[i..i + $base::size()]));
                 Self { x, y }

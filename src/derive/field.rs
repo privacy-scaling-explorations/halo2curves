@@ -251,7 +251,7 @@ macro_rules! field_common {
 
         impl $crate::serde::SerdeObject for $field {
             fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
-                assert_eq!(bytes.len(), 32);
+                debug_assert_eq!(bytes.len(), 32);
                 let inner =
                     [0, 8, 16, 24].map(|i| u64::from_le_bytes(bytes[i..i + 8].try_into().unwrap()));
                 Self(inner)
