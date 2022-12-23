@@ -751,7 +751,7 @@ fn random_bilinearity_tests() {
         let mut cd = c;
         cd.mul_assign(&d);
 
-        cd *= Fr([1, 0, 0, 0]);
+        cd.mul_assign(Fr([1, 0, 0, 0]));
 
         let abcd = Gt(Bn256::pairing(&G1Affine::from(a), &G2Affine::from(b))
             .0

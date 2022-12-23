@@ -121,7 +121,6 @@ use crate::{
 };
 impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
-#[cfg(not(feature = "asm"))]
 field_common!(
     Fr,
     MODULUS,

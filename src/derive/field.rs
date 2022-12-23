@@ -261,7 +261,7 @@ macro_rules! field_common {
                     return None;
                 }
                 let elt = Self::from_raw_bytes_unchecked(bytes);
-                Self::is_less_than(&elt.0, &$modulus.0).then(|| elt)
+                Self::in_field(&elt.0).then(|| elt)
             }
             fn to_raw_bytes(&self) -> Vec<u8> {
                 let mut res = Vec::with_capacity(32);
@@ -286,14 +286,12 @@ macro_rules! field_common {
                     *limb = u64::from_le_bytes(buf);
                 }
                 let elt = Self(inner);
-                Self::is_less_than(&elt.0, &$modulus.0)
-                    .then(|| elt)
-                    .ok_or_else(|| {
-                        std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "input number is not less than field modulus",
-                        )
-                    })
+                Self::in_field(&elt.0).then(|| elt).ok_or_else(|| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "input number is not less than field modulus",
+                    )
+                })
             }
             fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
                 for limb in self.0.iter() {
@@ -415,23 +413,17 @@ macro_rules! field_arithmetic {
 
             /// Lexicographic comparison of Montgomery forms.
             #[inline(always)]
-            fn is_less_than(x: &[u64; 4], y: &[u64; 4]) -> bool {
-                match x[3].cmp(&y[3]) {
-                    core::cmp::Ordering::Less => return true,
-                    core::cmp::Ordering::Greater => return false,
-                    _ => {}
-                }
-                match x[2].cmp(&y[2]) {
-                    core::cmp::Ordering::Less => return true,
-                    core::cmp::Ordering::Greater => return false,
-                    _ => {}
-                }
-                match x[1].cmp(&y[1]) {
-                    core::cmp::Ordering::Less => return true,
-                    core::cmp::Ordering::Greater => return false,
-                    _ => {}
-                }
-                x[0].lt(&y[0])
+            fn in_field(x: &[u64; 4]) -> bool {
+                // Try to subtract the modulus
+                let (_, borrow) = sbb(x[0], MODULUS.0[0], 0);
+                let (_, borrow) = sbb(x[1], MODULUS.0[1], borrow);
+                let (_, borrow) = sbb(x[2], MODULUS.0[2], borrow);
+                let (_, borrow) = sbb(x[3], MODULUS.0[3], borrow);
+
+                // If the element is smaller than MODULUS then the
+                // subtraction will underflow, producing a borrow value
+                // of 0xffff...ffff. Otherwise, it'll be zero.
+                borrow != 0
             }
         }
     };

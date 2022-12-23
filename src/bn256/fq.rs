@@ -96,7 +96,6 @@ use crate::{
 };
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
-#[cfg(not(feature = "asm"))]
 field_common!(
     Fq,
     MODULUS,
@@ -203,6 +202,7 @@ impl ff::Field for Fq {
     }
 }
 
+use crate::serde::SerdeObject;
 impl ff::PrimeField for Fq {
     type Repr = [u8; 32];
 
@@ -212,28 +212,12 @@ impl ff::PrimeField for Fq {
     const S: u32 = 0;
 
     fn from_repr(repr: Self::Repr) -> CtOption<Self> {
-        let mut tmp = Fq([0, 0, 0, 0]);
-
-        tmp.0[0] = u64::from_le_bytes(repr[0..8].try_into().unwrap());
-        tmp.0[1] = u64::from_le_bytes(repr[8..16].try_into().unwrap());
-        tmp.0[2] = u64::from_le_bytes(repr[16..24].try_into().unwrap());
-        tmp.0[3] = u64::from_le_bytes(repr[24..32].try_into().unwrap());
-
+        let mut tmp = Self::from_raw_bytes_unchecked(&repr);
         // Try to subtract the modulus
-        let (_, borrow) = sbb(tmp.0[0], MODULUS.0[0], 0);
-        let (_, borrow) = sbb(tmp.0[1], MODULUS.0[1], borrow);
-        let (_, borrow) = sbb(tmp.0[2], MODULUS.0[2], borrow);
-        let (_, borrow) = sbb(tmp.0[3], MODULUS.0[3], borrow);
-
-        // If the element is smaller than MODULUS then the
-        // subtraction will underflow, producing a borrow value
-        // of 0xffff...ffff. Otherwise, it'll be zero.
-        let is_some = (borrow as u8) & 1;
-
+        let is_some = if Self::in_field(&tmp.0) { 1 } else { 0 };
         // Convert to Montgomery form by computing
         // (a.R^0 * R^2) / R = a.R
         tmp *= &R2;
-
         CtOption::new(tmp, Choice::from(is_some))
     }
 
@@ -243,17 +227,9 @@ impl ff::PrimeField for Fq {
         #[cfg(feature = "asm")]
         let tmp =
             Self::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
-
         #[cfg(not(feature = "asm"))]
         let tmp = Self::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
-
-        let mut res = [0; 32];
-        res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
-        res[8..16].copy_from_slice(&tmp.0[1].to_le_bytes());
-        res[16..24].copy_from_slice(&tmp.0[2].to_le_bytes());
-        res[24..32].copy_from_slice(&tmp.0[3].to_le_bytes());
-
-        res
+        tmp.to_raw_bytes().try_into().unwrap()
     }
 
     fn is_odd(&self) -> Choice {
