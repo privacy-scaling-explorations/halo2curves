@@ -1,5 +1,7 @@
 #[cfg(feature = "asm")]
-use super::assembly::assembly_field;
+use super::assembly::field_arithmetic_asm;
+#[cfg(not(feature = "asm"))]
+use crate::{field_arithmetic, field_specific};
 
 use crate::arithmetic::{adc, mac, sbb};
 use core::convert::TryInto;
@@ -115,13 +117,12 @@ const ZETA: Fr = Fr::from_raw([
 ]);
 
 use crate::{
-    field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
-    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    field_common, impl_add_binop_specify_output, impl_binops_additive,
+    impl_binops_additive_specify_output, impl_binops_multiplicative,
     impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
 };
 impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
-#[cfg(not(feature = "asm"))]
 field_common!(
     Fr,
     MODULUS,
@@ -138,19 +139,7 @@ field_common!(
 #[cfg(not(feature = "asm"))]
 field_arithmetic!(Fr, MODULUS, INV, sparse);
 #[cfg(feature = "asm")]
-assembly_field!(
-    Fr,
-    MODULUS,
-    INV,
-    MODULUS_STR,
-    TWO_INV,
-    ROOT_OF_UNITY_INV,
-    DELTA,
-    ZETA,
-    R,
-    R2,
-    R3
-);
+field_arithmetic_asm!(Fr, MODULUS, INV);
 
 impl ff::Field for Fr {
     fn random(mut rng: impl RngCore) -> Self {
