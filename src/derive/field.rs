@@ -241,9 +241,9 @@ macro_rules! field_common {
             }
 
             fn get_lower_128(&self) -> u128 {
-                let tmp = $field::montgomery_reduce(
+                let tmp = $field::montgomery_reduce(&[
                     self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0,
-                );
+                ]);
 
                 u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)
             }
@@ -345,7 +345,7 @@ macro_rules! field_arithmetic {
                 let (r6, carry) = mac(r6, self.0[3], self.0[3], carry);
                 let (r7, _) = adc(0, r7, carry);
 
-                $field::montgomery_reduce(r0, r1, r2, r3, r4, r5, r6, r7)
+                $field::montgomery_reduce(&[r0, r1, r2, r3, r4, r5, r6, r7])
             }
 
             /// Multiplies `rhs` by `self`, returning the result.
@@ -373,7 +373,7 @@ macro_rules! field_arithmetic {
                 let (r5, carry) = mac(r5, self.0[3], rhs.0[2], carry);
                 let (r6, r7) = mac(r6, self.0[3], rhs.0[3], carry);
 
-                $field::montgomery_reduce(r0, r1, r2, r3, r4, r5, r6, r7)
+                $field::montgomery_reduce(&[r0, r1, r2, r3, r4, r5, r6, r7])
             }
 
             /// Subtracts `rhs` from `self`, returning the result.
@@ -445,47 +445,38 @@ macro_rules! field_specific {
 
             #[allow(clippy::too_many_arguments)]
             #[inline(always)]
-            pub(crate) const fn montgomery_reduce(
-                r0: u64,
-                r1: u64,
-                r2: u64,
-                r3: u64,
-                r4: u64,
-                r5: u64,
-                r6: u64,
-                r7: u64,
-            ) -> $field {
+            pub(crate) const fn montgomery_reduce(r: &[u64; 8]) -> $field {
                 // The Montgomery reduction here is based on Algorithm 14.32 in
                 // Handbook of Applied Cryptography
                 // <http://cacr.uwaterloo.ca/hac/about/chap14.pdf>.
 
-                let k = r0.wrapping_mul($inv);
-                let (_, carry) = mac(r0, k, $modulus.0[0], 0);
-                let (r1, carry) = mac(r1, k, $modulus.0[1], carry);
-                let (r2, carry) = mac(r2, k, $modulus.0[2], carry);
-                let (r3, carry) = mac(r3, k, $modulus.0[3], carry);
-                let (r4, carry2) = adc(r4, 0, carry);
+                let k = r[0].wrapping_mul($inv);
+                let (_, carry) = mac(r[0], k, $modulus.0[0], 0);
+                let (r1, carry) = mac(r[1], k, $modulus.0[1], carry);
+                let (r2, carry) = mac(r[2], k, $modulus.0[2], carry);
+                let (r3, carry) = mac(r[3], k, $modulus.0[3], carry);
+                let (r4, carry2) = adc(r[4], 0, carry);
 
                 let k = r1.wrapping_mul($inv);
                 let (_, carry) = mac(r1, k, $modulus.0[0], 0);
                 let (r2, carry) = mac(r2, k, $modulus.0[1], carry);
                 let (r3, carry) = mac(r3, k, $modulus.0[2], carry);
                 let (r4, carry) = mac(r4, k, $modulus.0[3], carry);
-                let (r5, carry2) = adc(r5, carry2, carry);
+                let (r5, carry2) = adc(r[5], carry2, carry);
 
                 let k = r2.wrapping_mul($inv);
                 let (_, carry) = mac(r2, k, $modulus.0[0], 0);
                 let (r3, carry) = mac(r3, k, $modulus.0[1], carry);
                 let (r4, carry) = mac(r4, k, $modulus.0[2], carry);
                 let (r5, carry) = mac(r5, k, $modulus.0[3], carry);
-                let (r6, carry2) = adc(r6, carry2, carry);
+                let (r6, carry2) = adc(r[6], carry2, carry);
 
                 let k = r3.wrapping_mul($inv);
                 let (_, carry) = mac(r3, k, $modulus.0[0], 0);
                 let (r4, carry) = mac(r4, k, $modulus.0[1], carry);
                 let (r5, carry) = mac(r5, k, $modulus.0[2], carry);
                 let (r6, carry) = mac(r6, k, $modulus.0[3], carry);
-                let (r7, _) = adc(r7, carry2, carry);
+                let (r7, _) = adc(r[7], carry2, carry);
 
                 // Result may be within MODULUS of the correct value
                 (&$field([r4, r5, r6, r7])).sub(&$modulus)
@@ -520,47 +511,38 @@ macro_rules! field_specific {
 
             #[allow(clippy::too_many_arguments)]
             #[inline(always)]
-            pub(crate) const fn montgomery_reduce(
-                r0: u64,
-                r1: u64,
-                r2: u64,
-                r3: u64,
-                r4: u64,
-                r5: u64,
-                r6: u64,
-                r7: u64,
-            ) -> Self {
+            pub(crate) const fn montgomery_reduce(r: &[u64; 8]) -> Self {
                 // The Montgomery reduction here is based on Algorithm 14.32 in
                 // Handbook of Applied Cryptography
                 // <http://cacr.uwaterloo.ca/hac/about/chap14.pdf>.
 
-                let k = r0.wrapping_mul($inv);
-                let (_, carry) = mac(r0, k, $modulus.0[0], 0);
-                let (r1, carry) = mac(r1, k, $modulus.0[1], carry);
-                let (r2, carry) = mac(r2, k, $modulus.0[2], carry);
-                let (r3, carry) = mac(r3, k, $modulus.0[3], carry);
-                let (r4, carry2) = adc(r4, 0, carry);
+                let k = r[0].wrapping_mul($inv);
+                let (_, carry) = mac(r[0], k, $modulus.0[0], 0);
+                let (r1, carry) = mac(r[1], k, $modulus.0[1], carry);
+                let (r2, carry) = mac(r[2], k, $modulus.0[2], carry);
+                let (r3, carry) = mac(r[3], k, $modulus.0[3], carry);
+                let (r4, carry2) = adc(r[4], 0, carry);
 
                 let k = r1.wrapping_mul($inv);
                 let (_, carry) = mac(r1, k, $modulus.0[0], 0);
                 let (r2, carry) = mac(r2, k, $modulus.0[1], carry);
                 let (r3, carry) = mac(r3, k, $modulus.0[2], carry);
                 let (r4, carry) = mac(r4, k, $modulus.0[3], carry);
-                let (r5, carry2) = adc(r5, carry2, carry);
+                let (r5, carry2) = adc(r[5], carry2, carry);
 
                 let k = r2.wrapping_mul($inv);
                 let (_, carry) = mac(r2, k, $modulus.0[0], 0);
                 let (r3, carry) = mac(r3, k, $modulus.0[1], carry);
                 let (r4, carry) = mac(r4, k, $modulus.0[2], carry);
                 let (r5, carry) = mac(r5, k, $modulus.0[3], carry);
-                let (r6, carry2) = adc(r6, carry2, carry);
+                let (r6, carry2) = adc(r[6], carry2, carry);
 
                 let k = r3.wrapping_mul($inv);
                 let (_, carry) = mac(r3, k, $modulus.0[0], 0);
                 let (r4, carry) = mac(r4, k, $modulus.0[1], carry);
                 let (r5, carry) = mac(r5, k, $modulus.0[2], carry);
                 let (r6, carry) = mac(r6, k, $modulus.0[3], carry);
-                let (r7, carry2) = adc(r7, carry2, carry);
+                let (r7, carry2) = adc(r[7], carry2, carry);
 
                 // Result may be within MODULUS of the correct value
                 let (d0, borrow) = sbb(r4, $modulus.0[0], 0);

@@ -238,11 +238,7 @@ impl ff::PrimeField for Fr {
     fn to_repr(&self) -> Self::Repr {
         // Turn into canonical form by computing
         // (a.R) / R = a
-        #[cfg(feature = "asm")]
         let tmp = Fr::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
-
-        #[cfg(not(feature = "asm"))]
-        let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
 
         let mut res = [0; 32];
         res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
@@ -276,12 +272,7 @@ impl SqrtRatio for Fr {
     ];
 
     fn get_lower_32(&self) -> u32 {
-        #[cfg(not(feature = "asm"))]
-        let tmp = Fr::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
-
-        #[cfg(feature = "asm")]
         let tmp = Fr::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
-
         tmp.0[0] as u32
     }
 }

@@ -212,7 +212,7 @@ impl ff::PrimeField for Fp {
     fn to_repr(&self) -> Self::Repr {
         // Turn into canonical form by computing
         // (a.R) / R = a
-        let tmp = Fp::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+        let tmp = Fp::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
 
         let mut res = [0; 32];
         res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
@@ -240,7 +240,7 @@ impl SqrtRatio for Fp {
     const T_MINUS1_OVER2: [u64; 4] = [0, 0, 0, 0];
 
     fn get_lower_32(&self) -> u32 {
-        let tmp = Fp::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+        let tmp = Fp::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
         tmp.0[0] as u32
     }
 }
