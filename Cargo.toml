@@ -13,6 +13,10 @@ repository = "https://github.com/kilic/pairing"
 readme = "README.md"
 description = "Elliptic curve implementations and wrappers for halo2 library"
 
+[[bench]]
+name = "less_than"
+harness = false
+
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }
 rand_xorshift = "0.3"

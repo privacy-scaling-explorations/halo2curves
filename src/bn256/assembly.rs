@@ -368,22 +368,11 @@ macro_rules! assembly_field {
         /// Lexicographic comparison of Montgomery forms.
         #[inline(always)]
         fn is_less_than(x: &[u64; 4], y: &[u64; 4]) -> bool {
-            match x[3].cmp(&y[3]) {
-                core::cmp::Ordering::Less => return true,
-                core::cmp::Ordering::Greater => return false,
-                _ => {}
-            }
-            match x[2].cmp(&y[2]) {
-                core::cmp::Ordering::Less => return true,
-                core::cmp::Ordering::Greater => return false,
-                _ => {}
-            }
-            match x[1].cmp(&y[1]) {
-                core::cmp::Ordering::Less => return true,
-                core::cmp::Ordering::Greater => return false,
-                _ => {}
-            }
-            x[0].lt(&y[0])
+            let (_, borrow) = sbb(x[0], y[0], 0);
+            let (_, borrow) = sbb(x[1], y[1], borrow);
+            let (_, borrow) = sbb(x[2], y[2], borrow);
+            let (_, borrow) = sbb(x[3], y[3], borrow);
+            borrow >> 63 == 1
         }
 
         impl $field {
