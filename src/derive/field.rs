@@ -510,7 +510,6 @@ macro_rules! field_specific {
                 (&$field([d0, d1, d2, d3])).sub(&$modulus)
             }
 
-            #[allow(clippy::too_many_arguments)]
             #[inline(always)]
             pub(crate) const fn montgomery_reduce(r: &[u64; 8]) -> $field {
                 // The Montgomery reduction here is based on Algorithm 14.32 in
@@ -576,7 +575,6 @@ macro_rules! field_specific {
                 $field([d0, d1, d2, d3])
             }
 
-            #[allow(clippy::too_many_arguments)]
             #[inline(always)]
             pub(crate) const fn montgomery_reduce(r: &[u64; 8]) -> Self {
                 // The Montgomery reduction here is based on Algorithm 14.32 in
