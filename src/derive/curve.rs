@@ -161,7 +161,7 @@ macro_rules! new_curve_impl {
             pub z: $base,
         }
 
-        #[derive(Copy, Clone, PartialEq, Hash)]
+        #[derive(Copy, Clone, PartialEq)]
         $($privacy)* struct $name_affine {
             pub x: $base,
             pub y: $base,
