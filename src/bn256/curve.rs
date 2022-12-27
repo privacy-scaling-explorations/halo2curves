@@ -142,11 +142,7 @@ impl CurveEndo for G1 {
     }
 
     fn endomorphism_scalars(k: &Self::ScalarExt) -> (u128, u128) {
-        #[cfg(feature = "asm")]
         let input = Fr::montgomery_reduce(&[k.0[0], k.0[1], k.0[2], k.0[3], 0, 0, 0, 0]).0;
-
-        #[cfg(not(feature = "asm"))]
-        let input = Fr::montgomery_reduce(k.0[0], k.0[1], k.0[2], k.0[3], 0, 0, 0, 0).0;
 
         let c1_512 = mul_512(ENDO_G2, input);
         let c2_512 = mul_512(ENDO_G1, input);
