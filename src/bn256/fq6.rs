@@ -207,13 +207,13 @@ impl Fq6 {
     }
 
     pub fn mul(&self, other: &Self) -> Self {
-        let mut t = other.clone();
+        let mut t = *other;
         t.mul_assign(self);
         t
     }
 
     pub fn square(&self) -> Self {
-        let mut t = self.clone();
+        let mut t = *self;
         t.square_assign();
         t
     }
@@ -678,7 +678,7 @@ fn test_frobenius() {
     ]);
 
     for _ in 0..100 {
-        for i in 0..(14) {
+        for i in 0..14 {
             let mut a = Fq6::random(&mut rng);
             let mut b = a;
 

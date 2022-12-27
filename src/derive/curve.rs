@@ -36,10 +36,13 @@ macro_rules! batch_add {
                 #[cfg(all(feature = "prefetch", target_arch = "x86_64"))]
                 if i < num_points - 2 {
                     if LOAD_POINTS {
-                        crate::prefetch::<Self>(bases, base_positions[i + 2] as usize);
-                        crate::prefetch::<Self>(bases, base_positions[i + 3] as usize);
+                        $crate::prefetch::<Self>(bases, base_positions[i + 2] as usize);
+                        $crate::prefetch::<Self>(bases, base_positions[i + 3] as usize);
                     }
-                    crate::prefetch::<Self>(points, output_indices[(i >> 1) + 1] as usize - offset);
+                    $crate::prefetch::<Self>(
+                        points,
+                        output_indices[(i >> 1) + 1] as usize - offset,
+                    );
                 }
                 if LOAD_POINTS {
                     points[i] = get_point(base_positions[i]);
@@ -104,7 +107,10 @@ macro_rules! batch_add {
 
                 #[cfg(all(feature = "prefetch", target_arch = "x86_64"))]
                 if i > 0 {
-                    crate::prefetch::<Self>(points, output_indices[(i >> 1) - 1] as usize - offset);
+                    $crate::prefetch::<Self>(
+                        points,
+                        output_indices[(i >> 1) - 1] as usize - offset,
+                    );
                 }
 
                 if COMPLETE {
@@ -155,7 +161,7 @@ macro_rules! new_curve_impl {
             pub z: $base,
         }
 
-        #[derive(Copy, Clone)]
+        #[derive(Copy, Clone, PartialEq)]
         $($privacy)* struct $name_affine {
             pub x: $base,
             pub y: $base,
@@ -209,7 +215,7 @@ macro_rules! new_curve_impl {
                         };
 
 
-                        use crate::group::cofactor::CofactorGroup;
+                        use $crate::group::cofactor::CofactorGroup;
                         let p = p.to_curve();
                         return p.clear_cofactor().to_affine()
                     }
@@ -474,6 +480,46 @@ macro_rules! new_curve_impl {
             }
         }
 
+        impl $crate::serde::SerdeObject for $name {
+            fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
+                debug_assert_eq!(bytes.len(), 3 * $base::size());
+                let [x, y, z] = [0, 1, 2]
+                    .map(|i| $base::from_raw_bytes_unchecked(&bytes[i * $base::size()..(i + 1) * $base::size()]));
+                Self { x, y, z }
+            }
+            fn from_raw_bytes(bytes: &[u8]) -> Option<Self> {
+                if bytes.len() != 3 * $base::size() {
+                    return None;
+                }
+                let [x, y, z] =
+                    [0, 1, 2].map(|i| $base::from_raw_bytes(&bytes[i * $base::size()..(i + 1) * $base::size()]));
+                x.zip(y).zip(z).and_then(|((x, y), z)| {
+                    let res = Self { x, y, z };
+                    // Check that the point is on the curve.
+                    bool::from(res.is_on_curve()).then(|| res)
+                })
+            }
+            fn to_raw_bytes(&self) -> Vec<u8> {
+                let mut res = Vec::with_capacity(3 * $base::size());
+                Self::write_raw(self, &mut res).unwrap();
+                res
+            }
+            fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
+                let [x, y, z] = [(); 3].map(|_| $base::read_raw_unchecked(reader));
+                Self { x, y, z }
+            }
+            fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
+                let x = $base::read_raw(reader)?;
+                let y = $base::read_raw(reader)?;
+                let z = $base::read_raw(reader)?;
+                Ok(Self { x, y, z })
+            }
+            fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
+                self.x.write_raw(writer)?;
+                self.y.write_raw(writer)?;
+                self.z.write_raw(writer)
+            }
+        }
 
         impl group::prime::PrimeGroup for $name {}
 
@@ -550,12 +596,6 @@ macro_rules! new_curve_impl {
             }
         }
 
-        impl PartialEq for $name_affine {
-            fn eq(&self, other: &Self) -> bool {
-                self.ct_eq(other).into()
-            }
-        }
-
         impl cmp::Eq for $name_affine {}
 
         impl group::GroupEncoding for $name_affine {
@@ -604,6 +644,44 @@ macro_rules! new_curve_impl {
                     xbytes[$compressed_size - 1] |= sign;
                     $name_compressed(xbytes)
                 }
+            }
+        }
+
+        impl $crate::serde::SerdeObject for $name_affine {
+            fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
+                debug_assert_eq!(bytes.len(), 2 * $base::size());
+                let [x, y] =
+                    [0, $base::size()].map(|i| $base::from_raw_bytes_unchecked(&bytes[i..i + $base::size()]));
+                Self { x, y }
+            }
+            fn from_raw_bytes(bytes: &[u8]) -> Option<Self> {
+                if bytes.len() != 2 * $base::size() {
+                    return None;
+                }
+                let [x, y] = [0, $base::size()].map(|i| $base::from_raw_bytes(&bytes[i..i + $base::size()]));
+                x.zip(y).and_then(|(x, y)| {
+                    let res = Self { x, y };
+                    // Check that the point is on the curve.
+                    bool::from(res.is_on_curve()).then(|| res)
+                })
+            }
+            fn to_raw_bytes(&self) -> Vec<u8> {
+                let mut res = Vec::with_capacity(2 * $base::size());
+                Self::write_raw(self, &mut res).unwrap();
+                res
+            }
+            fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
+                let [x, y] = [(); 2].map(|_| $base::read_raw_unchecked(reader));
+                Self { x, y }
+            }
+            fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
+                let x = $base::read_raw(reader)?;
+                let y = $base::read_raw(reader)?;
+                Ok(Self { x, y })
+            }
+            fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
+                self.x.write_raw(writer)?;
+                self.y.write_raw(writer)
             }
         }
 

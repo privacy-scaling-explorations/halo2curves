@@ -48,10 +48,18 @@ new_curve_impl!(
 
 impl CurveAffineExt for G1Affine {
     batch_add!();
+
+    fn into_coordinates(self) -> (Self::Base, Self::Base) {
+        (self.x, self.y)
+    }
 }
 
 impl CurveAffineExt for G2Affine {
     batch_add!();
+
+    fn into_coordinates(self) -> (Self::Base, Self::Base) {
+        (self.x, self.y)
+    }
 }
 
 const G1_GENERATOR_X: Fq = Fq::one();
@@ -284,6 +292,12 @@ mod tests {
         let exp_affine: G1Affine = expected.into();
 
         assert_eq!(res_affine, exp_affine);
+    }
+
+    #[test]
+    fn test_serialization() {
+        crate::tests::curve::random_serialization_test::<G1>();
+        crate::tests::curve::random_serialization_test::<G2>();
     }
 }
 

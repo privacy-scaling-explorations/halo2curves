@@ -125,13 +125,6 @@ macro_rules! field_common {
             }
         }
 
-        impl PartialEq for $field {
-            #[inline]
-            fn eq(&self, other: &Self) -> bool {
-                self.ct_eq(other).unwrap_u8() == 1
-            }
-        }
-
         impl core::cmp::Ord for $field {
             fn cmp(&self, other: &Self) -> core::cmp::Ordering {
                 let left = self.to_repr();
@@ -255,6 +248,60 @@ macro_rules! field_common {
                 u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)
             }
         }
+
+        impl $crate::serde::SerdeObject for $field {
+            fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
+                debug_assert_eq!(bytes.len(), 32);
+                let inner =
+                    [0, 8, 16, 24].map(|i| u64::from_le_bytes(bytes[i..i + 8].try_into().unwrap()));
+                Self(inner)
+            }
+            fn from_raw_bytes(bytes: &[u8]) -> Option<Self> {
+                if bytes.len() != 32 {
+                    return None;
+                }
+                let elt = Self::from_raw_bytes_unchecked(bytes);
+                Self::is_less_than(&elt.0, &$modulus.0).then(|| elt)
+            }
+            fn to_raw_bytes(&self) -> Vec<u8> {
+                let mut res = Vec::with_capacity(32);
+                for limb in self.0.iter() {
+                    res.extend_from_slice(&limb.to_le_bytes());
+                }
+                res
+            }
+            fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
+                let inner = [(); 4].map(|_| {
+                    let mut buf = [0; 8];
+                    reader.read_exact(&mut buf).unwrap();
+                    u64::from_le_bytes(buf)
+                });
+                Self(inner)
+            }
+            fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
+                let mut inner = [0u64; 4];
+                for limb in inner.iter_mut() {
+                    let mut buf = [0; 8];
+                    reader.read_exact(&mut buf)?;
+                    *limb = u64::from_le_bytes(buf);
+                }
+                let elt = Self(inner);
+                Self::is_less_than(&elt.0, &$modulus.0)
+                    .then(|| elt)
+                    .ok_or_else(|| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "input number is not less than field modulus",
+                        )
+                    })
+            }
+            fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
+                for limb in self.0.iter() {
+                    writer.write_all(&limb.to_le_bytes())?;
+                }
+                Ok(())
+            }
+        }
     };
 }
 
@@ -364,6 +411,16 @@ macro_rules! field_arithmetic {
                     (((self.0[0] | self.0[1] | self.0[2] | self.0[3]) == 0) as u64).wrapping_sub(1);
 
                 $field([d0 & mask, d1 & mask, d2 & mask, d3 & mask])
+            }
+
+            /// Lexicographic comparison of Montgomery forms.
+            #[inline(always)]
+            fn is_less_than(x: &[u64; 4], y: &[u64; 4]) -> bool {
+                let (_, borrow) = sbb(x[0], y[0], 0);
+                let (_, borrow) = sbb(x[1], y[1], borrow);
+                let (_, borrow) = sbb(x[2], y[2], borrow);
+                let (_, borrow) = sbb(x[3], y[3], borrow);
+                borrow >> 63 == 1
             }
         }
     };

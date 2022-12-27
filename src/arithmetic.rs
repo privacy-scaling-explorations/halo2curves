@@ -15,6 +15,13 @@ pub trait CurveAffineExt: pasta_curves::arithmetic::CurveAffine {
         bases: &[Self],
         base_positions: &[u32],
     );
+
+    /// Unlike the `Coordinates` trait, this just returns the raw affine coordinates without checking `is_on_curve`
+    fn into_coordinates(self) -> (Self::Base, Self::Base) {
+        // fallback implementation
+        let coordinates = self.coordinates().unwrap();
+        (*coordinates.x(), *coordinates.y())
+    }
 }
 
 pub(crate) fn sqrt_tonelli_shanks<F: ff::PrimeField, S: AsRef<[u64]>>(

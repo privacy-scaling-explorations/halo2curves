@@ -1,4 +1,5 @@
-use crate::group::GroupEncoding;
+#![allow(clippy::eq_op)]
+use crate::{group::GroupEncoding, serde::SerdeObject};
 use ff::Field;
 use group::prime::PrimeCurveAffine;
 use pasta_curves::arithmetic::{CurveAffine, CurveExt};
@@ -37,6 +38,33 @@ fn serdes<G: CurveExt>() {
         assert_eq!(projective_point, projective_point_rec_unchecked);
         assert_eq!(affine_point, affine_point_rec);
         assert_eq!(affine_point, affine_point_rec_unchecked);
+    }
+}
+
+pub fn random_serialization_test<G: CurveExt>()
+where
+    G: SerdeObject,
+    G::AffineExt: SerdeObject,
+{
+    for _ in 0..100 {
+        let projective_point = G::random(OsRng);
+        let affine_point: G::AffineExt = projective_point.into();
+
+        let projective_bytes = projective_point.to_raw_bytes();
+        let projective_point_rec = G::from_raw_bytes(&projective_bytes).unwrap();
+        assert_eq!(projective_point, projective_point_rec);
+        let mut buf = Vec::new();
+        projective_point.write_raw(&mut buf).unwrap();
+        let projective_point_rec = G::read_raw(&mut &buf[..]).unwrap();
+        assert_eq!(projective_point, projective_point_rec);
+
+        let affine_bytes = affine_point.to_raw_bytes();
+        let affine_point_rec = G::AffineExt::from_raw_bytes(&affine_bytes).unwrap();
+        assert_eq!(affine_point, affine_point_rec);
+        let mut buf = Vec::new();
+        affine_point.write_raw(&mut buf).unwrap();
+        let affine_point_rec = G::AffineExt::read_raw(&mut &buf[..]).unwrap();
+        assert_eq!(affine_point, affine_point_rec);
     }
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "halo2curves"
-version = "0.2.1"
+version = "0.3.1"
 authors = [
   "Sean Bowe <ewillbefull@gmail.com>",
   "Jack Grigg <jack@z.cash>",
@@ -12,6 +12,10 @@ edition = "2018"
 repository = "https://github.com/kilic/pairing"
 readme = "README.md"
 description = "Elliptic curve implementations and wrappers for halo2 library"
+
+[[bench]]
+name = "less_than"
+harness = false
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }

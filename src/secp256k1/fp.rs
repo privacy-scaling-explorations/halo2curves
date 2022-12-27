@@ -18,7 +18,7 @@ use crate::arithmetic::{adc, mac, sbb};
 // The internal representation of this type is four 64-bit unsigned
 // integers in little-endian order. `Fp` values are always in
 // Montgomery form; i.e., Fp(a) = aR mod p, with R = 2^256.
-#[derive(Clone, Copy, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Fp(pub(crate) [u64; 4]);
 
 /// Constant representing the modulus
@@ -273,5 +273,10 @@ mod test {
     #[test]
     fn test_field() {
         crate::tests::field::random_field_tests::<Fp>("secp256k1 base".to_string());
+    }
+
+    #[test]
+    fn test_serialization() {
+        crate::tests::field::random_serialization_test::<Fp>("secp256k1 base".to_string());
     }
 }

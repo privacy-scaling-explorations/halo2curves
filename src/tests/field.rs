@@ -3,6 +3,8 @@ use ff::Field;
 use rand::{RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
 
+use crate::serde::SerdeObject;
+
 pub fn random_field_tests<F: Field>(type_name: String) {
     let mut rng = XorShiftRng::from_seed([
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
@@ -204,6 +206,26 @@ fn random_expansion_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
         t2.add_assign(&t5);
 
         assert_eq!(t0, t2);
+    }
+    end_timer!(start);
+}
+
+pub fn random_serialization_test<F: Field + SerdeObject>(type_name: String) {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+    let message = format!("serialization {}", type_name);
+    let start = start_timer!(|| message);
+    for _ in 0..1000000 {
+        let a = F::random(&mut rng);
+        let bytes = a.to_raw_bytes();
+        let b = F::from_raw_bytes(&bytes).unwrap();
+        assert_eq!(a, b);
+        let mut buf = Vec::new();
+        a.write_raw(&mut buf).unwrap();
+        let b = F::read_raw(&mut &buf[..]).unwrap();
+        assert_eq!(a, b);
     }
     end_timer!(start);
 }
