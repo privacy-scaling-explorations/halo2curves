@@ -20,7 +20,7 @@ harness = false
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }
 rand_xorshift = "0.3"
-ark-std = { version = "0.3", features = ["print-trace"] }
+ark-std = { version = "0.3" }
 
 [dependencies]
 subtle = "2.4"
@@ -38,6 +38,7 @@ num-traits = "0.2"
 default = []
 asm = []
 prefetch = []
+print-trace = [ "ark-std/print-trace" ]
 
 [profile.bench]
 opt-level = 3
