@@ -221,7 +221,6 @@ macro_rules! new_curve_impl {
                             })
                         })
                     }
-                        // Self::from_bytes(bytes)
 
                     fn to_bytes(&self) -> Self::Repr {
                         if bool::from(self.is_identity()) {
@@ -263,9 +262,14 @@ macro_rules! new_curve_impl {
             () => {
 
         paste::paste! {
-        #[derive(Copy, Clone)]
-        pub struct [< $name Uncompressed >]([u8; 64]);
 
+        const [< $name _UNCOMPRESSED_SIZE >]: usize = if $flags_extra_byte {
+            2 * $base::size() + 1
+        } else{
+            2 *$base::size()
+        };
+        #[derive(Copy, Clone)]
+        pub struct [< $name Uncompressed >]([u8; [< $name _UNCOMPRESSED_SIZE >]]);
             impl std::fmt::Debug for [< $name Uncompressed >] {
                 fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                     self.0[..].fmt(f)
@@ -274,7 +278,7 @@ macro_rules! new_curve_impl {
 
             impl Default for [< $name Uncompressed >] {
                 fn default() -> Self {
-                    [< $name Uncompressed >]([0; 64])
+                    [< $name Uncompressed >]([0; [< $name _UNCOMPRESSED_SIZE >] ])
                 }
             }
 
@@ -308,56 +312,61 @@ macro_rules! new_curve_impl {
             impl group::UncompressedEncoding for $name_affine{
                 type Uncompressed = [< $name Uncompressed >];
 
-                fn from_uncompressed(_: &Self::Uncompressed) -> CtOption<Self> {
-                    // Self::from_uncompressed(&bytes.0)
-                    unimplemented!();
+                fn from_uncompressed(bytes: &Self::Uncompressed) -> CtOption<Self> {
+                    Self::from_uncompressed_unchecked(bytes).and_then(|p| CtOption::new(p, p.is_on_curve()))
                 }
 
-                fn from_uncompressed_unchecked(_: &Self::Uncompressed) -> CtOption<Self> {
+                fn from_uncompressed_unchecked(bytes: &Self::Uncompressed) -> CtOption<Self> {
+                    let bytes = &bytes.0;
+                    let infinity_flag_set = Choice::from((bytes[[< $name _UNCOMPRESSED_SIZE >] - 1] >> 6) & 1);
                     // Attempt to obtain the x-coordinate
-                    // let x = {
-                    //     let mut tmp = [0; 32];
-                    //     tmp.copy_from_slice(&bytes[0..32]);
-                    //     Fp::from_bytes(&tmp)
-                    // };
+                    let x = {
+                        let mut tmp = [0; $base::size()];
+                        tmp.copy_from_slice(&bytes[0..$base::size()]);
+                        $base::from_bytes(&tmp)
+                    };
 
-                    // // Attempt to obtain the y-coordinate
-                    // let y = {
-                    //     let mut tmp = [0; 32];
-                    //     tmp.copy_from_slice(&bytes[32..64]);
-                    //     Fp::from_bytes(&tmp)
-                    // };
+                    // Attempt to obtain the y-coordinate
+                    let y = {
+                        let mut tmp = [0; $base::size()];
+                        tmp.copy_from_slice(&bytes[$base::size()..2*$base::size()]);
+                        $base::from_bytes(&tmp)
+                    };
 
-                    // x.and_then(|x| {
-                    //     y.and_then(|y| {
-                    //         // Create a point representing this value
-                    //         let p = $name_affine::conditional_select(
-                    //             &G1Affine {
-                    //                 x,
-                    //                 y,
-                    //             },
-                    //             &$name_affine::identity(),
-                    //             infinity_flag_set,
-                    //         );
+                    x.and_then(|x| {
+                        y.and_then(|y| {
+                            // Create a point representing this value
+                            let p = $name_affine::conditional_select(
+                                &$name_affine{
+                                    x,
+                                    y,
+                                },
+                                &$name_affine::identity(),
+                                infinity_flag_set,
+                            );
 
-                    //         CtOption::new(
-                    //             p,
-                    //             // If the infinity flag is set, the x and y coordinates should have been zero.
-                    //             ((!infinity_flag_set) | (infinity_flag_set & x.is_zero() & y.is_zero())) &
-                    //             // The compression flag should not have been set, as this is an uncompressed element
-                    //             (!compression_flag_set) &
-                    //             // The sort flag should not have been set, as this is an uncompressed element
-                    //             (!sort_flag_set),
-                    //         )
-                    //     })
-                    // })
-                    // Self::from_uncompressed_unchecked(&bytes.0)
-                    unimplemented!();
+                            CtOption::new(
+                                p,
+                                // If the infinity flag is set, the x and y coordinates should have been zero.
+                                ((!infinity_flag_set) | (infinity_flag_set & x.is_zero() & y.is_zero()))
+                            )
+                        })
+                    })
                 }
 
                 fn to_uncompressed(&self) -> Self::Uncompressed {
-                    // Self::Uncompressed(self.to_uncompressed())
-                    unimplemented!();
+                    let mut res = [0; [< $name _UNCOMPRESSED_SIZE >]];
+
+                    res[0..$base::size()].copy_from_slice(
+                        &$base::conditional_select(&self.x, &$base::zero(), self.is_identity()).to_bytes()[..],
+                    );
+                    res[$base::size().. 2*$base::size()].copy_from_slice(
+                        &$base::conditional_select(&self.y, &$base::zero(), self.is_identity()).to_bytes()[..],
+                    );
+
+                    res[[< $name _UNCOMPRESSED_SIZE >]] |= u8::conditional_select(&0u8, &(1u8 << 6), self.is_identity());
+
+                    [< $name Uncompressed >](res)
                 }
             }
         }
