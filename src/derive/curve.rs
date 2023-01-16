@@ -156,6 +156,8 @@ macro_rules! new_curve_impl {
         macro_rules! impl_compressed {
             () => {
                 paste::paste! {
+
+                #[allow(non_upper_case_globals)]
                 const [< $name _COMPRESSED_SIZE >]: usize = if $flags_extra_byte {$base::size() + 1} else {$base::size()};
                 // const [< $name _COMPRESSED_SIZE >]: usize = 32;
                 #[derive(Copy, Clone)]
@@ -263,6 +265,7 @@ macro_rules! new_curve_impl {
 
         paste::paste! {
 
+        #[allow(non_upper_case_globals)]
         const [< $name _UNCOMPRESSED_SIZE >]: usize = if $flags_extra_byte {
             2 * $base::size() + 1
         } else{
