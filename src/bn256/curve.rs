@@ -24,8 +24,7 @@ new_curve_impl!(
     (pub),
     G1,
     G1Affine,
-    G1Compressed,
-    Fq::size(),
+    false,
     Fq,
     Fr,
     (G1_GENERATOR_X,G1_GENERATOR_Y),
@@ -37,8 +36,7 @@ new_curve_impl!(
     (pub),
     G2,
     G2Affine,
-    G2Compressed,
-    Fq2::size(),
+    false,
     Fq2,
     Fr,
     (G2_GENERATOR_X, G2_GENERATOR_Y),
@@ -294,37 +292,5 @@ mod tests {
     fn test_serialization() {
         crate::tests::curve::random_serialization_test::<G1>();
         crate::tests::curve::random_serialization_test::<G2>();
-    }
-}
-
-impl group::UncompressedEncoding for G1Affine {
-    type Uncompressed = G1Compressed;
-
-    fn from_uncompressed(_: &Self::Uncompressed) -> CtOption<Self> {
-        unimplemented!();
-    }
-
-    fn from_uncompressed_unchecked(_: &Self::Uncompressed) -> CtOption<Self> {
-        unimplemented!();
-    }
-
-    fn to_uncompressed(&self) -> Self::Uncompressed {
-        unimplemented!();
-    }
-}
-
-impl group::UncompressedEncoding for G2Affine {
-    type Uncompressed = G2Compressed;
-
-    fn from_uncompressed(_: &Self::Uncompressed) -> CtOption<Self> {
-        unimplemented!();
-    }
-
-    fn from_uncompressed_unchecked(_: &Self::Uncompressed) -> CtOption<Self> {
-        unimplemented!();
-    }
-
-    fn to_uncompressed(&self) -> Self::Uncompressed {
-        unimplemented!();
     }
 }
