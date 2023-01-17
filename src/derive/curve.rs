@@ -367,7 +367,7 @@ macro_rules! new_curve_impl {
                         &$base::conditional_select(&self.y, &$base::zero(), self.is_identity()).to_bytes()[..],
                     );
 
-                    res[[< $name _UNCOMPRESSED_SIZE >]] |= u8::conditional_select(&0u8, &(1u8 << 6), self.is_identity());
+                    res[[< $name _UNCOMPRESSED_SIZE >] - 1] |= u8::conditional_select(&0u8, &(1u8 << 6), self.is_identity());
 
                     [< $name Uncompressed >](res)
                 }
