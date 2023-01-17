@@ -159,7 +159,6 @@ macro_rules! new_curve_impl {
 
                 #[allow(non_upper_case_globals)]
                 const [< $name _COMPRESSED_SIZE >]: usize = if $flags_extra_byte {$base::size() + 1} else {$base::size()};
-                // const [< $name _COMPRESSED_SIZE >]: usize = 32;
                 #[derive(Copy, Clone)]
                 pub struct [<$name Compressed >]([u8; [< $name _COMPRESSED_SIZE >]]);
 
