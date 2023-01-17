@@ -190,11 +190,8 @@ macro_rules! new_curve_impl {
                 impl group::GroupEncoding for $name_affine {
                     type Repr = [< $name Compressed >];
 
-                    fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
-                        Self::from_bytes_unchecked(bytes).and_then(|p| CtOption::new(p, p.is_on_curve()))
-                    }
 
-                    fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
+                    fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
                         let bytes = &bytes.0;
                         let mut tmp = *bytes;
                         let is_inf = Choice::from(tmp[[< $name _COMPRESSED_SIZE >] - 1] >> 7);
@@ -221,6 +218,10 @@ macro_rules! new_curve_impl {
                                 })
                             })
                         })
+                    }
+
+                    fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
+                        Self::from_bytes(bytes)
                     }
 
                     fn to_bytes(&self) -> Self::Repr {
