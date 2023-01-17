@@ -351,7 +351,7 @@ macro_rules! new_curve_impl {
                             CtOption::new(
                                 p,
                                 // If the infinity flag is set, the x and y coordinates should have been zero.
-                                ((!infinity_flag_set) | (infinity_flag_set & x.is_zero() & y.is_zero()))
+                                ((!infinity_flag_set) | (x.is_zero() & y.is_zero()))
                             )
                         })
                     })
