@@ -1,13 +1,12 @@
 use crate::secp256k1::Fp;
 use crate::secp256k1::Fq;
-use crate::{Coordinates, CurveAffine, CurveAffineExt, CurveExt, Group};
+use crate::{Coordinates, CurveAffine, CurveAffineExt, CurveExt};
 use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
 use ff::{Field, PrimeField};
-use group::Curve;
-use group::{prime::PrimeCurveAffine, Group as _, GroupEncoding};
+use group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
 
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -88,7 +87,8 @@ fn test_serialization() {
 #[test]
 fn ecdsa_example() {
     use crate::group::Curve;
-    use crate::{CurveAffine, FieldExt};
+    use crate::CurveAffine;
+    use ff::FromUniformBytes;
     use rand_core::OsRng;
 
     fn mod_n(x: Fp) -> Fq {
@@ -96,7 +96,7 @@ fn ecdsa_example() {
         x_repr.copy_from_slice(x.to_repr().as_ref());
         let mut x_bytes = [0u8; 64];
         x_bytes[..32].copy_from_slice(&x_repr[..]);
-        Fq::from_bytes_wide(&x_bytes)
+        Fq::from_uniform_bytes(&x_bytes)
     }
 
     let g = Secp256k1::generator();

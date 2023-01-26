@@ -1,14 +1,10 @@
+use crate::arithmetic::{adc, mac, sbb};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
-
-use ff::PrimeField;
+use ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio};
-
-use crate::arithmetic::{adc, mac, sbb};
 
 /// This represents an element of $\mathbb{F}_p$ where
 ///
@@ -29,6 +25,10 @@ const MODULUS: Fp = Fp([
     0xffffffffffffffff,
     0xffffffffffffffff,
 ]);
+
+/// Constant representing the multiplicative generator of the modulus.
+/// It's derived with SageMath with: `GF(MODULUS).primitive_element()`.
+const MULTIPLICATIVE_GENERATOR: Fp = Fp::from_raw([0x03, 0x00, 0x00, 0x00]);
 
 /// The modulus as u32 limbs.
 #[cfg(not(target_pointer_width = "64"))]
@@ -69,14 +69,35 @@ const TWO_INV: Fp = Fp::from_raw([
     0x7fffffffffffffff,
 ]);
 
+// TODO: Why are ZETA and DELTA == `0`?
 const ZETA: Fp = Fp::zero();
 const DELTA: Fp = Fp::zero();
-const ROOT_OF_UNITY_INV: Fp = Fp::zero();
+
+/// Implementations of this trait MUST ensure that this is the generator used to derive Self::ROOT_OF_UNITY.
+/// Derived from:
+/// ```
+/// Zp((Zp(mul_generator)^((modulus -1)/2)))
+/// 115792089237316195423570985008687907853269984665640564039457584007908834671662
+/// ```
+const ROOT_OF_UNITY: Fp = Fp([
+    0xfffffffdfffff85eu64,
+    0xffffffffffffffffu64,
+    0xffffffffffffffffu64,
+    0xffffffffffffffffu64,
+]);
+
+/// Inverse of [`ROOT_OF_UNITY`].
+const ROOT_OF_UNITY_INV: Fp = Fp([
+    0xfffffffdfffff85eu64,
+    0xffffffffffffffffu64,
+    0xffffffffffffffffu64,
+    0xffffffffffffffffu64,
+]);
 
 use crate::{
     field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
     impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
 };
 impl_binops_additive!(Fp, Fp);
 impl_binops_multiplicative!(Fp, Fp);
@@ -94,6 +115,7 @@ field_common!(
     R3
 );
 field_arithmetic!(Fp, MODULUS, INV, dense);
+impl_sum_prod!(Fp);
 
 impl Fp {
     pub const fn size() -> usize {
@@ -102,6 +124,9 @@ impl Fp {
 }
 
 impl ff::Field for Fp {
+    const ZERO: Self = Self::zero();
+    const ONE: Self = Self::one();
+
     fn random(mut rng: impl RngCore) -> Self {
         Self::from_u512([
             rng.next_u64(),
@@ -113,14 +138,6 @@ impl ff::Field for Fp {
             rng.next_u64(),
             rng.next_u64(),
         ])
-    }
-
-    fn zero() -> Self {
-        Self::zero()
-    }
-
-    fn one() -> Self {
-        Self::one()
     }
 
     fn double(&self) -> Self {
@@ -174,11 +191,21 @@ impl ff::Field for Fp {
         }
         res
     }
+
+    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
+        ff::helpers::sqrt_ratio_generic(num, div)
+    }
 }
 
 impl ff::PrimeField for Fp {
     type Repr = [u8; 32];
 
+    const MODULUS: &'static str = MODULUS_STR;
+    const MULTIPLICATIVE_GENERATOR: Self = MULTIPLICATIVE_GENERATOR;
+    const TWO_INV: Self = TWO_INV;
+    const ROOT_OF_UNITY: Self = ROOT_OF_UNITY;
+    const ROOT_OF_UNITY_INV: Self = ROOT_OF_UNITY_INV;
+    const DELTA: Self = DELTA;
     const NUM_BITS: u32 = 256;
     const CAPACITY: u32 = 255;
     const S: u32 = 1;
@@ -223,26 +250,35 @@ impl ff::PrimeField for Fp {
         res
     }
 
+    fn from_u128(v: u128) -> Self {
+        Self::from_raw([v as u64, (v >> 64) as u64, 0, 0])
+    }
+
     fn is_odd(&self) -> Choice {
         Choice::from(self.to_repr()[0] & 1)
     }
+}
 
-    fn multiplicative_generator() -> Self {
-        unimplemented!();
-    }
-
-    fn root_of_unity() -> Self {
-        unimplemented!();
+impl FromUniformBytes<64> for Fp {
+    /// Converts a 512-bit little endian integer into
+    /// an `Fp` by reducing by the modulus.
+    fn from_uniform_bytes(bytes: &[u8; 64]) -> Self {
+        Self::from_u512([
+            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
+            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
+            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
+            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
+            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
+            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
+            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
+            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
+        ])
     }
 }
 
-impl SqrtRatio for Fp {
-    const T_MINUS1_OVER2: [u64; 4] = [0, 0, 0, 0];
-
-    fn get_lower_32(&self) -> u32 {
-        let tmp = Fp::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
-        tmp.0[0] as u32
-    }
+// TODO: Check correctness of the 3!!!
+impl WithSmallOrderMulGroup<3> for Fp {
+    const ZETA: Self = ZETA;
 }
 
 #[cfg(test)]
@@ -268,6 +304,19 @@ mod test {
 
             assert!(a == b || a == negb);
         }
+    }
+
+    #[test]
+    fn test_root_of_unity() {
+        assert_eq!(
+            Fp::ROOT_OF_UNITY.pow_vartime(&[1 << Fp::S, 0, 0, 0]),
+            Fp::one()
+        );
+    }
+
+    #[test]
+    fn test_inv_root_of_unity() {
+        assert_eq!(Fp::ROOT_OF_UNITY_INV, Fp::ROOT_OF_UNITY.invert().unwrap());
     }
 
     #[test]

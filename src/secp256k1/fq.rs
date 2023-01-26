@@ -1,14 +1,10 @@
+use crate::arithmetic::{adc, mac, sbb};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
-
-use ff::PrimeField;
+use ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-use crate::arithmetic::{adc, mac, sbb};
-
-use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio};
 
 /// This represents an element of $\mathbb{F}_q$ where
 ///
@@ -45,6 +41,10 @@ const MODULUS_LIMBS_32: [u32; 8] = [
 
 ///Constant representing the modulus as static str
 const MODULUS_STR: &str = "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141";
+
+/// Constant representing the multiplicative generator of the modulus.
+/// It's derived with SageMath with: `GF(MODULUS).primitive_element()`.
+const MULTIPLICATIVE_GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00]);
 
 /// INV = -(q^{-1} mod 2^64) mod 2^64
 const INV: u64 = 0x4b0dff665588b13f;
@@ -108,7 +108,7 @@ const DELTA: Fq = Fq::zero();
 use crate::{
     field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
     impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
 };
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
@@ -126,6 +126,7 @@ field_common!(
     R3
 );
 field_arithmetic!(Fq, MODULUS, INV, dense);
+impl_sum_prod!(Fq);
 
 impl Fq {
     pub const fn size() -> usize {
@@ -134,6 +135,9 @@ impl Fq {
 }
 
 impl ff::Field for Fq {
+    const ZERO: Self = Self::zero();
+    const ONE: Self = Self::one();
+
     fn random(mut rng: impl RngCore) -> Self {
         Self::from_u512([
             rng.next_u64(),
@@ -147,14 +151,6 @@ impl ff::Field for Fq {
         ])
     }
 
-    fn zero() -> Self {
-        Self::zero()
-    }
-
-    fn one() -> Self {
-        Self::one()
-    }
-
     fn double(&self) -> Self {
         self.double()
     }
@@ -162,11 +158,6 @@ impl ff::Field for Fq {
     #[inline(always)]
     fn square(&self) -> Self {
         self.square()
-    }
-
-    /// Computes the square root of this element, if it exists.
-    fn sqrt(&self) -> CtOption<Self> {
-        crate::arithmetic::sqrt_tonelli_shanks(self, &<Self as SqrtRatio>::T_MINUS1_OVER2)
     }
 
     /// Computes the multiplicative inverse of this element,
@@ -199,6 +190,10 @@ impl ff::Field for Fq {
         }
         res
     }
+
+    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
+        ff::helpers::sqrt_ratio_generic(num, div)
+    }
 }
 
 impl ff::PrimeField for Fq {
@@ -206,6 +201,12 @@ impl ff::PrimeField for Fq {
 
     const NUM_BITS: u32 = 256;
     const CAPACITY: u32 = 255;
+    const MODULUS: &'static str = MODULUS_STR;
+    const MULTIPLICATIVE_GENERATOR: Self = MULTIPLICATIVE_GENERATOR;
+    const ROOT_OF_UNITY: Self = ROOT_OF_UNITY;
+    const ROOT_OF_UNITY_INV: Self = ROOT_OF_UNITY_INV;
+    const TWO_INV: Self = TWO_INV;
+    const DELTA: Self = DELTA;
     const S: u32 = 6;
 
     fn from_repr(repr: Self::Repr) -> CtOption<Self> {
@@ -251,28 +252,28 @@ impl ff::PrimeField for Fq {
     fn is_odd(&self) -> Choice {
         Choice::from(self.to_repr()[0] & 1)
     }
+}
 
-    fn multiplicative_generator() -> Self {
-        GENERATOR
-    }
-
-    fn root_of_unity() -> Self {
-        ROOT_OF_UNITY
+impl FromUniformBytes<64> for Fq {
+    /// Converts a 512-bit little endian integer into
+    /// an `Fq` by reducing by the modulus.
+    fn from_uniform_bytes(bytes: &[u8; 64]) -> Self {
+        Self::from_u512([
+            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
+            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
+            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
+            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
+            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
+            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
+            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
+            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
+        ])
     }
 }
 
-impl SqrtRatio for Fq {
-    const T_MINUS1_OVER2: [u64; 4] = [
-        0x777fa4bd19a06c82,
-        0xfd755db9cd5e9140,
-        0xffffffffffffffff,
-        0x01ffffffffffffff,
-    ];
-
-    fn get_lower_32(&self) -> u32 {
-        let tmp = Fq::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
-        tmp.0[0] as u32
-    }
+// TODO: Check the correctness of this 3!!
+impl WithSmallOrderMulGroup<3> for Fq {
+    const ZETA: Self = ZETA;
 }
 
 #[cfg(test)]
@@ -303,14 +304,14 @@ mod test {
     #[test]
     fn test_root_of_unity() {
         assert_eq!(
-            Fq::root_of_unity().pow_vartime(&[1 << Fq::S, 0, 0, 0]),
+            Fq::ROOT_OF_UNITY.pow_vartime(&[1 << Fq::S, 0, 0, 0]),
             Fq::one()
         );
     }
 
     #[test]
     fn test_inv_root_of_unity() {
-        assert_eq!(Fq::ROOT_OF_UNITY_INV, Fq::root_of_unity().invert().unwrap());
+        assert_eq!(Fq::ROOT_OF_UNITY_INV, Fq::ROOT_OF_UNITY.invert().unwrap());
     }
 
     #[test]
@@ -322,4 +323,6 @@ mod test {
     fn test_serialization() {
         crate::tests::field::random_serialization_test::<Fq>("secp256k1 scalar".to_string());
     }
+
+    // TODO: Add a test for the new ROOT_OF_UNITY
 }
