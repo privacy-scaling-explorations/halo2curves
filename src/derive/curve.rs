@@ -730,23 +730,6 @@ macro_rules! new_curve_impl {
             type Affine = $name_affine;
         }
 
-        impl Group for $name {
-            type Scalar = $scalar;
-
-            fn group_zero() -> Self {
-                Self::identity()
-            }
-            fn group_add(&mut self, rhs: &Self) {
-                *self += *rhs;
-            }
-            fn group_sub(&mut self, rhs: &Self) {
-                *self -= *rhs;
-            }
-            fn group_scale(&mut self, by: &Self::Scalar) {
-                *self *= *by;
-            }
-        }
-
         // Affine implementations
 
         impl std::fmt::Debug for $name_affine {
