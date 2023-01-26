@@ -142,23 +142,6 @@ macro_rules! field_common {
             }
         }
 
-        impl Group for $field {
-            type Scalar = Self;
-
-            fn group_zero() -> Self {
-                Self::zero()
-            }
-            fn group_add(&mut self, rhs: &Self) {
-                *self += *rhs;
-            }
-            fn group_sub(&mut self, rhs: &Self) {
-                *self -= *rhs;
-            }
-            fn group_scale(&mut self, by: &Self::Scalar) {
-                *self *= *by;
-            }
-        }
-
         impl fmt::Debug for $field {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 let tmp = self.to_repr();
@@ -288,41 +271,6 @@ macro_rules! field_common {
         impl<'a> From<&'a $field> for [u8; 32] {
             fn from(value: &'a $field) -> [u8; 32] {
                 value.to_repr()
-            }
-        }
-
-        impl FieldExt for $field {
-            const MODULUS: &'static str = $modulus_str;
-            const TWO_INV: Self = $two_inv;
-            const ROOT_OF_UNITY_INV: Self = $root_of_unity_inv;
-            const DELTA: Self = $delta;
-            const ZETA: Self = $zeta;
-
-            fn from_u128(v: u128) -> Self {
-                $field::from_raw([v as u64, (v >> 64) as u64, 0, 0])
-            }
-
-            /// Converts a 512-bit little endian integer into
-            /// a `$field` by reducing by the modulus.
-            fn from_bytes_wide(bytes: &[u8; 64]) -> $field {
-                $field::from_u512([
-                    u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
-                    u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
-                    u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-                    u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
-                    u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
-                    u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
-                    u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
-                    u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
-                ])
-            }
-
-            fn get_lower_128(&self) -> u128 {
-                let tmp = $field::montgomery_reduce(&[
-                    self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0,
-                ]);
-
-                u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)
             }
         }
 
