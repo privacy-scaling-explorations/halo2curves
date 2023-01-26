@@ -263,116 +263,116 @@ macro_rules! new_curve_impl {
         macro_rules! impl_uncompressed {
             () => {
 
-        paste::paste! {
+                paste::paste! {
 
-        #[allow(non_upper_case_globals)]
-        const [< $name _UNCOMPRESSED_SIZE >]: usize = if $flags_extra_byte {
-            2 * $base::size() + 1
-        } else{
-            2 *$base::size()
-        };
-        #[derive(Copy, Clone)]
-        pub struct [< $name Uncompressed >]([u8; [< $name _UNCOMPRESSED_SIZE >]]);
-            impl std::fmt::Debug for [< $name Uncompressed >] {
-                fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                    self.0[..].fmt(f)
-                }
-            }
+                #[allow(non_upper_case_globals)]
+                const [< $name _UNCOMPRESSED_SIZE >]: usize = if $flags_extra_byte {
+                    2 * $base::size() + 1
+                } else{
+                    2 *$base::size()
+                };
+                #[derive(Copy, Clone)]
+                pub struct [< $name Uncompressed >]([u8; [< $name _UNCOMPRESSED_SIZE >]]);
+                    impl std::fmt::Debug for [< $name Uncompressed >] {
+                        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                            self.0[..].fmt(f)
+                        }
+                    }
 
-            impl Default for [< $name Uncompressed >] {
-                fn default() -> Self {
-                    [< $name Uncompressed >]([0; [< $name _UNCOMPRESSED_SIZE >] ])
-                }
-            }
+                    impl Default for [< $name Uncompressed >] {
+                        fn default() -> Self {
+                            [< $name Uncompressed >]([0; [< $name _UNCOMPRESSED_SIZE >] ])
+                        }
+                    }
 
-            impl AsRef<[u8]> for [< $name Uncompressed >] {
-                fn as_ref(&self) -> &[u8] {
-                    &self.0
-                }
-            }
+                    impl AsRef<[u8]> for [< $name Uncompressed >] {
+                        fn as_ref(&self) -> &[u8] {
+                            &self.0
+                        }
+                    }
 
-            impl AsMut<[u8]> for [< $name Uncompressed >] {
-                fn as_mut(&mut self) -> &mut [u8] {
-                    &mut self.0
-                }
-            }
+                    impl AsMut<[u8]> for [< $name Uncompressed >] {
+                        fn as_mut(&mut self) -> &mut [u8] {
+                            &mut self.0
+                        }
+                    }
 
-            impl ConstantTimeEq for [< $name Uncompressed >] {
-                fn ct_eq(&self, other: &Self) -> Choice {
-                    self.0.ct_eq(&other.0)
-                }
-            }
+                    impl ConstantTimeEq for [< $name Uncompressed >] {
+                        fn ct_eq(&self, other: &Self) -> Choice {
+                            self.0.ct_eq(&other.0)
+                        }
+                    }
 
-            impl Eq for [< $name Uncompressed >] {}
+                    impl Eq for [< $name Uncompressed >] {}
 
-            impl PartialEq for [< $name Uncompressed >] {
-                #[inline]
-                fn eq(&self, other: &Self) -> bool {
-                    bool::from(self.ct_eq(other))
-                }
-            }
+                    impl PartialEq for [< $name Uncompressed >] {
+                        #[inline]
+                        fn eq(&self, other: &Self) -> bool {
+                            bool::from(self.ct_eq(other))
+                        }
+                    }
 
-            impl group::UncompressedEncoding for $name_affine{
-                type Uncompressed = [< $name Uncompressed >];
+                    impl group::UncompressedEncoding for $name_affine{
+                        type Uncompressed = [< $name Uncompressed >];
 
-                fn from_uncompressed(bytes: &Self::Uncompressed) -> CtOption<Self> {
-                    Self::from_uncompressed_unchecked(bytes).and_then(|p| CtOption::new(p, p.is_on_curve()))
-                }
+                        fn from_uncompressed(bytes: &Self::Uncompressed) -> CtOption<Self> {
+                            Self::from_uncompressed_unchecked(bytes).and_then(|p| CtOption::new(p, p.is_on_curve()))
+                        }
 
-                fn from_uncompressed_unchecked(bytes: &Self::Uncompressed) -> CtOption<Self> {
-                    let bytes = &bytes.0;
-                    let infinity_flag_set = Choice::from((bytes[[< $name _UNCOMPRESSED_SIZE >] - 1] >> 6) & 1);
-                    // Attempt to obtain the x-coordinate
-                    let x = {
-                        let mut tmp = [0; $base::size()];
-                        tmp.copy_from_slice(&bytes[0..$base::size()]);
-                        $base::from_bytes(&tmp)
-                    };
+                        fn from_uncompressed_unchecked(bytes: &Self::Uncompressed) -> CtOption<Self> {
+                            let bytes = &bytes.0;
+                            let infinity_flag_set = Choice::from((bytes[[< $name _UNCOMPRESSED_SIZE >] - 1] >> 6) & 1);
+                            // Attempt to obtain the x-coordinate
+                            let x = {
+                                let mut tmp = [0; $base::size()];
+                                tmp.copy_from_slice(&bytes[0..$base::size()]);
+                                $base::from_bytes(&tmp)
+                            };
 
-                    // Attempt to obtain the y-coordinate
-                    let y = {
-                        let mut tmp = [0; $base::size()];
-                        tmp.copy_from_slice(&bytes[$base::size()..2*$base::size()]);
-                        $base::from_bytes(&tmp)
-                    };
+                            // Attempt to obtain the y-coordinate
+                            let y = {
+                                let mut tmp = [0; $base::size()];
+                                tmp.copy_from_slice(&bytes[$base::size()..2*$base::size()]);
+                                $base::from_bytes(&tmp)
+                            };
 
-                    x.and_then(|x| {
-                        y.and_then(|y| {
-                            // Create a point representing this value
-                            let p = $name_affine::conditional_select(
-                                &$name_affine{
-                                    x,
-                                    y,
-                                },
-                                &$name_affine::identity(),
-                                infinity_flag_set,
+                            x.and_then(|x| {
+                                y.and_then(|y| {
+                                    // Create a point representing this value
+                                    let p = $name_affine::conditional_select(
+                                        &$name_affine{
+                                            x,
+                                            y,
+                                        },
+                                        &$name_affine::identity(),
+                                        infinity_flag_set,
+                                    );
+
+                                    CtOption::new(
+                                        p,
+                                        // If the infinity flag is set, the x and y coordinates should have been zero.
+                                        ((!infinity_flag_set) | (x.is_zero() & y.is_zero()))
+                                    )
+                                })
+                            })
+                        }
+
+                        fn to_uncompressed(&self) -> Self::Uncompressed {
+                            let mut res = [0; [< $name _UNCOMPRESSED_SIZE >]];
+
+                            res[0..$base::size()].copy_from_slice(
+                                &$base::conditional_select(&self.x, &$base::zero(), self.is_identity()).to_bytes()[..],
+                            );
+                            res[$base::size().. 2*$base::size()].copy_from_slice(
+                                &$base::conditional_select(&self.y, &$base::zero(), self.is_identity()).to_bytes()[..],
                             );
 
-                            CtOption::new(
-                                p,
-                                // If the infinity flag is set, the x and y coordinates should have been zero.
-                                ((!infinity_flag_set) | (x.is_zero() & y.is_zero()))
-                            )
-                        })
-                    })
+                            res[[< $name _UNCOMPRESSED_SIZE >] - 1] |= u8::conditional_select(&0u8, &(1u8 << 6), self.is_identity());
+
+                            [< $name Uncompressed >](res)
+                        }
+                    }
                 }
-
-                fn to_uncompressed(&self) -> Self::Uncompressed {
-                    let mut res = [0; [< $name _UNCOMPRESSED_SIZE >]];
-
-                    res[0..$base::size()].copy_from_slice(
-                        &$base::conditional_select(&self.x, &$base::zero(), self.is_identity()).to_bytes()[..],
-                    );
-                    res[$base::size().. 2*$base::size()].copy_from_slice(
-                        &$base::conditional_select(&self.y, &$base::zero(), self.is_identity()).to_bytes()[..],
-                    );
-
-                    res[[< $name _UNCOMPRESSED_SIZE >] - 1] |= u8::conditional_select(&0u8, &(1u8 << 6), self.is_identity());
-
-                    [< $name Uncompressed >](res)
-                }
-            }
-        }
             };
 
         }
@@ -411,6 +411,11 @@ macro_rules! new_curve_impl {
             const fn curve_constant_b() -> $base {
                 $name_affine::curve_constant_b()
             }
+
+            #[inline]
+            fn curve_constant_3b() -> $base {
+                $constant_b + $constant_b + $constant_b
+            }
         }
 
         impl $name_affine {
@@ -424,6 +429,7 @@ macro_rules! new_curve_impl {
             const fn curve_constant_b() -> $base {
                 $constant_b
             }
+
 
             pub fn random(mut rng: impl RngCore) -> Self {
                 loop {
@@ -474,16 +480,15 @@ macro_rules! new_curve_impl {
 
         impl subtle::ConstantTimeEq for $name {
             fn ct_eq(&self, other: &Self) -> Choice {
-                // Is (xz^2, yz^3, z) equal to (x'z'^2, yz'^3, z') when converted to affine?
+                // Is (x, y, z) equal to (x', y, z') when converted to affine?
+                // => (x/z , y/z) equal to (x'/z' , y'/z')
+                // => (xz' == x'z) & (yz' == y'z)
 
-                let z = other.z.square();
-                let x1 = self.x * z;
-                let z = z * other.z;
-                let y1 = self.y * z;
-                let z = self.z.square();
-                let x2 = other.x * z;
-                let z = z * self.z;
-                let y2 = other.y * z;
+                let x1 = self.x * other.z;
+                let y1 = self.y * other.z;
+
+                let x2 = other.x * self.z;
+                let y2 = other.y * self.z;
 
                 let self_is_zero = self.is_identity();
                 let other_is_zero = other.is_identity();
@@ -526,7 +531,13 @@ macro_rules! new_curve_impl {
             }
 
             fn jacobian_coordinates(&self) -> ($base, $base, $base) {
-               (self.x, self.y, self.z)
+                // Homogenous to Jacobian
+                let z_inv_op = self.z.invert();
+                let z_inv = z_inv_op.unwrap_or($base::zero());
+                let x = self.x * z_inv;
+                let y = self.y * z_inv;
+                let z = $base::conditional_select(&$base::one(),&$base::zero() , z_inv_op.is_some());
+                (x, y, z)
             }
 
 
@@ -535,12 +546,11 @@ macro_rules! new_curve_impl {
             }
 
             fn is_on_curve(&self) -> Choice {
+                // Check (Y/Z)^2 = (X/Z)^3 + b
+                // <=>    Z Y^2 -  X^3 = Z^3 b
 
-                let z2 = self.z.square();
-                let z4 = z2.square();
-                let z6 = z4 * z2;
-                (self.y.square() - self.x.square() * self.x)
-                    .ct_eq(&(z6 * $name::curve_constant_b()))
+                (self.z * self.y.square()  - self.x.square() * self.x)
+                    .ct_eq(&(self.z.square() * self.z * $name::curve_constant_b()))
                     | self.z.is_zero()
             }
 
@@ -553,7 +563,14 @@ macro_rules! new_curve_impl {
             }
 
             fn new_jacobian(x: Self::Base, y: Self::Base, z: Self::Base) -> CtOption<Self> {
-                let p = $name { x, y, z };
+                // Jacobian to homogenous
+                let z_inv_op = z.invert();
+                let z_inv = z_inv_op.unwrap_or($base::zero());
+                let z_inv2 = z_inv * z_inv;
+                let p_x = x * z_inv2 ;
+                let p_y = y * z_inv2 * z_inv;
+                let p_z = $base::conditional_select(&$base::one(),&$base::zero() , z_inv_op.is_some());
+                let p = $name { x:p_x, y:p_y, z:p_z };
                 CtOption::new(p, p.is_on_curve())
             }
         }
@@ -589,11 +606,11 @@ macro_rules! new_curve_impl {
                     acc = $base::conditional_select(&(acc * p.z), &acc, skip);
 
                     // Set the coordinates to the correct value
-                    let tmp2 = tmp.square();
-                    let tmp3 = tmp2 * tmp;
+                    // let tmp2 = tmp.square();
+                    // let tmp3 = tmp2 * tmp;
 
-                    q.x = p.x * tmp2;
-                    q.y = p.y * tmp3;
+                    q.x = p.x * tmp;
+                    q.y = p.y * tmp;
 
                     *q = $name_affine::conditional_select(&q, &$name_affine::identity(), skip);
                 }
@@ -601,16 +618,12 @@ macro_rules! new_curve_impl {
 
             fn to_affine(&self) -> Self::AffineRepr {
                 let zinv = self.z.invert().unwrap_or($base::zero());
-                let zinv2 = zinv.square();
-                let x = self.x * zinv2;
-                let zinv3 = zinv2 * zinv;
-                let y = self.y * zinv3;
-
+                let x = self.x * zinv;
+                let y = self.y * zinv;
                 let tmp = $name_affine {
                     x,
                     y,
                 };
-
                 $name_affine::conditional_select(&tmp, &$name_affine::identity(), zinv.is_zero())
             }
         }
@@ -623,22 +636,25 @@ macro_rules! new_curve_impl {
             }
 
             fn double(&self) -> Self {
-                let a = self.x.square();
-                let b = self.y.square();
-                let c = b.square();
-                let d = self.x + b;
-                let d = d.square();
-                let d = d - a - c;
-                let d = d + d;
-                let e = a + a + a;
-                let f = e.square();
-                let z3 = self.z * self.y;
+                // Algorithm 9, https://eprint.iacr.org/2015/1060.pdf
+                let t0 = self.y.square();
+                let z3 = t0 + t0;
                 let z3 = z3 + z3;
-                let x3 = f - (d + d);
-                let c = c + c;
-                let c = c + c;
-                let c = c + c;
-                let y3 = e * (d - x3) - c;
+                let z3 = z3 + z3;
+                let t1 = self.y * self.z;
+                let t2 = self.z.square();
+                let t2 = t2 * $name::curve_constant_3b();
+                let x3 = t2 * z3;
+                let y3 = t0 + t2;
+                let z3 = t1 * z3;
+                let t1 = t2 + t2;
+                let t2 = t1 + t2;
+                let t0 = t0 - t2;
+                let y3 = t0 * y3;
+                let y3 = x3 + y3;
+                let t1 = self.x * self.y;
+                let x3 = t0 * t1;
+                let x3 = x3 + x3;
 
                 let tmp = $name {
                     x: x3,
@@ -656,7 +672,7 @@ macro_rules! new_curve_impl {
             fn identity() -> Self {
                 Self {
                     x: $base::zero(),
-                    y: $base::zero(),
+                    y: $base::one(),
                     z: $base::zero(),
                 }
             }
@@ -844,11 +860,12 @@ macro_rules! new_curve_impl {
             }
 
             fn to_curve(&self) -> Self::Curve {
-                $name {
+                let tmp = $name {
                     x: self.x,
                     y: self.y,
-                    z: $base::conditional_select(&$base::one(), &$base::zero(), self.is_identity()),
-                }
+                    z: $base::one(),
+                };
+                $name::conditional_select(&tmp, &$name::identity(), self.is_identity())
             }
         }
 
@@ -880,7 +897,7 @@ macro_rules! new_curve_impl {
             type CurveExt = $name;
 
             fn is_on_curve(&self) -> Choice {
-                // y^2 - x^3 - ax ?= b
+                // y^2 - x^3 ?= b
                 (self.y.square() - self.x.square() * self.x).ct_eq(&$name::curve_constant_b())
                     | self.is_identity()
             }
@@ -949,42 +966,45 @@ macro_rules! new_curve_impl {
             type Output = $name;
 
             fn add(self, rhs: &'a $name) -> $name {
-                if bool::from(self.is_identity()) {
-                    *rhs
-                } else if bool::from(rhs.is_identity()) {
-                    *self
-                } else {
-                    let z1z1 = self.z.square();
-                    let z2z2 = rhs.z.square();
-                    let u1 = self.x * z2z2;
-                    let u2 = rhs.x * z1z1;
-                    let s1 = self.y * z2z2 * rhs.z;
-                    let s2 = rhs.y * z1z1 * self.z;
+                // Algorithm 7, https://eprint.iacr.org/2015/1060.pdf
+                let t0 = self.x * rhs.x;
+                let t1 = self.y * rhs.y;
+                let t2 = self.z * rhs.z;
+                let t3 = self.x + self.y;
+                let t4 = rhs.x + rhs.y;
+                let t3 = t3 * t4;
+                let t4 = t0 + t1;
+                let t3 = t3 - t4;
+                let t4 = self.y + self.z;
+                let x3 = rhs.y + rhs.z;
+                let t4 = t4 * x3;
+                let x3 = t1 + t2;
+                let t4 = t4 - x3;
+                let x3 = self.x + self.z;
+                let y3 = rhs.x + rhs.z;
+                let x3 = x3 * y3;
+                let y3 = t0 + t2;
+                let y3 = x3 - y3;
+                let x3 = t0 + t0;
+                let t0 = x3 + t0;
+                let t2 = t2 * $name::curve_constant_3b();
+                let z3 = t1 + t2;
+                let t1 = t1 - t2;
+                let y3 = y3 * $name::curve_constant_3b();
+                let x3 = t4 * y3;
+                let t2 = t3 * t1;
+                let x3 = t2 - x3;
+                let y3 = y3 * t0;
+                let t1 = t1 * z3;
+                let y3 = t1 + y3;
+                let t0 = t0 * t3;
+                let z3 = z3 * t4;
+                let z3 = z3 + t0;
 
-                    if u1 == u2 {
-                        if s1 == s2 {
-                            self.double()
-                        } else {
-                            $name::identity()
-                        }
-                    } else {
-                        let h = u2 - u1;
-                        let i = (h + h).square();
-                        let j = h * i;
-                        let r = s2 - s1;
-                        let r = r + r;
-                        let v = u1 * i;
-                        let x3 = r.square() - j - v - v;
-                        let s1 = s1 * j;
-                        let s1 = s1 + s1;
-                        let y3 = r * (v - x3) - s1;
-                        let z3 = (self.z + rhs.z).square() - z1z1 - z2z2;
-                        let z3 = z3 * h;
-
-                        $name {
-                            x: x3, y: y3, z: z3
-                        }
-                    }
+                $name {
+                    x: x3,
+                    y: y3,
+                    z: z3,
                 }
             }
         }
@@ -992,42 +1012,44 @@ macro_rules! new_curve_impl {
         impl<'a, 'b> Add<&'a $name_affine> for &'b $name {
             type Output = $name;
 
+            // Mixed addition
             fn add(self, rhs: &'a $name_affine) -> $name {
-                if bool::from(self.is_identity()) {
-                    rhs.to_curve()
-                } else if bool::from(rhs.is_identity()) {
-                    *self
-                } else {
-                    let z1z1 = self.z.square();
-                    let u2 = rhs.x * z1z1;
-                    let s2 = rhs.y * z1z1 * self.z;
+                // Algorithm 8, https://eprint.iacr.org/2015/1060.pdf
 
-                    if self.x == u2 {
-                        if self.y == s2 {
-                            self.double()
-                        } else {
-                            $name::identity()
-                        }
-                    } else {
-                        let h = u2 - self.x;
-                        let hh = h.square();
-                        let i = hh + hh;
-                        let i = i + i;
-                        let j = h * i;
-                        let r = s2 - self.y;
-                        let r = r + r;
-                        let v = self.x * i;
-                        let x3 = r.square() - j - v - v;
-                        let j = self.y * j;
-                        let j = j + j;
-                        let y3 = r * (v - x3) - j;
-                        let z3 = (self.z + h).square() - z1z1 - hh;
+                let t0 = self.x * rhs.x;
+                let t1 = self.y * rhs.y;
+                let t3 = rhs.x + rhs.y;
+                let t4 = self.x + self.y;
+                let t3 = t3 * t4;
+                let t4 = t0 + t1;
+                let t3 = t3 - t4;
+                let t4 = rhs.y * self.z;
+                let t4 = t4 + self.y;
+                let y3 = rhs.x * self.z;
+                let y3 = y3 + self.x;
+                let x3 = t0 + t0;
+                let t0 = x3 + t0;
+                let t2 = self.z * $name::curve_constant_3b();
+                let z3 = t1 + t2;
+                let t1 = t1 - t2;
+                let y3 = y3 * $name::curve_constant_3b();
+                let x3 = t4 * y3;
+                let t2 = t3 * t1;
+                let x3 = t2 - x3;
+                let y3 = y3 * t0;
+                let t1 = t1 * z3;
+                let y3 = t1 + y3;
+                let t0 = t0 * t3;
+                let z3 = z3 * t4;
+                let z3 = z3 + t0;
 
-                        $name {
-                            x: x3, y: y3, z: z3
-                        }
-                    }
-                }
+                let tmp = $name{
+                    x: x3,
+                    y: y3,
+                    z: z3,
+                };
+
+                $name::conditional_select(&tmp, self, rhs.is_identity())
             }
         }
 
@@ -1104,37 +1126,7 @@ macro_rules! new_curve_impl {
             type Output = $name;
 
             fn add(self, rhs: &'a $name_affine) -> $name {
-                if bool::from(self.is_identity()) {
-                    rhs.to_curve()
-                } else if bool::from(rhs.is_identity()) {
-                    self.to_curve()
-                } else {
-                    if self.x == rhs.x {
-                        if self.y == rhs.y {
-                            self.to_curve().double()
-                        } else {
-                            $name::identity()
-                        }
-                    } else {
-                        let h = rhs.x - self.x;
-                        let hh = h.square();
-                        let i = hh + hh;
-                        let i = i + i;
-                        let j = h * i;
-                        let r = rhs.y - self.y;
-                        let r = r + r;
-                        let v = self.x * i;
-                        let x3 = r.square() - j - v - v;
-                        let j = self.y * j;
-                        let j = j + j;
-                        let y3 = r * (v - x3) - j;
-                        let z3 = h + h;
-
-                        $name {
-                            x: x3, y: y3, z: z3
-                        }
-                    }
-                }
+                rhs.to_curve() + self.to_curve()
             }
         }
 
