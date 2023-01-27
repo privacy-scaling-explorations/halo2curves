@@ -72,9 +72,7 @@ const R3: Fq = Fq([
 /// It's derived with SageMath with: `GF(MODULUS).primitive_element()`.
 const GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00]);
 
-/// GENERATOR^t where t * 2^s + 1 = r
-/// with t odd. In other words, this
-/// is a 2^s root of unity.
+/// GENERATOR^t where t * 2^s + 1 = r with t odd. In other words, this is a 2^s root of unity.
 /// `0xc1dc060e7a91986df9879a3fbc483a898bdeab680756045992f4b5402b052f2`
 const ROOT_OF_UNITY: Fq = Fq::from_raw([
     0x992f4b5402b052f2,
@@ -99,8 +97,18 @@ const TWO_INV: Fq = Fq::from_raw([
     0x7fffffffffffffff,
 ]);
 
+/// TODO: Is it correct for this to be 0???
 const ZETA: Fq = Fq::zero();
-const DELTA: Fq = Fq::zero();
+
+/// Generator of the t-order multiplicative subgroup.
+/// Computed by exponentiating Self::MULTIPLICATIVE_GENERATOR by 2^s, where s is Self::S.
+/// `0x0000000000000000000cbc21fe4561c8d63b78e780e1341e199417c8c0bb7601`
+const DELTA: Fq = Fq([
+    0xd91b33d24319d9e8,
+    0xb81c6596ff5d6740,
+    0xa463969ca14c51c1,
+    0x1900960de4b7929c,
+]);
 
 use crate::{
     field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
@@ -321,7 +329,6 @@ mod test {
 
     #[test]
     fn test_delta() {
-        assert_eq!(Fq::DELTA, GENERATOR.pow(&[1u64 << Fq::S, 0, 0, 0]));
         assert_eq!(
             Fq::DELTA,
             Fq::MULTIPLICATIVE_GENERATOR.pow(&[1u64 << Fq::S, 0, 0, 0])
@@ -350,6 +357,4 @@ mod test {
     fn test_serialization() {
         crate::tests::field::random_serialization_test::<Fq>("secp256k1 scalar".to_string());
     }
-
-    // TODO: Add a test for the new ROOT_OF_UNITY
 }

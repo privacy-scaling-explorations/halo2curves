@@ -69,9 +69,13 @@ const TWO_INV: Fp = Fp::from_raw([
     0x7fffffffffffffff,
 ]);
 
-// TODO: Why are ZETA and DELTA == `0`?
+// TODO: Why is ZETA == `0`?
 const ZETA: Fp = Fp::zero();
-const DELTA: Fp = Fp::zero();
+
+/// Generator of the t-order multiplicative subgroup.
+/// Computed by exponentiating Self::MULTIPLICATIVE_GENERATOR by 2^s, where s is Self::S.
+/// `0x0000000000000000000000000000000000000000000000000000000000000009`.
+const DELTA: Fp = Fp([0x900002259u64, 0, 0, 0]);
 
 /// Implementations of this trait MUST ensure that this is the generator used to derive Self::ROOT_OF_UNITY.
 /// Derived from:
@@ -285,6 +289,7 @@ impl WithSmallOrderMulGroup<3> for Fp {
 mod test {
     use super::*;
     use ff::Field;
+    use num_traits::Pow;
     use rand_core::OsRng;
 
     #[test]
@@ -304,6 +309,24 @@ mod test {
 
             assert!(a == b || a == negb);
         }
+    }
+
+    #[test]
+    fn test_constants() {
+        assert_eq!(
+            Fp::MODULUS,
+            "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f",
+        );
+
+        assert_eq!(Fp::from(2) * Fp::TWO_INV, Fp::ONE);
+    }
+
+    #[test]
+    fn test_delta() {
+        assert_eq!(
+            Fp::DELTA,
+            MULTIPLICATIVE_GENERATOR.pow(&[1u64 << Fp::S, 0, 0, 0])
+        );
     }
 
     #[test]
