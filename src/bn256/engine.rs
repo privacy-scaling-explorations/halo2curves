@@ -89,7 +89,7 @@ impl PartialEq for Gt {
 impl Gt {
     /// Returns the group identity, which is $1$.
     pub fn identity() -> Gt {
-        Gt(Fq12::one())
+        Gt(Fq12::ONE)
     }
 
     /// Doubles this group element.
@@ -460,7 +460,7 @@ impl MillerLoopResult for Gt {
     fn final_exponentiation(&self) -> Gt {
         fn exp_by_x(f: &mut Fq12) {
             let x = BN_X;
-            let mut res = Fq12::one();
+            let mut res = Fq12::ONE;
             for i in (0..64).rev() {
                 res.cyclotomic_square();
                 if ((x >> i) & 1) == 1 {
@@ -582,7 +582,7 @@ pub fn multi_miller_loop(terms: &[(&G1Affine, &G2Prepared)]) -> Gt {
         f.mul_by_034(&c0, &c1, &coeffs.2);
     }
 
-    let mut f = Fq12::one();
+    let mut f = Fq12::ONE;
 
     for i in (1..SIX_U_PLUS_2_NAF.len()).rev() {
         if i != SIX_U_PLUS_2_NAF.len() - 1 {
@@ -787,12 +787,12 @@ pub fn engine_tests() {
         let d = G2Prepared::from(G2Affine::from(G2::random(&mut rng)));
 
         assert_eq!(
-            Fq12::one(),
+            Fq12::ONE,
             multi_miller_loop(&[(&z1, &b)]).final_exponentiation().0,
         );
 
         assert_eq!(
-            Fq12::one(),
+            Fq12::ONE,
             multi_miller_loop(&[(&a, &z2)]).final_exponentiation().0,
         );
 

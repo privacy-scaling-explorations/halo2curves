@@ -2,15 +2,14 @@ use crate::arithmetic::mul_512;
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
-use crate::{Coordinates, CurveAffine, CurveAffineExt, CurveExt, Group};
+use crate::{Coordinates, CurveAffine, CurveAffineExt, CurveExt};
 use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::{Field, PrimeField};
+use ff::{Field, PrimeField, WithSmallOrderMulGroup};
 use group::Curve;
-use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group as _, GroupEncoding};
-use pasta_curves::arithmetic::FieldExt;
+use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, Group as _, GroupEncoding};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -157,7 +156,13 @@ impl CurveEndo for G1 {
         let k1 = q2_lo - q1_lo;
         let k2 = (k1 * ENDO_BETA) + k;
 
-        (k2.get_lower_128(), k1.get_lower_128())
+        fn get_lower_128(k: Fr) -> u128 {
+            let tmp = Fr::montgomery_reduce(&[k.0[0], k.0[1], k.0[2], k.0[3], 0, 0, 0, 0]);
+
+            u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)
+        }
+
+        (get_lower_128(k2), get_lower_128(k1))
     }
 }
 
@@ -264,8 +269,7 @@ mod tests {
 
     #[test]
     fn test_endomorphism() {
-        use crate::FieldExt;
-
+        use ff::PrimeField;
         let scalar = Fr::random(OsRng);
         let point = G1Affine::random(OsRng);
 
