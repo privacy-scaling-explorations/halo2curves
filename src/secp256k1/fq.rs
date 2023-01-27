@@ -42,10 +42,6 @@ const MODULUS_LIMBS_32: [u32; 8] = [
 ///Constant representing the modulus as static str
 const MODULUS_STR: &str = "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141";
 
-/// Constant representing the multiplicative generator of the modulus.
-/// It's derived with SageMath with: `GF(MODULUS).primitive_element()`.
-const MULTIPLICATIVE_GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00]);
-
 /// INV = -(q^{-1} mod 2^64) mod 2^64
 const INV: u64 = 0x4b0dff665588b13f;
 
@@ -73,6 +69,7 @@ const R3: Fq = Fq([
 
 /// `GENERATOR = 7 mod r` is a generator of the `q - 1` order multiplicative
 /// subgroup, or in other words a primitive root of the field.
+/// It's derived with SageMath with: `GF(MODULUS).primitive_element()`.
 const GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00]);
 
 /// GENERATOR^t where t * 2^s + 1 = r
@@ -191,6 +188,17 @@ impl ff::Field for Fq {
         res
     }
 
+    fn sqrt(&self) -> CtOption<Self> {
+        let tm1d2 = [
+            0x777fa4bd19a06c82,
+            0xfd755db9cd5e9140,
+            0xffffffffffffffff,
+            0x01ffffffffffffff,
+        ];
+
+        ff::helpers::sqrt_tonelli_shanks(self, &tm1d2)
+    }
+
     fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
         ff::helpers::sqrt_ratio_generic(num, div)
     }
@@ -202,7 +210,7 @@ impl ff::PrimeField for Fq {
     const NUM_BITS: u32 = 256;
     const CAPACITY: u32 = 255;
     const MODULUS: &'static str = MODULUS_STR;
-    const MULTIPLICATIVE_GENERATOR: Self = MULTIPLICATIVE_GENERATOR;
+    const MULTIPLICATIVE_GENERATOR: Self = GENERATOR;
     const ROOT_OF_UNITY: Self = ROOT_OF_UNITY;
     const ROOT_OF_UNITY_INV: Self = ROOT_OF_UNITY_INV;
     const TWO_INV: Self = TWO_INV;
@@ -299,6 +307,25 @@ mod test {
 
             assert!(a == b || a == negb);
         }
+    }
+
+    #[test]
+    fn test_constants() {
+        assert_eq!(
+            Fq::MODULUS,
+            "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
+        );
+
+        assert_eq!(Fq::from(2) * Fq::TWO_INV, Fq::ONE);
+    }
+
+    #[test]
+    fn test_delta() {
+        assert_eq!(Fq::DELTA, GENERATOR.pow(&[1u64 << Fq::S, 0, 0, 0]));
+        assert_eq!(
+            Fq::DELTA,
+            Fq::MULTIPLICATIVE_GENERATOR.pow(&[1u64 << Fq::S, 0, 0, 0])
+        );
     }
 
     #[test]
