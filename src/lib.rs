@@ -10,9 +10,8 @@ pub mod serde;
 
 #[macro_use]
 mod derive;
-
 pub use arithmetic::CurveAffineExt;
-pub use pasta_curves::arithmetic::{Coordinates, CurveAffine, CurveExt, FieldExt, Group};
+pub use pasta_curves::arithmetic::{Coordinates, CurveAffine, CurveExt};
 
 pub extern crate group;
 

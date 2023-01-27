@@ -20,19 +20,19 @@ pub fn random_field_tests<F: Field>(type_name: String) {
     random_inversion_tests::<F, _>(&mut rng, type_name.clone());
     random_expansion_tests::<F, _>(&mut rng, type_name);
 
-    assert_eq!(F::zero().is_zero().unwrap_u8(), 1);
+    assert_eq!(F::ZERO.is_zero().unwrap_u8(), 1);
     {
-        let mut z = F::zero();
+        let mut z = F::ZERO;
         z = z.neg();
         assert_eq!(z.is_zero().unwrap_u8(), 1);
     }
 
-    assert!(bool::from(F::zero().invert().is_none()));
+    assert!(bool::from(F::ZERO.invert().is_none()));
 
     // Multiplication by zero
     {
         let mut a = F::random(&mut rng);
-        a.mul_assign(&F::zero());
+        a.mul_assign(&F::ZERO);
         assert_eq!(a.is_zero().unwrap_u8(), 1);
     }
 
@@ -40,7 +40,7 @@ pub fn random_field_tests<F: Field>(type_name: String) {
     {
         let mut a = F::random(&mut rng);
         let copy = a;
-        a.add_assign(&F::zero());
+        a.add_assign(&F::ZERO);
         assert_eq!(a, copy);
     }
 }
@@ -161,7 +161,7 @@ fn random_squaring_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
 }
 
 fn random_inversion_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
-    assert!(bool::from(F::zero().invert().is_none()));
+    assert!(bool::from(F::ZERO.invert().is_none()));
 
     let message = format!("inversion {}", type_name);
     let start = start_timer!(|| message);
@@ -170,7 +170,7 @@ fn random_inversion_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
         let b = a.invert().unwrap(); // probablistically nonzero
         a.mul_assign(&b);
 
-        assert_eq!(a, F::one());
+        assert_eq!(a, F::ONE);
     }
     end_timer!(start);
 }
