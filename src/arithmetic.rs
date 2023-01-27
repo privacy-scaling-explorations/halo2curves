@@ -4,8 +4,6 @@
 //! This module is temporary, and the extension traits defined here are expected to be
 //! upstreamed into the `ff` and `group` crates after some refactoring.
 
-use subtle::{Choice, ConditionallySelectable, CtOption};
-
 pub trait CurveAffineExt: pasta_curves::arithmetic::CurveAffine {
     fn batch_add<const COMPLETE: bool, const LOAD_POINTS: bool>(
         points: &mut [Self],

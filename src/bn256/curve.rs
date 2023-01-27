@@ -9,7 +9,7 @@ use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
 use ff::{Field, PrimeField, WithSmallOrderMulGroup};
 use group::Curve;
-use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, Group as _, GroupEncoding};
+use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 

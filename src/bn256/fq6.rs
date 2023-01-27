@@ -423,7 +423,7 @@ impl Field for Fq6 {
         unimplemented!()
     }
 
-    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
+    fn sqrt_ratio(_num: &Self, _div: &Self) -> (Choice, Self) {
         unimplemented!()
     }
 

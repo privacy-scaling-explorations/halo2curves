@@ -289,7 +289,6 @@ impl WithSmallOrderMulGroup<3> for Fp {
 mod test {
     use super::*;
     use ff::Field;
-    use num_traits::Pow;
     use rand_core::OsRng;
 
     #[test]

@@ -46,8 +46,8 @@ pub fn random_field_tests<F: Field>(type_name: String) {
 }
 
 fn random_multiplication_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
-    let message = format!("multiplication {}", type_name);
-    let start = start_timer!(|| message);
+    let _message = format!("multiplication {}", type_name);
+    let start = start_timer!(|| _message);
     for _ in 0..1000000 {
         let a = F::random(&mut rng);
         let b = F::random(&mut rng);
@@ -72,8 +72,8 @@ fn random_multiplication_tests<F: Field, R: RngCore>(mut rng: R, type_name: Stri
 }
 
 fn random_addition_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
-    let message = format!("addition {}", type_name);
-    let start = start_timer!(|| message);
+    let _message = format!("addition {}", type_name);
+    let start = start_timer!(|| _message);
     for _ in 0..1000000 {
         let a = F::random(&mut rng);
         let b = F::random(&mut rng);
@@ -98,8 +98,8 @@ fn random_addition_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
 }
 
 fn random_subtraction_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
-    let message = format!("subtraction {}", type_name);
-    let start = start_timer!(|| message);
+    let _message = format!("subtraction {}", type_name);
+    let start = start_timer!(|| _message);
     for _ in 0..1000000 {
         let a = F::random(&mut rng);
         let b = F::random(&mut rng);
@@ -119,8 +119,8 @@ fn random_subtraction_tests<F: Field, R: RngCore>(mut rng: R, type_name: String)
 }
 
 fn random_negation_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
-    let message = format!("negation {}", type_name);
-    let start = start_timer!(|| message);
+    let _message = format!("negation {}", type_name);
+    let start = start_timer!(|| _message);
     for _ in 0..1000000 {
         let a = F::random(&mut rng);
         let mut b = a;
@@ -133,8 +133,8 @@ fn random_negation_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
 }
 
 fn random_doubling_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
-    let message = format!("doubling {}", type_name);
-    let start = start_timer!(|| message);
+    let _message = format!("doubling {}", type_name);
+    let start = start_timer!(|| _message);
     for _ in 0..1000000 {
         let mut a = F::random(&mut rng);
         let mut b = a;
@@ -147,8 +147,8 @@ fn random_doubling_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
 }
 
 fn random_squaring_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
-    let message = format!("squaring {}", type_name);
-    let start = start_timer!(|| message);
+    let _message = format!("squaring {}", type_name);
+    let start = start_timer!(|| _message);
     for _ in 0..1000000 {
         let mut a = F::random(&mut rng);
         let mut b = a;
@@ -163,8 +163,8 @@ fn random_squaring_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
 fn random_inversion_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
     assert!(bool::from(F::ZERO.invert().is_none()));
 
-    let message = format!("inversion {}", type_name);
-    let start = start_timer!(|| message);
+    let _message = format!("inversion {}", type_name);
+    let start = start_timer!(|| _message);
     for _ in 0..1000000 {
         let mut a = F::random(&mut rng);
         let b = a.invert().unwrap(); // probablistically nonzero
@@ -176,8 +176,8 @@ fn random_inversion_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
 }
 
 fn random_expansion_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
-    let message = format!("expansion {}", type_name);
-    let start = start_timer!(|| message);
+    let _message = format!("expansion {}", type_name);
+    let start = start_timer!(|| _message);
     for _ in 0..1000000 {
         // Compare (a + b)(c + d) and (a*c + b*c + a*d + b*d)
 
@@ -215,8 +215,8 @@ pub fn random_serialization_test<F: Field + SerdeObject>(type_name: String) {
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
         0xe5,
     ]);
-    let message = format!("serialization {}", type_name);
-    let start = start_timer!(|| message);
+    let _message = format!("serialization {}", type_name);
+    let start = start_timer!(|| _message);
     for _ in 0..1000000 {
         let a = F::random(&mut rng);
         let bytes = a.to_raw_bytes();

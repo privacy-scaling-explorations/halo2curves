@@ -403,7 +403,7 @@ impl Field for Fq2 {
     }
 
     fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
-        todo!()
+        ff::helpers::sqrt_ratio_generic(num, div)
     }
 
     fn invert(&self) -> CtOption<Self> {
