@@ -107,10 +107,10 @@ const DELTA: Fr = Fr::from_raw([
 
 /// `ZETA^3 = 1 mod r` where `ZETA^2 != 1 mod r`
 const ZETA: Fr = Fr::from_raw([
-    0xb8ca0b2d36636f23,
-    0xcc37a73fec2bc5e9,
-    0x048b6e193fd84104,
-    0x30644e72e131a029,
+    0x8b17ea66b99c90dd,
+    0x5bfc41088d8daaa7,
+    0xb3c4d79d41a91758,
+    0x00,
 ]);
 
 use crate::{

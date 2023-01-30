@@ -5,17 +5,12 @@ use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
+use ff::WithSmallOrderMulGroup;
 use ff::{Field, PrimeField};
 use group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
 
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-impl Secp256k1 {
-    fn endomorphism_base(&self) -> Self {
-        unimplemented!();
-    }
-}
 
 impl group::cofactor::CofactorGroup for Secp256k1 {
     type Subgroup = Secp256k1;
@@ -82,6 +77,12 @@ fn test_curve() {
 #[test]
 fn test_serialization() {
     crate::tests::curve::random_serialization_test::<Secp256k1>();
+}
+
+#[test]
+fn test_endo_consistency() {
+    let g = Secp256k1::generator();
+    assert_eq!(g * Fq::ZETA, g.endo());
 }
 
 #[test]

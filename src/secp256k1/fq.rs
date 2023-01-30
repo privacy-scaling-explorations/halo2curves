@@ -97,8 +97,12 @@ const TWO_INV: Fq = Fq::from_raw([
     0x7fffffffffffffff,
 ]);
 
-/// TODO: Is it correct for this to be 0???
-const ZETA: Fq = Fq::zero();
+const ZETA: Fq = Fq::from_raw([
+    0xdf02967c1b23bd72,
+    0x122e22ea20816678,
+    0xa5261c028812645a,
+    0x5363ad4cc05c30e0,
+]);
 
 /// Generator of the t-order multiplicative subgroup.
 /// Computed by exponentiating Self::MULTIPLICATIVE_GENERATOR by 2^s, where s is Self::S.

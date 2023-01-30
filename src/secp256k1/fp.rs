@@ -69,8 +69,12 @@ const TWO_INV: Fp = Fp::from_raw([
     0x7fffffffffffffff,
 ]);
 
-// TODO: Why is ZETA == `0`?
-const ZETA: Fp = Fp::zero();
+const ZETA: Fp = Fp::from_raw([
+    0xc1396c28719501ee,
+    0x9cf0497512f58995,
+    0x6e64479eac3434e9,
+    0x7ae96a2b657c0710,
+]);
 
 /// Generator of the t-order multiplicative subgroup.
 /// Computed by exponentiating Self::MULTIPLICATIVE_GENERATOR by 2^s, where s is Self::S.
