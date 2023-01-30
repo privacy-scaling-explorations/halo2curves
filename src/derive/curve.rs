@@ -599,10 +599,6 @@ macro_rules! new_curve_impl {
                     // Cancel out z-coordinate in denominator of `acc`
                     acc = $base::conditional_select(&(acc * p.z), &acc, skip);
 
-                    // Set the coordinates to the correct value
-                    // let tmp2 = tmp.square();
-                    // let tmp3 = tmp2 * tmp;
-
                     q.x = p.x * tmp;
                     q.y = p.y * tmp;
 
