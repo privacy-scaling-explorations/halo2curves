@@ -561,13 +561,10 @@ macro_rules! new_curve_impl {
 
             fn new_jacobian(x: Self::Base, y: Self::Base, z: Self::Base) -> CtOption<Self> {
                 // Jacobian to homogenous
-                let z_inv_op = z.invert();
-                let z_inv = z_inv_op.unwrap_or($base::zero());
-                let z_inv2 = z_inv * z_inv;
-                let p_x = x * z_inv2 ;
-                let p_y = y * z_inv2 * z_inv;
-                let p_z = $base::conditional_select(&$base::one(),&$base::zero() , z_inv_op.is_some());
-                let p = $name { x:p_x, y:p_y, z:p_z };
+                let z_inv = z.invert().unwrap_or($base::zero());
+                let p_x = x * z_inv;
+                let p_y = y * z_inv.square();
+                let p = $name { x:p_x, y:p_y, z };
                 CtOption::new(p, p.is_on_curve())
             }
         }
