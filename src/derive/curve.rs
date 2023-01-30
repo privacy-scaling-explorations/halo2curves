@@ -532,12 +532,9 @@ macro_rules! new_curve_impl {
 
             fn jacobian_coordinates(&self) -> ($base, $base, $base) {
                 // Homogenous to Jacobian
-                let z_inv_op = self.z.invert();
-                let z_inv = z_inv_op.unwrap_or($base::zero());
-                let x = self.x * z_inv;
-                let y = self.y * z_inv;
-                let z = $base::conditional_select(&$base::one(),&$base::zero() , z_inv_op.is_some());
-                (x, y, z)
+                let x = self.x * self.z;
+                let y = self.y * self.z.square();
+                (x, y, self.z)
             }
 
 
