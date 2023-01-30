@@ -530,7 +530,11 @@ macro_rules! new_curve_impl {
             const CURVE_ID: &'static str = $curve_id;
 
             fn endo(&self) -> Self {
-                self.endomorphism_base()
+                Self {
+                    x: self.x * Self::Base::ZETA,
+                    y: self.y,
+                    z: self.z,
+                }
             }
 
             fn jacobian_coordinates(&self) -> ($base, $base, $base) {

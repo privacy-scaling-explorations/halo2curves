@@ -1,4 +1,3 @@
-use crate::arithmetic::mul_512;
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
@@ -7,7 +6,8 @@ use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::{Field, PrimeField, WithSmallOrderMulGroup};
+use ff::WithSmallOrderMulGroup;
+use ff::{Field, PrimeField};
 use group::Curve;
 use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
 use rand::RngCore;
@@ -62,21 +62,6 @@ impl CurveAffineExt for G2Affine {
 const G1_GENERATOR_X: Fq = Fq::one();
 const G1_GENERATOR_Y: Fq = Fq::from_raw([2, 0, 0, 0]);
 const G1_B: Fq = Fq::from_raw([3, 0, 0, 0]);
-const ENDO_G1: [u64; 4] = [
-    0x7a7bd9d4391eb18du64,
-    0x4ccef014a773d2cfu64,
-    0x0000000000000002u64,
-    0u64,
-];
-const ENDO_G2: [u64; 4] = [0xd91d232ec7e0b3d7u64, 0x0000000000000002u64, 0u64, 0u64];
-const ENDO_MINUS_B1: [u64; 4] = [0x8211bbeb7d4f1128u64, 0x6f4d8248eeb859fcu64, 0u64, 0u64];
-const ENDO_B2: [u64; 4] = [0x89d3256894d213e3u64, 0u64, 0u64, 0u64];
-const ENDO_BETA: Fr = Fr::from_raw([
-    0x8b17ea66b99c90ddu64,
-    0x5bfc41088d8daaa7u64,
-    0xb3c4d79d41a91758u64,
-    0x0u64,
-]);
 
 const G2_B: Fq2 = Fq2 {
     c0: Fq::from_raw([
@@ -123,58 +108,6 @@ const G2_GENERATOR_Y: Fq2 = Fq2 {
         0x090689d0585ff075,
     ]),
 };
-
-trait CurveEndo: CurveExt {
-    fn endomorphism_base(&self) -> Self;
-    fn endomorphism_scalars(k: &Self::ScalarExt) -> (u128, u128);
-}
-
-impl CurveEndo for G1 {
-    fn endomorphism_base(&self) -> Self {
-        Self {
-            x: self.x * Self::Base::ZETA,
-            y: -self.y,
-            z: self.z,
-        }
-    }
-
-    fn endomorphism_scalars(k: &Self::ScalarExt) -> (u128, u128) {
-        let input = Fr::montgomery_reduce(&[k.0[0], k.0[1], k.0[2], k.0[3], 0, 0, 0, 0]).0;
-
-        let c1_512 = mul_512(ENDO_G2, input);
-        let c2_512 = mul_512(ENDO_G1, input);
-
-        let c1_hi = [c1_512[4], c1_512[5], c1_512[6], c1_512[7]];
-        let c2_hi = [c2_512[4], c2_512[5], c2_512[6], c2_512[7]];
-
-        let q1_512 = mul_512(c1_hi, ENDO_MINUS_B1);
-        let q2_512 = mul_512(c2_hi, ENDO_B2);
-
-        let q1_lo = Self::ScalarExt::from_raw([q1_512[0], q1_512[1], q1_512[2], q1_512[3]]);
-        let q2_lo = Self::ScalarExt::from_raw([q2_512[0], q2_512[1], q2_512[2], q2_512[3]]);
-
-        let k1 = q2_lo - q1_lo;
-        let k2 = (k1 * ENDO_BETA) + k;
-
-        fn get_lower_128(k: Fr) -> u128 {
-            let tmp = Fr::montgomery_reduce(&[k.0[0], k.0[1], k.0[2], k.0[3], 0, 0, 0, 0]);
-
-            u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)
-        }
-
-        (get_lower_128(k2), get_lower_128(k1))
-    }
-}
-
-impl CurveEndo for G2 {
-    fn endomorphism_base(&self) -> Self {
-        unimplemented!();
-    }
-
-    fn endomorphism_scalars(_: &Self::ScalarExt) -> (u128, u128) {
-        unimplemented!();
-    }
-}
 
 impl group::cofactor::CofactorGroup for G1 {
     type Subgroup = G1;
@@ -245,15 +178,9 @@ impl CofactorGroup for G2 {
 
 #[cfg(test)]
 mod tests {
-
-    use crate::bn256::{
-        curve::{CurveEndo, ENDO_BETA},
-        Fr, G1Affine, G1, G2,
-    };
-    use ff::Field;
-    use rand_core::OsRng;
-
+    use crate::bn256::{Fr, G1, G2};
     use crate::CurveExt;
+    use ff::WithSmallOrderMulGroup;
 
     #[test]
     fn test_curve() {
@@ -264,32 +191,10 @@ mod tests {
     #[test]
     fn test_endo_consistency() {
         let g = G1::generator();
-        assert_eq!(g * (-ENDO_BETA), g.endo());
-    }
+        assert_eq!(g * Fr::ZETA, g.endo());
 
-    #[test]
-    fn test_endomorphism() {
-        use ff::PrimeField;
-        let scalar = Fr::random(OsRng);
-        let point = G1Affine::random(OsRng);
-
-        let expected = point * scalar;
-
-        let (part1, part2) = G1::endomorphism_scalars(&scalar);
-
-        let k1 = Fr::from_u128(part1);
-        let k2 = Fr::from_u128(part2);
-
-        let t1 = point * k1;
-        let base = G1::endomorphism_base(&point.into());
-
-        let t2 = base * k2;
-        let result = t1 + t2;
-
-        let res_affine: G1Affine = result.into();
-        let exp_affine: G1Affine = expected.into();
-
-        assert_eq!(res_affine, exp_affine);
+        let g = G2::generator();
+        assert_eq!(g * Fr::ZETA, g.endo());
     }
 
     #[test]
