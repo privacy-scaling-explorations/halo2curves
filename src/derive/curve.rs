@@ -564,7 +564,11 @@ macro_rules! new_curve_impl {
                 let z_inv = z.invert().unwrap_or($base::zero());
                 let p_x = x * z_inv;
                 let p_y = y * z_inv.square();
-                let p = $name { x:p_x, y:p_y, z };
+                let p = $name {
+                    x:p_x,
+                    y:$base::conditional_select(&p_y, &$base::one(), z.is_zero()),
+                    z
+                };
                 CtOption::new(p, p.is_on_curve())
             }
         }
