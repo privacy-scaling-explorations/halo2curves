@@ -397,7 +397,6 @@ macro_rules! new_curve_impl {
 
 
 
-
         impl $name {
             pub fn generator() -> Self {
                 let generator = $name_affine::generator();
@@ -414,7 +413,11 @@ macro_rules! new_curve_impl {
 
             #[inline]
             fn curve_constant_3b() -> $base {
-                $constant_b + $constant_b + $constant_b
+                lazy_static::lazy_static! {
+                        static ref CONST_3B: $base = $constant_b + $constant_b + $constant_b;
+                }
+                *CONST_3B
+
             }
         }
 
