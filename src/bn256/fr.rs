@@ -269,7 +269,6 @@ impl FromUniformBytes<64> for Fr {
     }
 }
 
-// TODO: Check the correctness of this 3!!
 impl WithSmallOrderMulGroup<3> for Fr {
     const ZETA: Self = ZETA;
 }
