@@ -83,7 +83,7 @@ const DELTA: Fp = Fp([0x900002259u64, 0, 0, 0]);
 
 /// Implementations of this trait MUST ensure that this is the generator used to derive Self::ROOT_OF_UNITY.
 /// Derived from:
-/// ```
+/// ```ignore
 /// Zp(Zp(mul_generator)^t) where t = (modulus - 1 )/ 2
 /// 115792089237316195423570985008687907853269984665640564039457584007908834671662
 /// ```

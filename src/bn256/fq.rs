@@ -69,9 +69,7 @@ pub const NEGATIVE_ONE: Fq = Fq([
 const MODULUS_STR: &str = "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
 
 /// Obtained with:
-/// ```
-/// sage: GF(0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47).primitive_element()
-/// ```
+/// `sage: GF(0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47).primitive_element()`
 const MULTIPLICATIVE_GENERATOR: Fq = Fq::from_raw([0x03, 0x0, 0x0, 0x0]);
 
 const TWO_INV: Fq = Fq::from_raw([
