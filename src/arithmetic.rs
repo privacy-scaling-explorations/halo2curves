@@ -116,7 +116,7 @@ mod test {
         // prepare tables
         let two_p = point.double();
         // T1 = {P, 3P, 5P, ...}
-        let mut table_k1 = vec![point.clone()];
+        let mut table_k1 = vec![point];
         // T2 = {λP, 3λP, 5λP, ...}
         let mut table_k2 = vec![point.endo()];
         for i in 1..WINDOW - 1 {
@@ -124,10 +124,10 @@ mod test {
             table_k2.push(table_k1[i].endo())
         }
         if !k2_neg {
-            table_k2.iter_mut().for_each(|p| *p = -p.clone());
+            table_k2.iter_mut().for_each(|p| *p = -*p);
         }
         if k1_neg {
-            table_k1.iter_mut().for_each(|p| *p = -p.clone());
+            table_k1.iter_mut().for_each(|p| *p = -*p);
         }
         // TODO: batch affine tables for mixed add?
 
@@ -177,7 +177,7 @@ mod test {
     #[test]
     fn test_wnaf_form() {
         use rand::Rng;
-        fn from_wnaf(wnaf: &Vec<i64>) -> u128 {
+        fn from_wnaf(wnaf: &[i64]) -> u128 {
             wnaf.iter().rev().fold(0, |acc, next| {
                 let mut acc = acc * 2;
                 acc += *next as u128;
