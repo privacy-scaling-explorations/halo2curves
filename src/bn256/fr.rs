@@ -7,8 +7,7 @@ use crate::arithmetic::{adc, mac, sbb};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::PrimeField;
-use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio};
+use ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -97,10 +96,8 @@ const ROOT_OF_UNITY_INV: Fr = Fr::from_raw([
     0x048127174daabc26,
 ]);
 
-/// GENERATOR^{2^s} where t * 2^s + 1 = r
-/// with t odd. In other words, this
-/// is a t root of unity.
-// 0x09226b6e22c6f0ca64ec26aad4c86e715b5f898e5e963f25870e56bbe533e9a2
+/// GENERATOR^{2^s} where t * 2^s + 1 = r with t odd. In other words, this is a t root of unity.
+/// 0x09226b6e22c6f0ca64ec26aad4c86e715b5f898e5e963f25870e56bbe533e9a2
 const DELTA: Fr = Fr::from_raw([
     0x870e56bbe533e9a2,
     0x5b5f898e5e963f25,
@@ -110,16 +107,16 @@ const DELTA: Fr = Fr::from_raw([
 
 /// `ZETA^3 = 1 mod r` where `ZETA^2 != 1 mod r`
 const ZETA: Fr = Fr::from_raw([
-    0xb8ca0b2d36636f23,
-    0xcc37a73fec2bc5e9,
-    0x048b6e193fd84104,
-    0x30644e72e131a029,
+    0x8b17ea66b99c90dd,
+    0x5bfc41088d8daaa7,
+    0xb3c4d79d41a91758,
+    0x00,
 ]);
 
 use crate::{
     field_common, impl_add_binop_specify_output, impl_binops_additive,
     impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
 };
 impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
@@ -136,12 +133,16 @@ field_common!(
     R2,
     R3
 );
+impl_sum_prod!(Fr);
 #[cfg(not(feature = "asm"))]
 field_arithmetic!(Fr, MODULUS, INV, sparse);
 #[cfg(feature = "asm")]
 field_arithmetic_asm!(Fr, MODULUS, INV);
 
 impl ff::Field for Fr {
+    const ZERO: Self = Self::zero();
+    const ONE: Self = Self::one();
+
     fn random(mut rng: impl RngCore) -> Self {
         Self::from_u512([
             rng.next_u64(),
@@ -155,14 +156,6 @@ impl ff::Field for Fr {
         ])
     }
 
-    fn zero() -> Self {
-        Self::zero()
-    }
-
-    fn one() -> Self {
-        Self::one()
-    }
-
     fn double(&self) -> Self {
         self.double()
     }
@@ -170,11 +163,6 @@ impl ff::Field for Fr {
     #[inline(always)]
     fn square(&self) -> Self {
         self.square()
-    }
-
-    /// Computes the square root of this element, if it exists.
-    fn sqrt(&self) -> CtOption<Self> {
-        crate::arithmetic::sqrt_tonelli_shanks(self, &<Self as SqrtRatio>::T_MINUS1_OVER2)
     }
 
     /// Computes the multiplicative inverse of this element,
@@ -189,6 +177,21 @@ impl ff::Field for Fr {
 
         CtOption::new(tmp, !self.ct_eq(&Self::zero()))
     }
+
+    fn sqrt(&self) -> CtOption<Self> {
+        /// `(t - 1) // 2` where t * 2^s + 1 = p with t odd.
+        const T_MINUS1_OVER2: [u64; 4] = [
+            0xcdcb848a1f0fac9f,
+            0x0c0ac2e9419f4243,
+            0x098d014dc2822db4,
+            0x0000000183227397,
+        ];
+        ff::helpers::sqrt_tonelli_shanks(self, &T_MINUS1_OVER2)
+    }
+
+    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
+        ff::helpers::sqrt_ratio_generic(num, div)
+    }
 }
 
 impl ff::PrimeField for Fr {
@@ -196,6 +199,12 @@ impl ff::PrimeField for Fr {
 
     const NUM_BITS: u32 = 254;
     const CAPACITY: u32 = 253;
+    const MODULUS: &'static str = MODULUS_STR;
+    const MULTIPLICATIVE_GENERATOR: Self = GENERATOR;
+    const ROOT_OF_UNITY: Self = ROOT_OF_UNITY;
+    const ROOT_OF_UNITY_INV: Self = ROOT_OF_UNITY_INV;
+    const TWO_INV: Self = TWO_INV;
+    const DELTA: Self = DELTA;
     const S: u32 = S;
 
     fn from_repr(repr: Self::Repr) -> CtOption<Self> {
@@ -241,29 +250,27 @@ impl ff::PrimeField for Fr {
     fn is_odd(&self) -> Choice {
         Choice::from(self.to_repr()[0] & 1)
     }
+}
 
-    fn multiplicative_generator() -> Self {
-        GENERATOR
-    }
-
-    fn root_of_unity() -> Self {
-        ROOT_OF_UNITY
+impl FromUniformBytes<64> for Fr {
+    /// Converts a 512-bit little endian integer into
+    /// an `Fr` by reducing by the modulus.
+    fn from_uniform_bytes(bytes: &[u8; 64]) -> Self {
+        Self::from_u512([
+            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
+            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
+            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
+            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
+            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
+            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
+            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
+            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
+        ])
     }
 }
 
-impl SqrtRatio for Fr {
-    /// `(t - 1) // 2` where t * 2^s + 1 = p with t odd.
-    const T_MINUS1_OVER2: [u64; 4] = [
-        0xcdcb848a1f0fac9f,
-        0x0c0ac2e9419f4243,
-        0x098d014dc2822db4,
-        0x0000000183227397,
-    ];
-
-    fn get_lower_32(&self) -> u32 {
-        let tmp = Fr::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
-        tmp.0[0] as u32
-    }
+impl WithSmallOrderMulGroup<3> for Fr {
+    const ZETA: Self = ZETA;
 }
 
 #[cfg(test)]
@@ -296,19 +303,6 @@ mod test {
     }
 
     #[test]
-    fn test_root_of_unity() {
-        assert_eq!(
-            Fr::root_of_unity().pow_vartime(&[1 << Fr::S, 0, 0, 0]),
-            Fr::one()
-        );
-    }
-
-    #[test]
-    fn test_inv_root_of_unity() {
-        assert_eq!(Fr::ROOT_OF_UNITY_INV, Fr::root_of_unity().invert().unwrap());
-    }
-
-    #[test]
     fn test_field() {
         crate::tests::field::random_field_tests::<Fr>("bn256 scalar".to_string());
     }
@@ -318,7 +312,7 @@ mod test {
         assert_eq!(Fr::DELTA, GENERATOR.pow(&[1u64 << Fr::S, 0, 0, 0]));
         assert_eq!(
             Fr::DELTA,
-            Fr::multiplicative_generator().pow(&[1u64 << Fr::S, 0, 0, 0])
+            Fr::MULTIPLICATIVE_GENERATOR.pow(&[1u64 << Fr::S, 0, 0, 0])
         );
     }
 
@@ -374,8 +368,8 @@ mod test {
             0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
             0xbc, 0xe5,
         ]);
-        let message = "serialization fr";
-        let start = start_timer!(|| message);
+        let _message = "serialization fr";
+        let start = start_timer!(|| _message);
         // failure check
         for _ in 0..1000000 {
             let rand_word = [(); 4].map(|_| rng.next_u64());

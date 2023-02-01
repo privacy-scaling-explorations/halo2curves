@@ -2,8 +2,7 @@ use super::fq::{Fq, NEGATIVE_ONE};
 use super::LegendreSymbol;
 use core::convert::TryInto;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::Field;
-use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio};
+use ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use rand::RngCore;
 use std::cmp::Ordering;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -52,7 +51,7 @@ impl ConstantTimeEq for Fq2 {
 impl Default for Fq2 {
     #[inline]
     fn default() -> Self {
-        Self::zero()
+        Self::ZERO
     }
 }
 
@@ -116,11 +115,29 @@ impl<'a, 'b> Mul<&'b Fq2> for &'a Fq2 {
 use crate::{
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
     impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+    impl_sum_prod,
 };
 impl_binops_additive!(Fq2, Fq2);
 impl_binops_multiplicative!(Fq2, Fq2);
+impl_sum_prod!(Fq2);
 
 impl Fq2 {
+    #[inline]
+    pub const fn zero() -> Fq2 {
+        Fq2 {
+            c0: Fq::zero(),
+            c1: Fq::zero(),
+        }
+    }
+
+    #[inline]
+    pub const fn one() -> Fq2 {
+        Fq2 {
+            c0: Fq::one(),
+            c1: Fq::zero(),
+        }
+    }
+
     pub const fn new(c0: Fq, c1: Fq) -> Self {
         Fq2 { c0, c1 }
     }
@@ -307,24 +324,13 @@ impl Fq2 {
 }
 
 impl Field for Fq2 {
+    const ZERO: Self = Self::zero();
+    const ONE: Self = Self::one();
+
     fn random(mut rng: impl RngCore) -> Self {
         Fq2 {
             c0: Fq::random(&mut rng),
             c1: Fq::random(&mut rng),
-        }
-    }
-
-    fn zero() -> Self {
-        Fq2 {
-            c0: Fq::zero(),
-            c1: Fq::zero(),
-        }
-    }
-
-    fn one() -> Self {
-        Fq2 {
-            c0: Fq::one(),
-            c1: Fq::zero(),
         }
     }
 
@@ -344,7 +350,7 @@ impl Field for Fq2 {
         // Algorithm 9, https://eprint.iacr.org/2012/685.pdf
 
         if self.is_zero().into() {
-            CtOption::new(Self::zero(), Choice::from(1))
+            CtOption::new(Self::ZERO, Choice::from(1))
         } else {
             // a1 = self^((q - 3) / 4)
             // 0xc19139cb84c680a6e14116da060561765e05aa45a1c72a34f082305b61f3f51
@@ -379,7 +385,7 @@ impl Field for Fq2 {
                         c1: Fq::one(),
                     });
                 } else {
-                    alpha += &Fq2::one();
+                    alpha += &Fq2::ONE;
                     // alpha = alpha^((q - 1) / 2)
                     // 0x183227397098d014dc2822db40c0ac2ecbc0b548b438e5469e10460b6c3e7ea3
                     let u: [u64; 4] = [
@@ -396,6 +402,10 @@ impl Field for Fq2 {
         }
     }
 
+    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
+        ff::helpers::sqrt_ratio_generic(num, div)
+    }
+
     fn invert(&self) -> CtOption<Self> {
         self.invert()
     }
@@ -404,9 +414,9 @@ impl Field for Fq2 {
 impl From<bool> for Fq2 {
     fn from(bit: bool) -> Fq2 {
         if bit {
-            Fq2::one()
+            Fq2::ONE
         } else {
-            Fq2::zero()
+            Fq2::ZERO
         }
     }
 }
@@ -420,10 +430,20 @@ impl From<u64> for Fq2 {
     }
 }
 
-impl FieldExt for Fq2 {
+impl PrimeField for Fq2 {
+    type Repr = Fq2Bytes;
+
     const MODULUS: &'static str =
         "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
-
+    const MULTIPLICATIVE_GENERATOR: Self = Fq2 {
+        c0: Fq::from_raw([0x03, 0x0, 0x0, 0x0]),
+        c1: Fq::ZERO,
+    };
+    const NUM_BITS: u32 = 254;
+    const CAPACITY: u32 = 253;
+    const S: u32 = 0;
+    // TODO: Check that we can just 0 this and forget.
+    const ROOT_OF_UNITY: Self = Fq2::zero();
     const ROOT_OF_UNITY_INV: Self = Fq2 {
         c0: Fq::zero(),
         c1: Fq::zero(),
@@ -441,83 +461,28 @@ impl FieldExt for Fq2 {
         ]),
         c1: Fq([0, 0, 0, 0]),
     };
-    const ZETA: Self = Fq2 {
-        c0: Fq::zero(),
-        c1: Fq::zero(),
-    };
 
-    /// Converts a 512-bit little endian integer into
-    /// a `Fq` by reducing by the modulus.
-    fn from_bytes_wide(bytes: &[u8; 64]) -> Self {
-        Self::new(Fq::from_bytes_wide(bytes), Fq::zero())
+    fn from_repr(repr: Self::Repr) -> CtOption<Self> {
+        let c0 = Fq::from_bytes(&repr.0[..32].try_into().unwrap());
+        let c1 = Fq::from_bytes(&repr.0[32..].try_into().unwrap());
+        // Disallow overflow representation
+        CtOption::new(Fq2::new(c0.unwrap(), c1.unwrap()), Choice::from(1))
     }
 
-    fn from_u128(v: u128) -> Self {
-        Fq2 {
-            c0: Fq::from_raw([v as u64, (v >> 64) as u64, 0, 0]),
-            c1: Fq::zero(),
-        }
+    fn to_repr(&self) -> Self::Repr {
+        Fq2Bytes(self.to_bytes())
     }
 
-    fn get_lower_128(&self) -> u128 {
-        self.c0.get_lower_128()
-    }
-
-    // /// Writes this element in its normalized, little endian form into a buffer.
-    // fn write<W: Write>(&self, writer: &mut W) -> io::Result<()> {
-    //     let compressed = self.to_bytes();
-    //     writer.write_all(&compressed[..])
-    // }
-
-    // /// Reads a normalized, little endian represented field element from a
-    // /// buffer.
-    // fn read<R: Read>(reader: &mut R) -> io::Result<Self> {
-    //     let mut compressed = [0u8; 64];
-    //     reader.read_exact(&mut compressed[..])?;
-    //     Option::from(Self::from_bytes(&compressed))
-    //         .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "invalid point encoding in proof"))
-    // }
-}
-
-impl SqrtRatio for Fq2 {
-    const T_MINUS1_OVER2: [u64; 4] = [0, 0, 0, 0];
-
-    fn pow_by_t_minus1_over2(&self) -> Self {
-        unimplemented!();
-    }
-
-    fn get_lower_32(&self) -> u32 {
-        unimplemented!();
-    }
-
-    #[cfg(feature = "sqrt-table")]
-    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
-        unimplemented!();
-    }
-
-    #[cfg(feature = "sqrt-table")]
-    fn sqrt_alt(&self) -> (Choice, Self) {
-        unimplemented!();
+    fn is_odd(&self) -> Choice {
+        Choice::from(self.to_repr().as_ref()[0] & 1)
     }
 }
 
-impl Group for Fq2 {
-    type Scalar = Fq2;
-
-    fn group_zero() -> Self {
-        Self::zero()
-    }
-    fn group_add(&mut self, rhs: &Self) {
-        *self += *rhs;
-    }
-    fn group_sub(&mut self, rhs: &Self) {
-        *self -= *rhs;
-    }
-    fn group_scale(&mut self, by: &Self::Scalar) {
-        *self *= *by;
+impl FromUniformBytes<64> for Fq2 {
+    fn from_uniform_bytes(bytes: &[u8; 64]) -> Self {
+        Self::new(Fq::from_uniform_bytes(bytes), Fq::zero())
     }
 }
-
 #[derive(Clone, Copy, Debug)]
 pub struct Fq2Bytes([u8; 64]);
 
@@ -536,38 +501,6 @@ impl AsMut<[u8]> for Fq2Bytes {
 impl AsRef<[u8]> for Fq2Bytes {
     fn as_ref(&self) -> &[u8] {
         &self.0
-    }
-}
-
-impl ff::PrimeField for Fq2 {
-    type Repr = Fq2Bytes;
-
-    const NUM_BITS: u32 = 254;
-    const CAPACITY: u32 = 253;
-
-    const S: u32 = 0;
-
-    fn from_repr(repr: Self::Repr) -> CtOption<Self> {
-        let c0 = Fq::from_bytes(&repr.0[..32].try_into().unwrap());
-        let c1 = Fq::from_bytes(&repr.0[32..].try_into().unwrap());
-        // Disallow overflow representation
-        CtOption::new(Fq2::new(c0.unwrap(), c1.unwrap()), Choice::from(1))
-    }
-
-    fn to_repr(&self) -> Self::Repr {
-        Fq2Bytes(self.to_bytes())
-    }
-
-    fn is_odd(&self) -> Choice {
-        Choice::from(self.to_repr().as_ref()[0] & 1)
-    }
-
-    fn multiplicative_generator() -> Self {
-        unimplemented!()
-    }
-
-    fn root_of_unity() -> Self {
-        unimplemented!()
     }
 }
 
@@ -604,6 +537,19 @@ impl crate::serde::SerdeObject for Fq2 {
         self.c0.write_raw(writer)?;
         self.c1.write_raw(writer)
     }
+}
+
+impl WithSmallOrderMulGroup<3> for Fq2 {
+    // Fq::ZETA ^2
+    const ZETA: Self = Fq2 {
+        c0: Fq::from_raw([
+            0xe4bd44e5607cfd48,
+            0xc28f069fbb966e3d,
+            0x5e6dd9e7e0acccb0,
+            0x30644e72e131a029,
+        ]),
+        c1: Fq::zero(),
+    };
 }
 
 pub const FROBENIUS_COEFF_FQ2_C1: [Fq; 2] = [
@@ -673,17 +619,17 @@ fn test_fq2_basics() {
             c0: Fq::zero(),
             c1: Fq::zero(),
         },
-        Fq2::zero()
+        Fq2::ZERO
     );
     assert_eq!(
         Fq2 {
             c0: Fq::one(),
             c1: Fq::zero(),
         },
-        Fq2::one()
+        Fq2::ONE
     );
-    assert_eq!(Fq2::zero().is_zero().unwrap_u8(), 1);
-    assert_eq!(Fq2::one().is_zero().unwrap_u8(), 0);
+    assert_eq!(Fq2::ZERO.is_zero().unwrap_u8(), 1);
+    assert_eq!(Fq2::ONE.is_zero().unwrap_u8(), 0);
     assert_eq!(
         Fq2 {
             c0: Fq::zero(),
@@ -748,9 +694,9 @@ fn test_fq2_mul_nonresidue() {
 
 #[test]
 fn test_fq2_legendre() {
-    assert_eq!(LegendreSymbol::Zero, Fq2::zero().legendre());
+    assert_eq!(LegendreSymbol::Zero, Fq2::ZERO.legendre());
     // i^2 = -1
-    let mut m1 = Fq2::one();
+    let mut m1 = Fq2::ONE;
     m1 = m1.neg();
     assert_eq!(LegendreSymbol::QuadraticResidue, m1.legendre());
     m1.mul_by_nonresidue();
@@ -784,7 +730,7 @@ pub fn test_sqrt() {
         assert!(a == b || a == negb);
     }
 
-    let mut c = Fq2::one();
+    let mut c = Fq2::ONE;
     for _ in 0..10000 {
         let mut b = c;
         b.square_assign();
@@ -798,7 +744,7 @@ pub fn test_sqrt() {
 
         assert_eq!(b, c);
 
-        c += &Fq2::one();
+        c += &Fq2::ONE;
     }
 }
 

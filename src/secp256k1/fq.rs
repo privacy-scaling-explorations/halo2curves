@@ -1,14 +1,10 @@
+use crate::arithmetic::{adc, mac, sbb};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
-
-use ff::PrimeField;
+use ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-use crate::arithmetic::{adc, mac, sbb};
-
-use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio};
 
 /// This represents an element of $\mathbb{F}_q$ where
 ///
@@ -73,11 +69,10 @@ const R3: Fq = Fq([
 
 /// `GENERATOR = 7 mod r` is a generator of the `q - 1` order multiplicative
 /// subgroup, or in other words a primitive root of the field.
+/// It's derived with SageMath with: `GF(MODULUS).primitive_element()`.
 const GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00]);
 
-/// GENERATOR^t where t * 2^s + 1 = r
-/// with t odd. In other words, this
-/// is a 2^s root of unity.
+/// GENERATOR^t where t * 2^s + 1 = r with t odd. In other words, this is a 2^s root of unity.
 /// `0xc1dc060e7a91986df9879a3fbc483a898bdeab680756045992f4b5402b052f2`
 const ROOT_OF_UNITY: Fq = Fq::from_raw([
     0x992f4b5402b052f2,
@@ -102,13 +97,27 @@ const TWO_INV: Fq = Fq::from_raw([
     0x7fffffffffffffff,
 ]);
 
-const ZETA: Fq = Fq::zero();
-const DELTA: Fq = Fq::zero();
+const ZETA: Fq = Fq::from_raw([
+    0xdf02967c1b23bd72,
+    0x122e22ea20816678,
+    0xa5261c028812645a,
+    0x5363ad4cc05c30e0,
+]);
+
+/// Generator of the t-order multiplicative subgroup.
+/// Computed by exponentiating Self::MULTIPLICATIVE_GENERATOR by 2^s, where s is Self::S.
+/// `0x0000000000000000000cbc21fe4561c8d63b78e780e1341e199417c8c0bb7601`
+const DELTA: Fq = Fq([
+    0xd91b33d24319d9e8,
+    0xb81c6596ff5d6740,
+    0xa463969ca14c51c1,
+    0x1900960de4b7929c,
+]);
 
 use crate::{
     field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
     impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
 };
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
@@ -126,6 +135,7 @@ field_common!(
     R3
 );
 field_arithmetic!(Fq, MODULUS, INV, dense);
+impl_sum_prod!(Fq);
 
 impl Fq {
     pub const fn size() -> usize {
@@ -134,6 +144,9 @@ impl Fq {
 }
 
 impl ff::Field for Fq {
+    const ZERO: Self = Self::zero();
+    const ONE: Self = Self::one();
+
     fn random(mut rng: impl RngCore) -> Self {
         Self::from_u512([
             rng.next_u64(),
@@ -147,14 +160,6 @@ impl ff::Field for Fq {
         ])
     }
 
-    fn zero() -> Self {
-        Self::zero()
-    }
-
-    fn one() -> Self {
-        Self::one()
-    }
-
     fn double(&self) -> Self {
         self.double()
     }
@@ -162,11 +167,6 @@ impl ff::Field for Fq {
     #[inline(always)]
     fn square(&self) -> Self {
         self.square()
-    }
-
-    /// Computes the square root of this element, if it exists.
-    fn sqrt(&self) -> CtOption<Self> {
-        crate::arithmetic::sqrt_tonelli_shanks(self, &<Self as SqrtRatio>::T_MINUS1_OVER2)
     }
 
     /// Computes the multiplicative inverse of this element,
@@ -199,6 +199,21 @@ impl ff::Field for Fq {
         }
         res
     }
+
+    fn sqrt(&self) -> CtOption<Self> {
+        let tm1d2 = [
+            0x777fa4bd19a06c82,
+            0xfd755db9cd5e9140,
+            0xffffffffffffffff,
+            0x01ffffffffffffff,
+        ];
+
+        ff::helpers::sqrt_tonelli_shanks(self, &tm1d2)
+    }
+
+    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
+        ff::helpers::sqrt_ratio_generic(num, div)
+    }
 }
 
 impl ff::PrimeField for Fq {
@@ -206,6 +221,12 @@ impl ff::PrimeField for Fq {
 
     const NUM_BITS: u32 = 256;
     const CAPACITY: u32 = 255;
+    const MODULUS: &'static str = MODULUS_STR;
+    const MULTIPLICATIVE_GENERATOR: Self = GENERATOR;
+    const ROOT_OF_UNITY: Self = ROOT_OF_UNITY;
+    const ROOT_OF_UNITY_INV: Self = ROOT_OF_UNITY_INV;
+    const TWO_INV: Self = TWO_INV;
+    const DELTA: Self = DELTA;
     const S: u32 = 6;
 
     fn from_repr(repr: Self::Repr) -> CtOption<Self> {
@@ -251,28 +272,27 @@ impl ff::PrimeField for Fq {
     fn is_odd(&self) -> Choice {
         Choice::from(self.to_repr()[0] & 1)
     }
+}
 
-    fn multiplicative_generator() -> Self {
-        GENERATOR
-    }
-
-    fn root_of_unity() -> Self {
-        ROOT_OF_UNITY
+impl FromUniformBytes<64> for Fq {
+    /// Converts a 512-bit little endian integer into
+    /// an `Fq` by reducing by the modulus.
+    fn from_uniform_bytes(bytes: &[u8; 64]) -> Self {
+        Self::from_u512([
+            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
+            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
+            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
+            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
+            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
+            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
+            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
+            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
+        ])
     }
 }
 
-impl SqrtRatio for Fq {
-    const T_MINUS1_OVER2: [u64; 4] = [
-        0x777fa4bd19a06c82,
-        0xfd755db9cd5e9140,
-        0xffffffffffffffff,
-        0x01ffffffffffffff,
-    ];
-
-    fn get_lower_32(&self) -> u32 {
-        let tmp = Fq::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
-        tmp.0[0] as u32
-    }
+impl WithSmallOrderMulGroup<3> for Fq {
+    const ZETA: Self = ZETA;
 }
 
 #[cfg(test)]
@@ -301,16 +321,34 @@ mod test {
     }
 
     #[test]
+    fn test_constants() {
+        assert_eq!(
+            Fq::MODULUS,
+            "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
+        );
+
+        assert_eq!(Fq::from(2) * Fq::TWO_INV, Fq::ONE);
+    }
+
+    #[test]
+    fn test_delta() {
+        assert_eq!(
+            Fq::DELTA,
+            Fq::MULTIPLICATIVE_GENERATOR.pow(&[1u64 << Fq::S, 0, 0, 0])
+        );
+    }
+
+    #[test]
     fn test_root_of_unity() {
         assert_eq!(
-            Fq::root_of_unity().pow_vartime(&[1 << Fq::S, 0, 0, 0]),
+            Fq::ROOT_OF_UNITY.pow_vartime(&[1 << Fq::S, 0, 0, 0]),
             Fq::one()
         );
     }
 
     #[test]
     fn test_inv_root_of_unity() {
-        assert_eq!(Fq::ROOT_OF_UNITY_INV, Fq::root_of_unity().invert().unwrap());
+        assert_eq!(Fq::ROOT_OF_UNITY_INV, Fq::ROOT_OF_UNITY.invert().unwrap());
     }
 
     #[test]

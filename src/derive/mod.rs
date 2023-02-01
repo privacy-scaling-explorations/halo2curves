@@ -162,3 +162,22 @@ macro_rules! impl_binops_multiplicative {
         }
     };
 }
+
+#[macro_export]
+macro_rules! impl_sum_prod {
+    ($f:ident) => {
+        impl<T: ::core::borrow::Borrow<$f>> ::core::iter::Sum<T> for $f {
+            fn sum<I: Iterator<Item = T>>(iter: I) -> Self {
+                use ::ff::Field;
+                iter.fold(Self::ZERO, |acc, item| acc + item.borrow())
+            }
+        }
+
+        impl<T: ::core::borrow::Borrow<$f>> ::core::iter::Product<T> for $f {
+            fn product<I: Iterator<Item = T>>(iter: I) -> Self {
+                use ::ff::Field;
+                iter.fold(Self::ONE, |acc, item| acc * item.borrow())
+            }
+        }
+    };
+}

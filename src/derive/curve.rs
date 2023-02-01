@@ -530,7 +530,11 @@ macro_rules! new_curve_impl {
             const CURVE_ID: &'static str = $curve_id;
 
             fn endo(&self) -> Self {
-                self.endomorphism_base()
+                Self {
+                    x: self.x * Self::Base::ZETA,
+                    y: self.y,
+                    z: self.z,
+                }
             }
 
             fn jacobian_coordinates(&self) -> ($base, $base, $base) {
@@ -728,23 +732,6 @@ macro_rules! new_curve_impl {
 
         impl group::cofactor::CofactorCurve for $name {
             type Affine = $name_affine;
-        }
-
-        impl Group for $name {
-            type Scalar = $scalar;
-
-            fn group_zero() -> Self {
-                Self::identity()
-            }
-            fn group_add(&mut self, rhs: &Self) {
-                *self += *rhs;
-            }
-            fn group_sub(&mut self, rhs: &Self) {
-                *self -= *rhs;
-            }
-            fn group_scale(&mut self, by: &Self::Scalar) {
-                *self *= *by;
-            }
         }
 
         // Affine implementations

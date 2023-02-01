@@ -75,11 +75,29 @@ impl<'a, 'b> Mul<&'b Fq12> for &'a Fq12 {
 use crate::{
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
     impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+    impl_sum_prod,
 };
 impl_binops_additive!(Fq12, Fq12);
 impl_binops_multiplicative!(Fq12, Fq12);
+impl_sum_prod!(Fq12);
 
 impl Fq12 {
+    #[inline]
+    pub const fn zero() -> Self {
+        Fq12 {
+            c0: Fq6::ZERO,
+            c1: Fq6::ZERO,
+        }
+    }
+
+    #[inline]
+    pub const fn one() -> Self {
+        Fq12 {
+            c0: Fq6::ONE,
+            c1: Fq6::ZERO,
+        }
+    }
+
     pub fn mul_assign(&mut self, other: &Self) {
         let t0 = self.c0 * other.c0;
         let mut t1 = self.c1 * other.c1;
@@ -276,24 +294,13 @@ impl Fq12 {
 }
 
 impl Field for Fq12 {
+    const ZERO: Self = Self::zero();
+    const ONE: Self = Self::one();
+
     fn random(mut rng: impl RngCore) -> Self {
         Fq12 {
             c0: Fq6::random(&mut rng),
             c1: Fq6::random(&mut rng),
-        }
-    }
-
-    fn zero() -> Self {
-        Fq12 {
-            c0: Fq6::zero(),
-            c1: Fq6::zero(),
-        }
-    }
-
-    fn one() -> Self {
-        Fq12 {
-            c0: Fq6::one(),
-            c1: Fq6::zero(),
         }
     }
 
@@ -310,6 +317,10 @@ impl Field for Fq12 {
     }
 
     fn sqrt(&self) -> CtOption<Self> {
+        unimplemented!()
+    }
+
+    fn sqrt_ratio(_num: &Self, _div: &Self) -> (Choice, Self) {
         unimplemented!()
     }
 

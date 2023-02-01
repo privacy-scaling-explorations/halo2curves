@@ -5,12 +5,10 @@ use crate::{field_arithmetic, field_specific};
 
 use super::LegendreSymbol;
 use crate::arithmetic::{adc, mac, sbb};
-use pasta_curves::arithmetic::{FieldExt, Group, SqrtRatio};
-
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::PrimeField;
+use ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -70,12 +68,19 @@ pub const NEGATIVE_ONE: Fq = Fq([
 
 const MODULUS_STR: &str = "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
 
+/// Obtained with:
+/// `sage: GF(0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47).primitive_element()`
+const MULTIPLICATIVE_GENERATOR: Fq = Fq::from_raw([0x03, 0x0, 0x0, 0x0]);
+
 const TWO_INV: Fq = Fq::from_raw([
     0x9e10460b6c3e7ea4,
     0xcbc0b548b438e546,
     0xdc2822db40c0ac2e,
     0x183227397098d014,
 ]);
+
+// TODO: Can we simply put 0 here::
+const ROOT_OF_UNITY: Fq = Fq::zero();
 
 // Unused constant for base field
 const ROOT_OF_UNITY_INV: Fq = Fq::zero();
@@ -94,7 +99,7 @@ const ZETA: Fq = Fq::from_raw([
 use crate::{
     field_common, impl_add_binop_specify_output, impl_binops_additive,
     impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
 };
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
@@ -111,6 +116,7 @@ field_common!(
     R2,
     R3
 );
+impl_sum_prod!(Fq);
 #[cfg(not(feature = "asm"))]
 field_arithmetic!(Fq, MODULUS, INV, sparse);
 #[cfg(feature = "asm")]
@@ -142,19 +148,14 @@ impl Fq {
 }
 
 impl ff::Field for Fq {
+    const ZERO: Self = Self::zero();
+    const ONE: Self = Self::one();
+
     fn random(mut rng: impl RngCore) -> Self {
         let mut random_bytes = [0; 64];
         rng.fill_bytes(&mut random_bytes[..]);
 
-        Self::from_bytes_wide(&random_bytes)
-    }
-
-    fn zero() -> Self {
-        Self::zero()
-    }
-
-    fn one() -> Self {
-        Self::one()
+        Self::from_uniform_bytes(&random_bytes)
     }
 
     fn double(&self) -> Self {
@@ -178,6 +179,10 @@ impl ff::Field for Fq {
         CtOption::new(tmp, tmp.square().ct_eq(self))
     }
 
+    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
+        ff::helpers::sqrt_ratio_generic(num, div)
+    }
+
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
     fn invert(&self) -> CtOption<Self> {
@@ -197,7 +202,12 @@ impl ff::PrimeField for Fq {
 
     const NUM_BITS: u32 = 254;
     const CAPACITY: u32 = 253;
-
+    const MODULUS: &'static str = MODULUS_STR;
+    const MULTIPLICATIVE_GENERATOR: Self = MULTIPLICATIVE_GENERATOR;
+    const ROOT_OF_UNITY: Self = ROOT_OF_UNITY;
+    const ROOT_OF_UNITY_INV: Self = ROOT_OF_UNITY_INV;
+    const TWO_INV: Self = TWO_INV;
+    const DELTA: Self = DELTA;
     const S: u32 = 0;
 
     fn from_repr(repr: Self::Repr) -> CtOption<Self> {
@@ -244,24 +254,27 @@ impl ff::PrimeField for Fq {
     fn is_odd(&self) -> Choice {
         Choice::from(self.to_repr()[0] & 1)
     }
+}
 
-    fn multiplicative_generator() -> Self {
-        unimplemented!()
-    }
-
-    fn root_of_unity() -> Self {
-        unimplemented!()
+impl FromUniformBytes<64> for Fq {
+    /// Converts a 512-bit little endian integer into
+    /// an `Fq` by reducing by the modulus.
+    fn from_uniform_bytes(bytes: &[u8; 64]) -> Self {
+        Self::from_u512([
+            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
+            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
+            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
+            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
+            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
+            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
+            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
+            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
+        ])
     }
 }
 
-impl SqrtRatio for Fq {
-    const T_MINUS1_OVER2: [u64; 4] = [0, 0, 0, 0];
-
-    fn get_lower_32(&self) -> u32 {
-        let tmp = Fq::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
-
-        tmp.0[0] as u32
-    }
+impl WithSmallOrderMulGroup<3> for Fq {
+    const ZETA: Self = ZETA;
 }
 
 #[cfg(test)]

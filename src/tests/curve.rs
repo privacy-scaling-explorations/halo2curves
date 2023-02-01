@@ -264,10 +264,10 @@ fn multiplication<G: CurveExt>() {
         assert!(bool::from(t0.is_identity()));
 
         let a = G::random(OsRng);
-        let t0 = a * G::ScalarExt::one();
+        let t0 = a * G::ScalarExt::ONE;
         assert_eq!(a, t0);
 
-        let t0 = a * G::ScalarExt::zero();
+        let t0 = a * G::ScalarExt::ZERO;
         assert!(bool::from(t0.is_identity()));
 
         let t0 = a * s1 + a * s2;
