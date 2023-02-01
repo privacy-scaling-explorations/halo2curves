@@ -1,6 +1,11 @@
+use crate::arithmetic::mul_512;
+use crate::arithmetic::sbb;
+use crate::arithmetic::CurveEndo;
+use crate::arithmetic::EndoParameters;
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
+use crate::endo;
 use crate::{Coordinates, CurveAffine, CurveAffineExt, CurveExt};
 use core::cmp;
 use core::fmt::Debug;
@@ -11,6 +16,7 @@ use ff::{Field, PrimeField};
 use group::Curve;
 use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
 use rand::RngCore;
+use std::convert::TryInto;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::{
@@ -109,6 +115,20 @@ const G2_GENERATOR_Y: Fq2 = Fq2 {
     ]),
 };
 
+const ENDO_PARAMS: EndoParameters = EndoParameters {
+    gamma1: [
+        0x7a7bd9d4391eb18du64,
+        0x4ccef014a773d2cfu64,
+        0x0000000000000002u64,
+        0u64,
+    ],
+    gamma2: [0xd91d232ec7e0b3d7u64, 0x0000000000000002u64, 0u64, 0u64],
+    b1: [0x8211bbeb7d4f1128u64, 0x6f4d8248eeb859fcu64, 0u64, 0u64],
+    b2: [0x89d3256894d213e3u64, 0u64, 0u64, 0u64],
+};
+
+endo!(G1, Fr, ENDO_PARAMS);
+
 impl group::cofactor::CofactorGroup for G1 {
     type Subgroup = G1;
 
@@ -178,9 +198,14 @@ impl CofactorGroup for G2 {
 
 #[cfg(test)]
 mod tests {
+
+    use crate::arithmetic::CurveEndo;
     use crate::bn256::{Fr, G1, G2};
     use crate::CurveExt;
+    use ff::Field;
+    use ff::PrimeField;
     use ff::WithSmallOrderMulGroup;
+    use rand_core::OsRng;
 
     #[test]
     fn test_curve() {
@@ -189,12 +214,24 @@ mod tests {
     }
 
     #[test]
-    fn test_endo_consistency() {
+    fn test_endo() {
         let g = G1::generator();
         assert_eq!(g * Fr::ZETA, g.endo());
-
         let g = G2::generator();
         assert_eq!(g * Fr::ZETA, g.endo());
+        for _ in 0..100000 {
+            let k = Fr::random(OsRng);
+            let (k1, k1_neg, k2, k2_neg) = G1::decompose_scalar(&k);
+            if k1_neg & k2_neg {
+                assert_eq!(k, -Fr::from_u128(k1) + Fr::ZETA * Fr::from_u128(k2))
+            } else if k1_neg {
+                assert_eq!(k, -Fr::from_u128(k1) - Fr::ZETA * Fr::from_u128(k2))
+            } else if k2_neg {
+                assert_eq!(k, Fr::from_u128(k1) + Fr::ZETA * Fr::from_u128(k2))
+            } else {
+                assert_eq!(k, Fr::from_u128(k1) - Fr::ZETA * Fr::from_u128(k2))
+            }
+        }
     }
 
     #[test]
