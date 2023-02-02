@@ -417,7 +417,16 @@ macro_rules! new_curve_impl {
                         static ref CONST_3B: $base = $constant_b + $constant_b + $constant_b;
                 }
                 *CONST_3B
+            }
 
+            fn mul_by_3b(input: &$base) -> $base {
+                // b = 3 for bn254 curve
+                if $name::curve_constant_3b() == $base::from(9) {
+                    let tmp = input.double().double().double();
+                    tmp+input
+                } else {
+                    panic!("do not currently support")
+                }
             }
         }
 
@@ -644,7 +653,7 @@ macro_rules! new_curve_impl {
                 let z3 = z3 + z3;
                 let t1 = self.y * self.z;
                 let t2 = self.z.square();
-                let t2 = t2 * $name::curve_constant_3b();
+                let t2 = $name::mul_by_3b(&t2);
                 let x3 = t2 * z3;
                 let y3 = t0 + t2;
                 let z3 = t1 * z3;
@@ -971,10 +980,10 @@ macro_rules! new_curve_impl {
                 let y3 = x3 - y3;
                 let x3 = t0 + t0;
                 let t0 = x3 + t0;
-                let t2 = t2 * $name::curve_constant_3b();
+                let t2 = $name::mul_by_3b(&t2);
                 let z3 = t1 + t2;
                 let t1 = t1 - t2;
-                let y3 = y3 * $name::curve_constant_3b();
+                let y3 = $name::mul_by_3b(&y3);
                 let x3 = t4 * y3;
                 let t2 = t3 * t1;
                 let x3 = t2 - x3;
@@ -1013,10 +1022,10 @@ macro_rules! new_curve_impl {
                 let y3 = y3 + self.x;
                 let x3 = t0 + t0;
                 let t0 = x3 + t0;
-                let t2 = self.z * $name::curve_constant_3b();
+                let t2 = $name::mul_by_3b(&self.z);
                 let z3 = t1 + t2;
                 let t1 = t1 - t2;
-                let y3 = y3 * $name::curve_constant_3b();
+                let y3 = $name::mul_by_3b(&y3);
                 let x3 = t4 * y3;
                 let t2 = t3 * t1;
                 let x3 = t2 - x3;

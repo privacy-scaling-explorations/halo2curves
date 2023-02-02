@@ -39,6 +39,10 @@ fn check_underflow(x: &[u64; 4], y: &[u64; 4]) -> bool {
 }
 
 use criterion::{criterion_group, criterion_main, Criterion};
+use group::Group;
+use halo2curves::bn256::G1;
+use rand::SeedableRng;
+use rand_xorshift::XorShiftRng;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     let x: [u64; 4] = [(); 4].map(|_| rand::random());
@@ -60,5 +64,38 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, criterion_benchmark);
+pub fn arithmetics(c: &mut Criterion) {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+    let iteration = 1000;
+
+    let x_vec: Vec<G1> = (0..iteration).map(|_| G1::random(&mut rng)).collect();
+    let y_vec: Vec<G1> = (0..iteration).map(|_| G1::random(&mut rng)).collect();
+
+    let mut group = c.benchmark_group("Group operations");
+
+    group.bench_with_input(BenchmarkId::new("double", ""), &x_vec, |b, x_vec| {
+        b.iter(|| x_vec.iter().map(|x| x.double()).collect::<Vec<_>>())
+    });
+
+    group.bench_with_input(
+        BenchmarkId::new("add", ""),
+        &(x_vec, y_vec),
+        |b, (x_vec, y_vec)| {
+            b.iter(|| {
+                x_vec
+                    .iter()
+                    .zip(y_vec.iter())
+                    .map(|(x, y)| x + y)
+                    .collect::<Vec<_>>()
+            })
+        },
+    );
+
+    group.finish();
+}
+
+criterion_group!(benches, criterion_benchmark, arithmetics);
 criterion_main!(benches);
