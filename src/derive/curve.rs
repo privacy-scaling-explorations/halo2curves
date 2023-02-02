@@ -420,12 +420,10 @@ macro_rules! new_curve_impl {
             }
 
             fn mul_by_3b(input: &$base) -> $base {
-                // b = 3 for bn254 curve
-                if $name::curve_constant_3b() == $base::from(9) {
-                    let tmp = input.double().double().double();
-                    tmp+input
+                if $name::CURVE_ID == "bn256"{
+                    input.double().double().double() + input
                 } else {
-                    panic!("do not currently support")
+                    input * $name::curve_constant_3b()
                 }
             }
         }
