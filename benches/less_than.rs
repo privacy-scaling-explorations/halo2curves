@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+mod group;
+
 use criterion::BenchmarkId;
 
 /// Compute a - (b + borrow), returning the result and the new borrow.
