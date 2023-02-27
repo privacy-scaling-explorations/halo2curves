@@ -51,17 +51,29 @@ new_curve_impl!(
 
 impl CurveAffineExt for G1Affine {
     batch_add!();
+    endo!(ENDO_PARAMS);
 
-    fn into_coordinates(self) -> (Self::Base, Self::Base) {
-        (self.x, self.y)
+    fn endo(&self) -> Self {
+        Self {
+            x: self.x * Self::Base::ZETA,
+            y: self.y,
+        }
     }
+}
+
+impl CurveEndo for G1 {
+    endo!(ENDO_PARAMS);
 }
 
 impl CurveAffineExt for G2Affine {
     batch_add!();
+    endo!(ENDO_PARAMS);
 
-    fn into_coordinates(self) -> (Self::Base, Self::Base) {
-        (self.x, self.y)
+    fn endo(&self) -> Self {
+        Self {
+            x: self.x * Self::Base::ZETA,
+            y: self.y,
+        }
     }
 }
 
@@ -126,8 +138,6 @@ const ENDO_PARAMS: EndoParameters = EndoParameters {
     b1: [0x8211bbeb7d4f1128u64, 0x6f4d8248eeb859fcu64, 0u64, 0u64],
     b2: [0x89d3256894d213e3u64, 0u64, 0u64, 0u64],
 };
-
-endo!(G1, Fr, ENDO_PARAMS);
 
 impl group::cofactor::CofactorGroup for G1 {
     type Subgroup = G1;

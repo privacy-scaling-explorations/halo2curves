@@ -142,51 +142,49 @@ macro_rules! batch_add {
 
 #[macro_export]
 macro_rules! endo {
-    ($name:ident, $field:ident, $params:expr) => {
-        impl CurveEndo for $name {
-            fn decompose_scalar(k: &$field) -> (u128, bool, u128, bool) {
-                let to_limbs = |e: &$field| {
-                    let repr = e.to_repr();
-                    let repr = repr.as_ref();
-                    let tmp0 = u64::from_le_bytes(repr[0..8].try_into().unwrap());
-                    let tmp1 = u64::from_le_bytes(repr[8..16].try_into().unwrap());
-                    let tmp2 = u64::from_le_bytes(repr[16..24].try_into().unwrap());
-                    let tmp3 = u64::from_le_bytes(repr[24..32].try_into().unwrap());
-                    [tmp0, tmp1, tmp2, tmp3]
-                };
+    ($params:expr) => {
+        fn decompose_scalar(k: &Self::ScalarExt) -> (u128, bool, u128, bool) {
+            let to_limbs = |e: &Self::ScalarExt| {
+                let repr = e.to_repr();
+                let repr = repr.as_ref();
+                let tmp0 = u64::from_le_bytes(repr[0..8].try_into().unwrap());
+                let tmp1 = u64::from_le_bytes(repr[8..16].try_into().unwrap());
+                let tmp2 = u64::from_le_bytes(repr[16..24].try_into().unwrap());
+                let tmp3 = u64::from_le_bytes(repr[24..32].try_into().unwrap());
+                [tmp0, tmp1, tmp2, tmp3]
+            };
 
-                let get_lower_128 = |e: &$field| {
-                    let e = to_limbs(e);
-                    u128::from(e[0]) | (u128::from(e[1]) << 64)
-                };
+            let get_lower_128 = |e: &Self::ScalarExt| {
+                let e = to_limbs(e);
+                u128::from(e[0]) | (u128::from(e[1]) << 64)
+            };
 
-                let is_neg = |e: &$field| {
-                    let e = to_limbs(e);
-                    let (_, borrow) = sbb(0xffffffffffffffff, e[0], 0);
-                    let (_, borrow) = sbb(0xffffffffffffffff, e[1], borrow);
-                    let (_, borrow) = sbb(0xffffffffffffffff, e[2], borrow);
-                    let (_, borrow) = sbb(0x00, e[3], borrow);
-                    borrow & 1 != 0
-                };
+            let is_neg = |e: &Self::ScalarExt| {
+                let e = to_limbs(e);
+                let (_, borrow) = sbb(0xffffffffffffffff, e[0], 0);
+                let (_, borrow) = sbb(0xffffffffffffffff, e[1], borrow);
+                let (_, borrow) = sbb(0xffffffffffffffff, e[2], borrow);
+                let (_, borrow) = sbb(0x00, e[3], borrow);
+                borrow & 1 != 0
+            };
 
-                let input = to_limbs(&k);
-                let c1 = mul_512($params.gamma2, input);
-                let c2 = mul_512($params.gamma1, input);
-                let c1 = [c1[4], c1[5], c1[6], c1[7]];
-                let c2 = [c2[4], c2[5], c2[6], c2[7]];
-                let q1 = mul_512(c1, $params.b1);
-                let q2 = mul_512(c2, $params.b2);
-                let q1 = $field::from_raw([q1[0], q1[1], q1[2], q1[3]]);
-                let q2 = $field::from_raw([q2[0], q2[1], q2[2], q2[3]]);
-                let k2 = q2 - q1;
-                let k1 = k + k2 * $field::ZETA;
-                let k1_neg = is_neg(&k1);
-                let k2_neg = is_neg(&k2);
-                let k1 = if k1_neg { -k1 } else { k1 };
-                let k2 = if k2_neg { -k2 } else { k2 };
+            let input = to_limbs(&k);
+            let c1 = mul_512($params.gamma2, input);
+            let c2 = mul_512($params.gamma1, input);
+            let c1 = [c1[4], c1[5], c1[6], c1[7]];
+            let c2 = [c2[4], c2[5], c2[6], c2[7]];
+            let q1 = mul_512(c1, $params.b1);
+            let q2 = mul_512(c2, $params.b2);
+            let q1 = Self::ScalarExt::from_raw([q1[0], q1[1], q1[2], q1[3]]);
+            let q2 = Self::ScalarExt::from_raw([q2[0], q2[1], q2[2], q2[3]]);
+            let k2 = q2 - q1;
+            let k1 = k + k2 * Self::ScalarExt::ZETA;
+            let k1_neg = is_neg(&k1);
+            let k2_neg = is_neg(&k2);
+            let k1 = if k1_neg { -k1 } else { k1 };
+            let k2 = if k2_neg { -k2 } else { k2 };
 
-                (get_lower_128(&k1), k1_neg, get_lower_128(&k2), k2_neg)
-            }
+            (get_lower_128(&k1), k1_neg, get_lower_128(&k2), k2_neg)
         }
     };
 }
