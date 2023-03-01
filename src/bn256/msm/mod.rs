@@ -62,7 +62,7 @@ pub struct MSM {
 }
 
 impl MSM {
-    pub fn alloacate(n_points: usize, override_window: Option<usize>) -> Self {
+    pub fn allocate(n_points: usize, override_window: Option<usize>) -> Self {
         fn best_window(n: usize) -> usize {
             if n >= 262144 {
                 15
@@ -163,7 +163,7 @@ impl MSM {
         acc: &mut G1,
         override_window: Option<usize>,
     ) {
-        let mut msm = Self::alloacate(points.len(), override_window);
+        let mut msm = Self::allocate(points.len(), override_window);
         msm.decompose(scalars);
         for w_i in (0..msm.n_windows).rev() {
             if w_i != msm.n_windows - 1 {
