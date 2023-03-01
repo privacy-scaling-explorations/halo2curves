@@ -1,4 +1,5 @@
 use super::{Fr, G1Affine};
+use crate::arithmetic::msm_zcash;
 use crate::bn256::{msm::round::Round, G1};
 use crate::group::Group;
 use ff::PrimeField;
@@ -49,8 +50,6 @@ macro_rules! sign_bit {
 #[cfg(test)]
 mod pr40;
 mod round;
-#[cfg(test)]
-mod zcash;
 
 pub struct MSM {
     signed_digits: Vec<u32>,
@@ -65,7 +64,7 @@ pub struct MSM {
 }
 
 impl MSM {
-    pub fn alloacate(n_points: usize) -> Self {
+    pub fn alloacate(n_points: usize, override_window: Option<usize>) -> Self {
         fn best_window(n: usize) -> usize {
             if n >= 262144 {
                 15
@@ -81,7 +80,14 @@ impl MSM {
                 7
             }
         }
-        let window = best_window(n_points);
+        let window = match override_window {
+            Some(window) => {
+                let overriden = best_window(n_points);
+                println!("override window from {} to {}", overriden, window);
+                window
+            }
+            None => best_window(n_points),
+        };
         let n_windows = div_ceil!(Fr::NUM_BITS as usize, window);
         let n_buckets = (1 << (window - 1)) + 1;
         let round = Round::new(n_buckets, n_points);
@@ -153,15 +159,20 @@ impl MSM {
         }
     }
 
-    pub fn evaluate(scalars: &[Fr], bases: &[G1Affine], acc: &mut G1) {
-        let mut msm = Self::alloacate(bases.len());
+    pub fn evaluate_with(
+        scalars: &[Fr],
+        points: &[G1Affine],
+        acc: &mut G1,
+        override_window: Option<usize>,
+    ) {
+        let mut msm = Self::alloacate(points.len(), override_window);
         msm.decompose(scalars);
         for w_i in (0..msm.n_windows).rev() {
             if w_i != msm.n_windows - 1 {
                 *acc = double_n!(*acc, msm.window);
             }
             msm.round.init(
-                bases,
+                points,
                 &msm.sorted_positions[range!(w_i, msm.n_points)],
                 &msm.bucket_sizes[range!(w_i, msm.n_buckets)],
             );
@@ -174,30 +185,38 @@ impl MSM {
         }
     }
 
-    pub fn best(coeffs: &[Fr], bases: &[G1Affine]) -> G1 {
-        assert_eq!(coeffs.len(), bases.len());
+    pub fn evaluate(scalars: &[Fr], points: &[G1Affine], acc: &mut G1) {
+        Self::evaluate_with(scalars, points, acc, None)
+    }
+
+    pub fn best(scalars: &[Fr], points: &[G1Affine]) -> G1 {
+        assert_eq!(scalars.len(), points.len());
         let num_threads = current_num_threads();
-        if coeffs.len() > num_threads {
-            let chunk = coeffs.len() / num_threads;
-            let num_chunks = coeffs.chunks(chunk).len();
+        if scalars.len() > num_threads {
+            let chunk = scalars.len() / num_threads;
+            let num_chunks = scalars.chunks(chunk).len();
             let mut results = vec![G1::identity(); num_chunks];
             scope(|scope| {
-                let chunk = coeffs.len() / num_threads;
+                let chunk = scalars.len() / num_threads;
 
-                for ((coeffs, bases), acc) in coeffs
+                for ((scalars, points), acc) in scalars
                     .chunks(chunk)
-                    .zip(bases.chunks(chunk))
+                    .zip(points.chunks(chunk))
                     .zip(results.iter_mut())
                 {
                     scope.spawn(move |_| {
-                        Self::evaluate(coeffs, bases, acc);
+                        if points.len() < 1 << 8 {
+                            msm_zcash(scalars, points, acc);
+                        } else {
+                            Self::evaluate(scalars, points, acc);
+                        }
                     });
                 }
             });
             results.iter().fold(G1::identity(), |a, b| a + b)
         } else {
             let mut acc = G1::identity();
-            Self::evaluate(coeffs, bases, &mut acc);
+            Self::evaluate(scalars, points, &mut acc);
             acc
         }
     }
@@ -205,13 +224,14 @@ impl MSM {
 
 #[cfg(test)]
 mod test {
+    use crate::arithmetic::msm_zcash;
     use crate::bn256::msm::pr40::{MultiExp, MultiExpContext};
-    use crate::bn256::msm::zcash::{best_multiexp_zcash, msm_zcash};
     use crate::bn256::{Fr, G1Affine, G1};
     use crate::group::Group;
     use crate::serde::SerdeObject;
     use ff::Field;
     use group::Curve;
+    use rand::Rng;
     use rand_core::OsRng;
     use std::fs::File;
     use std::path::Path;
@@ -248,42 +268,20 @@ mod test {
     }
 
     #[test]
-
     fn test_msm() {
-        let (min_k, max_k) = (10, 22);
+        let (min_k, max_k) = (4, 20);
         let (points, scalars) = get_data(1 << max_k);
 
         for k in min_k..=max_k {
-            println!("k = {}", k);
-            let n_points = 1 << k;
+            let mut rng = OsRng;
+            let n_points = rng.gen_range(1 << (k - 1)..1 << k);
             let scalars = &scalars[..n_points];
             let points = &points[..n_points];
             let mut r0 = G1::identity();
-            let time = std::time::Instant::now();
             msm_zcash(scalars, points, &mut r0);
-            println!("zcash serial {:?}", time.elapsed());
-
-            let time = std::time::Instant::now();
-            let r0 = best_multiexp_zcash(scalars, points);
-            println!("zcash parallel {:?}", time.elapsed());
-
-            let time = std::time::Instant::now();
             let mut r1 = G1::identity();
             super::MSM::evaluate(scalars, points, &mut r1);
             assert_eq!(r0, r1);
-            println!("this serial 1 {:?}", time.elapsed());
-
-            let time = std::time::Instant::now();
-            let r1 = super::MSM::best(scalars, points);
-            assert_eq!(r0, r1);
-            println!("this parallel {:?}", time.elapsed());
-
-            let time = std::time::Instant::now();
-            let msm = MultiExp::new(&points);
-            let mut ctx = MultiExpContext::default();
-            let _ = msm.evaluate(&mut ctx, scalars, false);
-            // assert_eq!(r0, r1); // fails
-            println!("pr40 {:?}", time.elapsed());
         }
     }
 }
