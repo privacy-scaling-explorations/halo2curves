@@ -851,65 +851,7 @@ fn accumulate_buckets<C: CurveAffineExt>(
         .fold(C::Curve::identity(), |acc, result| acc + result)
 }
 
-use crate::bn256::{Fr, G1Affine};
-use crate::group::prime::PrimeCurveAffine;
 use crate::CurveAffineExt;
-
-fn get_random_data<const INDEPENDENT: bool>(n: usize) -> (Vec<G1Affine>, Vec<Fr>) {
-    use rand::SeedableRng;
-    use rand_xorshift::XorShiftRng;
-
-    let mut bases = vec![G1Affine::identity(); n];
-    // parallelize(&mut bases, |bases, _| {
-    // let mut rng = rand::thread_rng();
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-    // let base_rnd = G1Affine::random(&mut rng);
-    for base in bases.iter_mut() {
-        if INDEPENDENT {
-            *base = G1Affine::random(&mut rng);
-        } else {
-            unreachable!()
-            // *base = base_rnd;
-        }
-    }
-    // });
-
-    let mut coeffs = vec![Fr::zero(); n];
-    // parallelize(&mut coeffs, |coeffs, _| {
-    for coeff in coeffs.iter_mut() {
-        *coeff = Fr::random(&mut rng);
-        // *coeff = Fr::from(1u64);
-    }
-    // });
-
-    (bases, coeffs)
-}
-
-#[test]
-// #[ignore]
-fn test_multiexp_bench() {
-    let min_k = 10;
-    let max_k = 20;
-    let n = 1 << max_k;
-    let (bases, coeffs) = get_random_data::<true>(n);
-
-    let msm = MultiExp::new(&bases);
-    let mut ctx = MultiExpContext::default();
-    for k in min_k..=max_k {
-        let n = 1 << k;
-        let coeffs = &coeffs[..n];
-
-        let start = start_measure("msm".to_string(), false);
-        msm.evaluate(&mut ctx, coeffs, false);
-        let duration = stop_measure(start);
-
-        println!("{} {}: {}s", k, n, (duration as f32) / 1000000.0);
-    }
-}
-
 use std::{
     env::var,
     sync::atomic::{AtomicUsize, Ordering},

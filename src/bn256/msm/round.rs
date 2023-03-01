@@ -51,11 +51,20 @@ impl Round {
             in_off: 0,
         }
     }
-    pub(crate) fn init(&mut self, bases: &[G1Affine], positions: &[usize], bucket_sizes: &[usize]) {
+    pub(crate) fn init(&mut self, bases: &[G1Affine], positions: &[u32], bucket_sizes: &[usize]) {
         {
             assert_eq!(self.n_points, positions.len());
             assert_eq!(self.n_points, bases.len());
             assert_eq!(self.bucket_sizes.len(), self.n_buckets);
+        }
+        macro_rules! get_base {
+            ($positions:expr, $off:expr) => {
+                if is_neg!($positions[$off]) {
+                    -bases[index!($positions[$off])]
+                } else {
+                    bases[index!($positions[$off])]
+                }
+            };
         }
         let n_additions = bucket_sizes
             .iter()
@@ -79,13 +88,9 @@ impl Round {
                 // process even number of additions
                 for _ in 0..n_additions & (usize::MAX - 1) {
                     // second operand must be mutable
-                    self.t[tmp_off] = bases[positions[in_off]];
-                    first_phase!(
-                        self.t[out_off],
-                        bases[positions[in_off + 1]],
-                        self.t[tmp_off],
-                        acc
-                    );
+                    self.t[tmp_off] = get_base!(positions, in_off);
+                    let lhs = get_base!(positions, in_off + 1);
+                    first_phase!(self.t[out_off], lhs, self.t[tmp_off], acc);
                     tmp_off += 1;
                     out_off += 1;
                     in_off += 2;
@@ -96,31 +101,23 @@ impl Round {
                     // move to odd-point cache
                     (true, true) => {
                         assert_eq!(positions.len() - 1, in_off);
-                        self.odd_points[bucket_index] = bases[positions[in_off]];
+                        self.odd_points[bucket_index] = get_base!(positions, in_off);
                     }
                     // 2 base point left
                     // move addition result to odd-point cache
                     (false, true) => {
-                        self.t[tmp_off] = bases[positions[in_off]];
-                        first_phase!(
-                            self.odd_points[bucket_index],
-                            bases[positions[in_off + 1]],
-                            self.t[tmp_off],
-                            acc
-                        );
+                        self.t[tmp_off] = get_base!(positions, in_off);
+                        let lhs = get_base!(positions, in_off + 1);
+                        first_phase!(self.odd_points[bucket_index], lhs, self.t[tmp_off], acc);
                         tmp_off += 1;
                     }
                     // 3 base point left
                     // move addition of first two to intermediate and last to odd-point cache
                     (true, false) => {
-                        self.t[tmp_off] = bases[positions[in_off]];
-                        first_phase!(
-                            self.t[out_off],
-                            bases[positions[in_off + 1]],
-                            self.t[tmp_off],
-                            acc
-                        );
-                        self.t[out_off + 1] = bases[positions[in_off + 2]];
+                        self.t[tmp_off] = get_base!(positions, in_off);
+                        let lhs = get_base!(positions, in_off + 1);
+                        first_phase!(self.t[out_off], lhs, self.t[tmp_off], acc);
+                        self.t[out_off + 1] = get_base!(positions, in_off + 2);
                         tmp_off += 1;
                         out_off += 2;
                     }
@@ -154,12 +151,8 @@ impl Round {
                         // 2 base point left
                         // move addition result to odd-point cache
                         (false, true) => {
-                            second_phase!(
-                                self.odd_points[bucket_index],
-                                bases[positions[in_off]],
-                                self.t[tmp_off],
-                                acc
-                            );
+                            let lhs = get_base!(positions, in_off);
+                            second_phase!(self.odd_points[bucket_index], lhs, self.t[tmp_off], acc);
                             tmp_off -= 1;
                             in_off -= 2;
                         }
@@ -168,12 +161,8 @@ impl Round {
                         (true, false) => {
                             in_off -= 1;
                             out_off -= 1;
-                            second_phase!(
-                                self.t[out_off],
-                                bases[positions[in_off]],
-                                self.t[tmp_off],
-                                acc
-                            );
+                            let lhs = get_base!(positions, in_off);
+                            second_phase!(self.t[out_off], lhs, self.t[tmp_off], acc);
                             tmp_off -= 1;
                             in_off -= 2;
                             out_off -= 1;
@@ -182,12 +171,8 @@ impl Round {
                     }
                     // process even number of additions
                     for _ in (0..n_additions & (usize::MAX - 1)).rev() {
-                        second_phase!(
-                            self.t[out_off],
-                            bases[positions[in_off]],
-                            self.t[tmp_off],
-                            acc
-                        );
+                        let lhs = get_base!(positions, in_off);
+                        second_phase!(self.t[out_off], lhs, self.t[tmp_off], acc);
                         tmp_off -= 1;
                         out_off -= 1;
                         in_off -= 2;
@@ -298,29 +283,43 @@ mod tests {
         rng: &mut impl Rng,
         n_buckets: usize,
         n_points: usize,
-    ) -> (Vec<usize>, Vec<usize>) {
-        let mut positions: Vec<Vec<usize>> = vec![vec![]; n_buckets];
+    ) -> (Vec<u32>, Vec<usize>) {
+        let mut positions: Vec<Vec<u32>> = vec![vec![]; n_buckets];
         (0..n_points).for_each(|i| {
-            let index = rng.gen_range(0..n_buckets);
-            positions[index].push(i);
+            let bucket_index = rng.gen_range(0..n_buckets);
+            let is_neg: bool = rng.gen();
+            let signed_index = if is_neg {
+                i as u32 | 0x80000000
+            } else {
+                i as u32
+            };
+            positions[bucket_index].push(signed_index);
         });
         positions.iter_mut().for_each(|positions| {
             positions.shuffle(rng);
         });
         let bucket_sizes = positions.iter().map(|positions| positions.len()).collect();
-        let positions: Vec<usize> = positions.iter().flatten().cloned().collect();
+        let positions: Vec<u32> = positions.iter().flatten().cloned().collect();
         (positions, bucket_sizes)
     }
 
     impl Round {
-        fn sanity_check(&self, bases: &[G1Affine], positions: &[usize], bucket_sizes: &[usize]) {
+        fn sanity_check(&self, bases: &[G1Affine], positions: &[u32], bucket_sizes: &[usize]) {
             {
                 let mut off = 0;
                 let sums: Vec<_> = bucket_sizes
                     .iter()
                     .map(|bucket_size| {
                         let sum = (off..off + bucket_size)
-                            .map(|i| bases[positions[i]])
+                            .map(|i| {
+                                let index = index!(positions[i]);
+                                let is_neg = is_neg!(positions[i]);
+                                if is_neg {
+                                    -bases[index]
+                                } else {
+                                    bases[index]
+                                }
+                            })
                             .fold(G1::identity(), |acc, next| acc + next);
                         off += bucket_size;
                         sum

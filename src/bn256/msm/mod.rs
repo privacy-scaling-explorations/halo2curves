@@ -4,34 +4,58 @@ use crate::group::Group;
 use ff::PrimeField;
 use rayon::{current_num_threads, scope};
 
-#[cfg(test)]
-mod pr40;
-mod round;
-#[cfg(test)]
-mod zcash;
-
+#[macro_export]
 macro_rules! div_ceil {
     ($a:expr, $b:expr) => {
         (($a - 1) / $b) + 1
     };
 }
 
+#[macro_export]
 macro_rules! double_n {
     ($acc:expr, $n:expr) => {
         (0..$n).fold($acc, |acc, _| acc.double())
     };
 }
 
+#[macro_export]
 macro_rules! range {
     ($index:expr, $n_items:expr) => {
         $index * $n_items..($index + 1) * $n_items
     };
 }
 
+#[macro_export]
+macro_rules! index {
+    ($digit:expr) => {
+        ($digit & 0x7fffffff) as usize
+    };
+}
+
+#[macro_export]
+macro_rules! is_neg {
+    ($digit:expr) => {
+        sign_bit!($digit) != 0
+    };
+}
+
+#[macro_export]
+macro_rules! sign_bit {
+    ($digit:expr) => {
+        $digit & 0x80000000
+    };
+}
+
+#[cfg(test)]
+mod pr40;
+mod round;
+#[cfg(test)]
+mod zcash;
+
 pub struct MSM {
+    signed_digits: Vec<u32>,
+    sorted_positions: Vec<u32>,
     bucket_sizes: Vec<usize>,
-    sorted_positions: Vec<usize>,
-    bucket_indexes: Vec<usize>,
     bucket_offsets: Vec<usize>,
     n_windows: usize,
     window: usize,
@@ -59,12 +83,12 @@ impl MSM {
         }
         let window = best_window(n_points);
         let n_windows = div_ceil!(Fr::NUM_BITS as usize, window);
-        let n_buckets = 1 << window;
+        let n_buckets = (1 << (window - 1)) + 1;
         let round = Round::new(n_buckets, n_points);
         MSM {
-            bucket_indexes: vec![0usize; n_windows * n_points],
+            signed_digits: vec![0u32; n_windows * n_points],
+            sorted_positions: vec![0u32; n_windows * n_points],
             bucket_sizes: vec![0usize; n_windows * n_buckets],
-            sorted_positions: vec![0usize; n_windows * n_points],
             bucket_offsets: vec![0; n_buckets],
             n_windows,
             window,
@@ -75,30 +99,36 @@ impl MSM {
     }
 
     fn decompose(&mut self, scalars: &[Fr]) {
-        pub(crate) fn get_bits(segment: usize, c: usize, bytes: &[u8]) -> u64 {
-            let skip_bits = segment * c;
+        pub(crate) fn get_bits(segment: usize, window: usize, bytes: &[u8]) -> u32 {
+            let skip_bits = segment * window;
             let skip_bytes = skip_bits / 8;
             if skip_bytes >= 32 {
                 return 0;
             }
-            let mut v = [0; 8];
+            let mut v = [0; 4];
             for (v, o) in v.iter_mut().zip(bytes[skip_bytes..].iter()) {
                 *v = *o;
             }
-            let mut tmp = u64::from_le_bytes(v);
+            let mut tmp = u32::from_le_bytes(v);
             tmp >>= skip_bits - (skip_bytes * 8);
-            tmp %= 1 << c;
-            tmp as u64
+            tmp %= 1 << window;
+            tmp
         }
-        let scalars = scalars
-            .iter()
-            .map(|scalar| scalar.to_repr())
-            .collect::<Vec<_>>();
-        for window_idx in 0..self.n_windows {
-            for (point_index, scalar) in scalars.iter().enumerate() {
-                let bucket_index = get_bits(window_idx, self.window, scalar.as_ref()) as usize;
-                self.bucket_sizes[window_idx * self.n_buckets + bucket_index] += 1;
-                self.bucket_indexes[window_idx * self.n_points + point_index] = bucket_index;
+        let max = 1 << (self.window - 1);
+        for (point_idx, scalar) in scalars.iter().enumerate() {
+            let repr = scalar.to_repr();
+            let mut borrow = 0u32;
+            for window_idx in 0..self.n_windows {
+                let windowed_digit = get_bits(window_idx, self.window, repr.as_ref()) + borrow;
+                let signed_digit = if windowed_digit >= max {
+                    borrow = 1;
+                    ((1 << self.window) - windowed_digit) | 0x80000000
+                } else {
+                    borrow = 0;
+                    windowed_digit
+                };
+                self.bucket_sizes[window_idx * self.n_buckets + index!(signed_digit)] += 1;
+                self.signed_digits[window_idx * self.n_points + point_idx] = signed_digit;
             }
         }
         self.sort();
@@ -108,20 +138,22 @@ impl MSM {
         for w_i in 0..self.n_windows {
             let sorted_positions = &mut self.sorted_positions[range!(w_i, self.n_points)];
             let bucket_sizes = &self.bucket_sizes[range!(w_i, self.n_buckets)];
-            let bucket_indexes = &self.bucket_indexes[range!(w_i, self.n_points)];
+            let signed_digits = &self.signed_digits[range!(w_i, self.n_points)];
             let mut offset = 0;
             for (i, size) in bucket_sizes.iter().enumerate() {
                 self.bucket_offsets[i] = offset;
                 offset += size;
             }
-            for (idx, bucket_index) in bucket_indexes.iter().enumerate() {
-                sorted_positions[self.bucket_offsets[*bucket_index]] = idx;
-                self.bucket_offsets[*bucket_index] += 1;
+            for (sorted_idx, signed_digit) in signed_digits.iter().enumerate() {
+                let bucket_idx = index!(signed_digit);
+                sorted_positions[self.bucket_offsets[bucket_idx]] =
+                    sign_bit!(signed_digit) | (sorted_idx as u32);
+                self.bucket_offsets[bucket_idx] += 1;
             }
         }
     }
 
-    pub fn evalulate(scalars: &[Fr], bases: &[G1Affine], acc: &mut G1) {
+    pub fn evaluate(scalars: &[Fr], bases: &[G1Affine], acc: &mut G1) {
         let mut msm = Self::alloacate(bases.len());
         msm.decompose(scalars);
         for w_i in (0..msm.n_windows).rev() {
@@ -158,14 +190,14 @@ impl MSM {
                     .zip(results.iter_mut())
                 {
                     scope.spawn(move |_| {
-                        Self::evalulate(coeffs, bases, acc);
+                        Self::evaluate(coeffs, bases, acc);
                     });
                 }
             });
             results.iter().fold(G1::identity(), |a, b| a + b)
         } else {
             let mut acc = G1::identity();
-            Self::evalulate(coeffs, bases, &mut acc);
+            Self::evaluate(coeffs, bases, &mut acc);
             acc
         }
     }
@@ -218,14 +250,14 @@ mod test {
     #[test]
 
     fn test_msm() {
-        let (points, scalars) = get_data(1 << 22);
+        let (min_k, max_k) = (10, 22);
+        let (points, scalars) = get_data(1 << max_k);
 
-        for k in 10..=22 {
+        for k in min_k..=max_k {
+            println!("k = {}", k);
             let n_points = 1 << k;
             let scalars = &scalars[..n_points];
             let points = &points[..n_points];
-            println!("------ {}", k);
-
             let mut r0 = G1::identity();
             let time = std::time::Instant::now();
             msm_zcash(scalars, points, &mut r0);
@@ -237,9 +269,9 @@ mod test {
 
             let time = std::time::Instant::now();
             let mut r1 = G1::identity();
-            super::MSM::evalulate(scalars, points, &mut r1);
+            super::MSM::evaluate(scalars, points, &mut r1);
             assert_eq!(r0, r1);
-            println!("this {:?}", time.elapsed());
+            println!("this serial 1 {:?}", time.elapsed());
 
             let time = std::time::Instant::now();
             let r1 = super::MSM::best(scalars, points);
