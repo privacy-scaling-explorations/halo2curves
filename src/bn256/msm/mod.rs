@@ -47,8 +47,6 @@ macro_rules! sign_bit {
     };
 }
 
-#[cfg(test)]
-mod pr40;
 mod round;
 
 pub struct MSM {
@@ -225,7 +223,6 @@ impl MSM {
 #[cfg(test)]
 mod test {
     use crate::arithmetic::msm_zcash;
-    use crate::bn256::msm::pr40::{MultiExp, MultiExpContext};
     use crate::bn256::{Fr, G1Affine, G1};
     use crate::group::Group;
     use crate::serde::SerdeObject;

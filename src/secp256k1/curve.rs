@@ -1,6 +1,6 @@
 use crate::secp256k1::Fp;
 use crate::secp256k1::Fq;
-use crate::{Coordinates, CurveAffine, CurveAffineExt, CurveExt};
+use crate::{Coordinates, CurveAffine, CurveExt};
 use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
@@ -44,9 +44,9 @@ const SECP_GENERATOR_Y: Fp = Fp::from_raw([
 const SECP_B: Fp = Fp::from_raw([7, 0, 0, 0]);
 
 use crate::{
-    batch_add, impl_add_binop_specify_output, impl_binops_additive,
-    impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, new_curve_impl,
+    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
+    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+    new_curve_impl,
 };
 
 new_curve_impl!(

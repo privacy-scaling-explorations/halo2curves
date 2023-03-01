@@ -24,14 +24,6 @@ pub trait CurveEndo: CurveExt {
 pub trait CurveAffineExt: CurveAffine {
     fn decompose_scalar(k: &Self::ScalarExt) -> (u128, bool, u128, bool);
     fn endo(&self) -> Self;
-    fn batch_add<const COMPLETE: bool, const LOAD_POINTS: bool>(
-        points: &mut [Self],
-        output_indices: &[u32],
-        num_points: usize,
-        offset: usize,
-        bases: &[Self],
-        base_positions: &[u32],
-    );
 }
 
 /// Compute a + b + carry, returning the result and the new carry over.
