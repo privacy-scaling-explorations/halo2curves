@@ -23,6 +23,7 @@ rand_xorshift = "0.3"
 ark-std = { version = "0.3" }
 
 [dependencies]
+rayon = "1.5.1"
 subtle = "2.4"
 ff = "0.13.0"
 group = "0.13.0"

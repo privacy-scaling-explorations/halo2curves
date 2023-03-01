@@ -1,192 +1,48 @@
 #[macro_export]
-macro_rules! batch_add {
-    () => {
-        fn batch_add<const COMPLETE: bool, const LOAD_POINTS: bool>(
-            points: &mut [Self],
-            output_indices: &[u32],
-            num_points: usize,
-            offset: usize,
-            bases: &[Self],
-            base_positions: &[u32],
-        ) {
-            // assert!(Self::constant_a().is_zero());
-
-            let get_point = |point_data: u32| -> Self {
-                let negate = point_data & 0x80000000 != 0;
-                let base_idx = (point_data & 0x7FFFFFFF) as usize;
-                if negate {
-                    bases[base_idx].neg()
-                } else {
-                    bases[base_idx]
-                }
+macro_rules! endo {
+    ($params:expr) => {
+        fn decompose_scalar(k: &Self::ScalarExt) -> (u128, bool, u128, bool) {
+            let to_limbs = |e: &Self::ScalarExt| {
+                let repr = e.to_repr();
+                let repr = repr.as_ref();
+                let tmp0 = u64::from_le_bytes(repr[0..8].try_into().unwrap());
+                let tmp1 = u64::from_le_bytes(repr[8..16].try_into().unwrap());
+                let tmp2 = u64::from_le_bytes(repr[16..24].try_into().unwrap());
+                let tmp3 = u64::from_le_bytes(repr[24..32].try_into().unwrap());
+                [tmp0, tmp1, tmp2, tmp3]
             };
 
-            // Affine addition formula (P != Q):
-            // - lambda = (y_2 - y_1) / (x_2 - x_1)
-            // - x_3 = lambda^2 - (x_2 + x_1)
-            // - y_3 = lambda * (x_1 - x_3) - y_1
+            let get_lower_128 = |e: &Self::ScalarExt| {
+                let e = to_limbs(e);
+                u128::from(e[0]) | (u128::from(e[1]) << 64)
+            };
 
-            // Batch invert accumulator
-            let mut acc = Self::Base::one();
+            let is_neg = |e: &Self::ScalarExt| {
+                let e = to_limbs(e);
+                let (_, borrow) = sbb(0xffffffffffffffff, e[0], 0);
+                let (_, borrow) = sbb(0xffffffffffffffff, e[1], borrow);
+                let (_, borrow) = sbb(0xffffffffffffffff, e[2], borrow);
+                let (_, borrow) = sbb(0x00, e[3], borrow);
+                borrow & 1 != 0
+            };
 
-            for i in (0..num_points).step_by(2) {
-                // Where that result of the point addition will be stored
-                let out_idx = output_indices[i >> 1] as usize - offset;
+            let input = to_limbs(&k);
+            let c1 = mul_512($params.gamma2, input);
+            let c2 = mul_512($params.gamma1, input);
+            let c1 = [c1[4], c1[5], c1[6], c1[7]];
+            let c2 = [c2[4], c2[5], c2[6], c2[7]];
+            let q1 = mul_512(c1, $params.b1);
+            let q2 = mul_512(c2, $params.b2);
+            let q1 = Self::ScalarExt::from_raw([q1[0], q1[1], q1[2], q1[3]]);
+            let q2 = Self::ScalarExt::from_raw([q2[0], q2[1], q2[2], q2[3]]);
+            let k2 = q2 - q1;
+            let k1 = k + k2 * Self::ScalarExt::ZETA;
+            let k1_neg = is_neg(&k1);
+            let k2_neg = is_neg(&k2);
+            let k1 = if k1_neg { -k1 } else { k1 };
+            let k2 = if k2_neg { -k2 } else { k2 };
 
-                #[cfg(all(feature = "prefetch", target_arch = "x86_64"))]
-                if i < num_points - 2 {
-                    if LOAD_POINTS {
-                        $crate::prefetch::<Self>(bases, base_positions[i + 2] as usize);
-                        $crate::prefetch::<Self>(bases, base_positions[i + 3] as usize);
-                    }
-                    $crate::prefetch::<Self>(
-                        points,
-                        output_indices[(i >> 1) + 1] as usize - offset,
-                    );
-                }
-                if LOAD_POINTS {
-                    points[i] = get_point(base_positions[i]);
-                    points[i + 1] = get_point(base_positions[i + 1]);
-                }
-
-                if COMPLETE {
-                    // Nothing to do here if one of the points is zero
-                    if (points[i].is_identity() | points[i + 1].is_identity()).into() {
-                        continue;
-                    }
-
-                    if points[i].x == points[i + 1].x {
-                        if points[i].y == points[i + 1].y {
-                            // Point doubling (P == Q)
-                            // - s = (3 * x^2) / (2 * y)
-                            // - x_2 = s^2 - (2 * x)
-                            // - y_2 = s * (x - x_2) - y
-
-                            // (2 * x)
-                            points[out_idx].x = points[i].x + points[i].x;
-                            // x^2
-                            let xx = points[i].x.square();
-                            // (2 * y)
-                            points[i + 1].x = points[i].y + points[i].y;
-                            // (3 * x^2) * acc
-                            points[i + 1].y = (xx + xx + xx) * acc;
-                            // acc * (2 * y)
-                            acc *= points[i + 1].x;
-                            continue;
-                        } else {
-                            // Zero
-                            points[i] = Self::identity();
-                            points[i + 1] = Self::identity();
-                            continue;
-                        }
-                    }
-                }
-
-                // (x_2 + x_1)
-                points[out_idx].x = points[i].x + points[i + 1].x;
-                // (x_2 - x_1)
-                points[i + 1].x -= points[i].x;
-                // (y2 - y1) * acc
-                points[i + 1].y = (points[i + 1].y - points[i].y) * acc;
-                // acc * (x_2 - x_1)
-                acc *= points[i + 1].x;
-            }
-
-            // Batch invert
-            if COMPLETE {
-                if (!acc.is_zero()).into() {
-                    acc = acc.invert().unwrap();
-                }
-            } else {
-                acc = acc.invert().unwrap();
-            }
-
-            for i in (0..num_points).step_by(2).rev() {
-                // Where that result of the point addition will be stored
-                let out_idx = output_indices[i >> 1] as usize - offset;
-
-                #[cfg(all(feature = "prefetch", target_arch = "x86_64"))]
-                if i > 0 {
-                    $crate::prefetch::<Self>(
-                        points,
-                        output_indices[(i >> 1) - 1] as usize - offset,
-                    );
-                }
-
-                if COMPLETE {
-                    // points[i] is zero so the sum is points[i + 1]
-                    if points[i].is_identity().into() {
-                        points[out_idx] = points[i + 1];
-                        continue;
-                    }
-                    // points[i + 1] is zero so the sum is points[i]
-                    if points[i + 1].is_identity().into() {
-                        points[out_idx] = points[i];
-                        continue;
-                    }
-                }
-
-                // lambda
-                points[i + 1].y *= acc;
-                // acc * (x_2 - x_1)
-                acc *= points[i + 1].x;
-                // x_3 = lambda^2 - (x_2 + x_1)
-                points[out_idx].x = points[i + 1].y.square() - points[out_idx].x;
-                // y_3 = lambda * (x_1 - x_3) - y_1
-                points[out_idx].y =
-                    points[i + 1].y * (points[i].x - points[out_idx].x) - points[i].y;
-            }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! endo {
-    ($name:ident, $field:ident, $params:expr) => {
-        impl CurveEndo for $name {
-            fn decompose_scalar(k: &$field) -> (u128, bool, u128, bool) {
-                let to_limbs = |e: &$field| {
-                    let repr = e.to_repr();
-                    let repr = repr.as_ref();
-                    let tmp0 = u64::from_le_bytes(repr[0..8].try_into().unwrap());
-                    let tmp1 = u64::from_le_bytes(repr[8..16].try_into().unwrap());
-                    let tmp2 = u64::from_le_bytes(repr[16..24].try_into().unwrap());
-                    let tmp3 = u64::from_le_bytes(repr[24..32].try_into().unwrap());
-                    [tmp0, tmp1, tmp2, tmp3]
-                };
-
-                let get_lower_128 = |e: &$field| {
-                    let e = to_limbs(e);
-                    u128::from(e[0]) | (u128::from(e[1]) << 64)
-                };
-
-                let is_neg = |e: &$field| {
-                    let e = to_limbs(e);
-                    let (_, borrow) = sbb(0xffffffffffffffff, e[0], 0);
-                    let (_, borrow) = sbb(0xffffffffffffffff, e[1], borrow);
-                    let (_, borrow) = sbb(0xffffffffffffffff, e[2], borrow);
-                    let (_, borrow) = sbb(0x00, e[3], borrow);
-                    borrow & 1 != 0
-                };
-
-                let input = to_limbs(&k);
-                let c1 = mul_512($params.gamma2, input);
-                let c2 = mul_512($params.gamma1, input);
-                let c1 = [c1[4], c1[5], c1[6], c1[7]];
-                let c2 = [c2[4], c2[5], c2[6], c2[7]];
-                let q1 = mul_512(c1, $params.b1);
-                let q2 = mul_512(c2, $params.b2);
-                let q1 = $field::from_raw([q1[0], q1[1], q1[2], q1[3]]);
-                let q2 = $field::from_raw([q2[0], q2[1], q2[2], q2[3]]);
-                let k2 = q2 - q1;
-                let k1 = k + k2 * $field::ZETA;
-                let k1_neg = is_neg(&k1);
-                let k2_neg = is_neg(&k2);
-                let k1 = if k1_neg { -k1 } else { k1 };
-                let k2 = if k2_neg { -k2 } else { k2 };
-
-                (get_lower_128(&k1), k1_neg, get_lower_128(&k2), k2_neg)
-            }
+            (get_lower_128(&k1), k1_neg, get_lower_128(&k2), k2_neg)
         }
     };
 }
