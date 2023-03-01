@@ -117,13 +117,19 @@ const G2_GENERATOR_Y: Fq2 = Fq2 {
     ]),
 };
 
+// Generated using https://github.com/ConsenSys/gnark-crypto/blob/master/ecc/utils.go
+// with `bn256::Fr::ZETA`
+// See https://github.com/demining/Endomorphism-Secp256k1/blob/main/README.md
+// to have more details about the endomorphism.
 const ENDO_PARAMS: EndoParameters = EndoParameters {
+    // round(b2/n)
     gamma1: [
         0x7a7bd9d4391eb18du64,
         0x4ccef014a773d2cfu64,
         0x0000000000000002u64,
         0u64,
     ],
+    // round(-b1/n)
     gamma2: [0xd91d232ec7e0b3d7u64, 0x0000000000000002u64, 0u64, 0u64],
     b1: [0x8211bbeb7d4f1128u64, 0x6f4d8248eeb859fcu64, 0u64, 0u64],
     b2: [0x89d3256894d213e3u64, 0u64, 0u64, 0u64],
