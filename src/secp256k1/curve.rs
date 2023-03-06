@@ -1,3 +1,6 @@
+use crate::ff::WithSmallOrderMulGroup;
+use crate::ff::{Field, PrimeField};
+use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
 use crate::secp256k1::Fp;
 use crate::secp256k1::Fq;
 use crate::{Coordinates, CurveAffine, CurveAffineExt, CurveExt};
@@ -5,9 +8,6 @@ use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::WithSmallOrderMulGroup;
-use ff::{Field, PrimeField};
-use group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};

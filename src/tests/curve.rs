@@ -1,10 +1,10 @@
 #![allow(clippy::eq_op)]
 use std::io::Cursor;
 
+use crate::ff::Field;
+use crate::group::prime::PrimeCurveAffine;
 use crate::{group::GroupEncoding, serde::SerdeObject};
-use ff::Field;
-use group::prime::PrimeCurveAffine;
-use pasta_curves::arithmetic::{CurveAffine, CurveExt};
+use crate::{CurveAffine, CurveExt};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 

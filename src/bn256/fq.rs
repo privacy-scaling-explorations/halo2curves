@@ -5,10 +5,10 @@ use crate::{field_arithmetic, field_specific};
 
 use super::LegendreSymbol;
 use crate::arithmetic::{adc, mac, sbb};
+use crate::ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};

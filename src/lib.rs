@@ -13,7 +13,9 @@ mod derive;
 pub use arithmetic::CurveAffineExt;
 pub use pasta_curves::arithmetic::{Coordinates, CurveAffine, CurveExt};
 
-pub extern crate group;
+// Re-export ff and group to simplify down stream dependencies
+pub use ff;
+pub use group;
 
 #[cfg(test)]
 pub mod tests;

@@ -1,8 +1,8 @@
 use super::fq::{Fq, NEGATIVE_ONE};
 use super::LegendreSymbol;
+use crate::ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use core::convert::TryInto;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;

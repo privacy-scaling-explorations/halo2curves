@@ -1,8 +1,8 @@
 use super::fq::Fq;
 use super::fq2::Fq2;
 use super::fq6::Fq6;
+use crate::ff::Field;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::Field;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
