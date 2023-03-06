@@ -11,6 +11,7 @@ use ff::{Field, PrimeField};
 use group::Curve;
 use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
 use rand::RngCore;
+use serde::{Deserialize, Serialize};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::{

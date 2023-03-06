@@ -8,8 +8,8 @@ use core::ops::{Add, Mul, Neg, Sub};
 use ff::WithSmallOrderMulGroup;
 use ff::{Field, PrimeField};
 use group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
-
 use rand::RngCore;
+use serde::{Deserialize, Serialize};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 impl group::cofactor::CofactorGroup for Secp256k1 {
