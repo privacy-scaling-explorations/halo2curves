@@ -5,12 +5,15 @@ use crate::{field_arithmetic, field_specific};
 
 use super::LegendreSymbol;
 use crate::arithmetic::{adc, mac, sbb};
+use crate::ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+#[cfg(feature = "derive_serde")]
+use serde::{Deserialize, Serialize};
 
 /// This represents an element of $\mathbb{F}_q$ where
 ///
@@ -21,6 +24,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 // integers in little-endian order. `Fq` values are always in
 // Montgomery form; i.e., Fq(a) = aR mod q, with R = 2^256.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
 pub struct Fq(pub(crate) [u64; 4]);
 
 /// Constant representing the modulus
@@ -349,5 +353,7 @@ mod test {
     #[test]
     fn test_serialization() {
         crate::tests::field::random_serialization_test::<Fq>("fq".to_string());
+        #[cfg(feature = "derive_serde")]
+        crate::tests::field::random_serde_test::<Fq>("fq".to_string());
     }
 }

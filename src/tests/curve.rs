@@ -1,9 +1,13 @@
 #![allow(clippy::eq_op)]
+
+use crate::ff::Field;
+use crate::group::prime::PrimeCurveAffine;
 use crate::{group::GroupEncoding, serde::SerdeObject};
-use ff::Field;
-use group::prime::PrimeCurveAffine;
-use pasta_curves::arithmetic::{CurveAffine, CurveExt};
+use crate::{CurveAffine, CurveExt};
 use rand_core::OsRng;
+
+#[cfg(feature = "derive_serde")]
+use serde::{Deserialize, Serialize};
 
 pub fn curve_tests<G: CurveExt>() {
     is_on_curve::<G>();
@@ -38,6 +42,31 @@ fn serdes<G: CurveExt>() {
         assert_eq!(projective_point, projective_point_rec_unchecked);
         assert_eq!(affine_point, affine_point_rec);
         assert_eq!(affine_point, affine_point_rec_unchecked);
+    }
+}
+
+#[cfg(feature = "derive_serde")]
+pub fn random_serde_test<G>()
+where
+    G: SerdeObject + CurveExt + Serialize + for<'de> Deserialize<'de>,
+    G::AffineExt: SerdeObject + Serialize + for<'de> Deserialize<'de>,
+{
+    for _ in 0..100 {
+        let projective_point = G::random(OsRng);
+        let affine_point: G::AffineExt = projective_point.into();
+        {
+            let affine_bytes = bincode::serialize(&affine_point).unwrap();
+            let reader = std::io::Cursor::new(affine_bytes);
+            let affine_point_rec: G::AffineExt = bincode::deserialize_from(reader).unwrap();
+            assert_eq!(projective_point.to_affine(), affine_point_rec);
+            assert_eq!(affine_point, affine_point_rec);
+        }
+        {
+            let projective_bytes = bincode::serialize(&projective_point).unwrap();
+            let reader = std::io::Cursor::new(projective_bytes);
+            let projective_point_rec: G = bincode::deserialize_from(reader).unwrap();
+            assert_eq!(projective_point, projective_point_rec);
+        }
     }
 }
 

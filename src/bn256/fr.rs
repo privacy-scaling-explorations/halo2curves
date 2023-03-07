@@ -4,12 +4,15 @@ use super::assembly::field_arithmetic_asm;
 use crate::{field_arithmetic, field_specific};
 
 use crate::arithmetic::{adc, mac, sbb};
+use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+#[cfg(feature = "derive_serde")]
+use serde::{Deserialize, Serialize};
 
 /// This represents an element of $\mathbb{F}_r$ where
 ///
@@ -20,6 +23,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 // integers in little-endian order. `Fr` values are always in
 // Montgomery form; i.e., Fr(a) = aR mod r, with R = 2^256.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
 pub struct Fr(pub(crate) [u64; 4]);
 
 /// Constant representing the modulus
@@ -341,6 +345,8 @@ mod test {
     #[test]
     fn test_serialization() {
         crate::tests::field::random_serialization_test::<Fr>("fr".to_string());
+        #[cfg(feature = "derive_serde")]
+        crate::tests::field::random_serde_test::<Fr>("fr".to_string());
     }
 
     fn is_less_than(x: &[u64; 4], y: &[u64; 4]) -> bool {

@@ -1,17 +1,20 @@
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
+use crate::ff::WithSmallOrderMulGroup;
+use crate::ff::{Field, PrimeField};
+use crate::group::Curve;
+use crate::group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
 use crate::{Coordinates, CurveAffine, CurveAffineExt, CurveExt};
 use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::WithSmallOrderMulGroup;
-use ff::{Field, PrimeField};
-use group::Curve;
-use group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+#[cfg(feature = "derive_serde")]
+use serde::{Deserialize, Serialize};
 
 use crate::{
     batch_add, impl_add_binop_specify_output, impl_binops_additive,
@@ -201,5 +204,10 @@ mod tests {
     fn test_serialization() {
         crate::tests::curve::random_serialization_test::<G1>();
         crate::tests::curve::random_serialization_test::<G2>();
+        #[cfg(feature = "derive_serde")]
+        {
+            crate::tests::curve::random_serde_test::<G1>();
+            crate::tests::curve::random_serde_test::<G2>();
+        }
     }
 }

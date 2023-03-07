@@ -1,3 +1,6 @@
+use crate::ff::WithSmallOrderMulGroup;
+use crate::ff::{Field, PrimeField};
+use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
 use crate::secp256k1::Fp;
 use crate::secp256k1::Fq;
 use crate::{Coordinates, CurveAffine, CurveAffineExt, CurveExt};
@@ -5,12 +8,11 @@ use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::WithSmallOrderMulGroup;
-use ff::{Field, PrimeField};
-use group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
-
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+#[cfg(feature = "derive_serde")]
+use serde::{Deserialize, Serialize};
 
 impl group::cofactor::CofactorGroup for Secp256k1 {
     type Subgroup = Secp256k1;
@@ -77,6 +79,8 @@ fn test_curve() {
 #[test]
 fn test_serialization() {
     crate::tests::curve::random_serialization_test::<Secp256k1>();
+    #[cfg(feature = "derive_serde")]
+    crate::tests::curve::random_serde_test::<Secp256k1>();
 }
 
 #[test]

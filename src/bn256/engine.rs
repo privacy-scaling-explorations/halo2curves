@@ -5,13 +5,13 @@ use crate::bn256::fq12::*;
 use crate::bn256::fq2::*;
 use crate::bn256::fq6::FROBENIUS_COEFF_FQ6_C1;
 use crate::bn256::fr::*;
+use crate::ff::{Field, PrimeField};
+use crate::group::cofactor::CofactorCurveAffine;
+use crate::group::Group;
 use crate::pairing::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use core::borrow::Borrow;
 use core::iter::Sum;
 use core::ops::{Add, Mul, MulAssign, Neg, Sub};
-use ff::{Field, PrimeField};
-use group::cofactor::CofactorCurveAffine;
-use group::Group;
 use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
