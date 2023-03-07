@@ -1,10 +1,10 @@
-use std::io::Cursor;
-
 use crate::ff::Field;
 use crate::serde::SerdeObject;
 use ark_std::{end_timer, start_timer};
 use rand::{RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
+
+#[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
 
 pub fn random_field_tests<F: Field>(type_name: String) {
@@ -212,9 +212,7 @@ fn random_expansion_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
     end_timer!(start);
 }
 
-pub fn random_serialization_test<F: Field + SerdeObject + Serialize + for<'de> Deserialize<'de>>(
-    type_name: String,
-) {
+pub fn random_serialization_test<F: Field + SerdeObject>(type_name: String) {
     let mut rng = XorShiftRng::from_seed([
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
         0xe5,
@@ -232,13 +230,23 @@ pub fn random_serialization_test<F: Field + SerdeObject + Serialize + for<'de> D
         assert_eq!(a, b);
     }
     end_timer!(start);
+}
 
+#[cfg(feature = "derive_serde")]
+pub fn random_serde_test<F>(type_name: String)
+where
+    F: Field + SerdeObject + Serialize + for<'de> Deserialize<'de>,
+{
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
     let _message = format!("serialization with serde {}", type_name);
     let start = start_timer!(|| _message);
     for _ in 0..1000000 {
         let a = F::random(&mut rng);
         let bytes = bincode::serialize(&a).unwrap();
-        let reader = Cursor::new(bytes);
+        let reader = std::io::Cursor::new(bytes);
         let b: F = bincode::deserialize_from(reader).unwrap();
         assert_eq!(a, b);
     }

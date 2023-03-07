@@ -1,11 +1,12 @@
 #![allow(clippy::eq_op)]
-use std::io::Cursor;
 
 use crate::ff::Field;
 use crate::group::prime::PrimeCurveAffine;
 use crate::{group::GroupEncoding, serde::SerdeObject};
 use crate::{CurveAffine, CurveExt};
 use rand_core::OsRng;
+
+#[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
 
 pub fn curve_tests<G: CurveExt>() {
@@ -44,10 +45,35 @@ fn serdes<G: CurveExt>() {
     }
 }
 
-pub fn random_serialization_test<G: CurveExt + Serialize + for<'de> Deserialize<'de>>()
+#[cfg(feature = "derive_serde")]
+pub fn random_serde_test<G>()
+where
+    G: SerdeObject + CurveExt + Serialize + for<'de> Deserialize<'de>,
+    G::AffineExt: SerdeObject + Serialize + for<'de> Deserialize<'de>,
+{
+    for _ in 0..100 {
+        let projective_point = G::random(OsRng);
+        let affine_point: G::AffineExt = projective_point.into();
+        {
+            let affine_bytes = bincode::serialize(&affine_point).unwrap();
+            let reader = std::io::Cursor::new(affine_bytes);
+            let affine_point_rec: G::AffineExt = bincode::deserialize_from(reader).unwrap();
+            assert_eq!(projective_point.to_affine(), affine_point_rec);
+            assert_eq!(affine_point, affine_point_rec);
+        }
+        {
+            let projective_bytes = bincode::serialize(&projective_point).unwrap();
+            let reader = std::io::Cursor::new(projective_bytes);
+            let projective_point_rec: G = bincode::deserialize_from(reader).unwrap();
+            assert_eq!(projective_point, projective_point_rec);
+        }
+    }
+}
+
+pub fn random_serialization_test<G: CurveExt>()
 where
     G: SerdeObject,
-    G::AffineExt: SerdeObject + Serialize + for<'de> Deserialize<'de>,
+    G::AffineExt: SerdeObject,
 {
     for _ in 0..100 {
         let projective_point = G::random(OsRng);
@@ -68,24 +94,6 @@ where
         affine_point.write_raw(&mut buf).unwrap();
         let affine_point_rec = G::AffineExt::read_raw(&mut &buf[..]).unwrap();
         assert_eq!(affine_point, affine_point_rec);
-    }
-
-    for _ in 0..100 {
-        let projective_point = G::random(OsRng);
-        let affine_point: G::AffineExt = projective_point.into();
-        {
-            let affine_bytes = bincode::serialize(&affine_point).unwrap();
-            let reader = Cursor::new(affine_bytes);
-            let affine_point_rec: G::AffineExt = bincode::deserialize_from(reader).unwrap();
-            assert_eq!(projective_point.to_affine(), affine_point_rec);
-            assert_eq!(affine_point, affine_point_rec);
-        }
-        {
-            let projective_bytes = bincode::serialize(&projective_point).unwrap();
-            let reader = Cursor::new(projective_bytes);
-            let projective_point_rec: G = bincode::deserialize_from(reader).unwrap();
-            assert_eq!(projective_point, projective_point_rec);
-        }
     }
 }
 

@@ -11,8 +11,10 @@ use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
-use serde::{Deserialize, Serialize};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+#[cfg(feature = "derive_serde")]
+use serde::{Deserialize, Serialize};
 
 use crate::{
     batch_add, impl_add_binop_specify_output, impl_binops_additive,
@@ -202,5 +204,10 @@ mod tests {
     fn test_serialization() {
         crate::tests::curve::random_serialization_test::<G1>();
         crate::tests::curve::random_serialization_test::<G2>();
+        #[cfg(feature = "derive_serde")]
+        {
+            crate::tests::curve::random_serde_test::<G1>();
+            crate::tests::curve::random_serde_test::<G2>();
+        }
     }
 }

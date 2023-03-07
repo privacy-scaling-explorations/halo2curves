@@ -4,8 +4,10 @@ use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
-use serde::{Deserialize, Serialize};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+#[cfg(feature = "derive_serde")]
+use serde::{Deserialize, Serialize};
 
 /// This represents an element of $\mathbb{F}_q$ where
 ///
@@ -15,7 +17,8 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 // The internal representation of this type is four 64-bit unsigned
 // integers in little-endian order. `Fq` values are always in
 // Montgomery form; i.e., Fq(a) = aR mod q, with R = 2^256.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
 pub struct Fq(pub(crate) [u64; 4]);
 
 /// Constant representing the modulus
@@ -360,5 +363,7 @@ mod test {
     #[test]
     fn test_serialization() {
         crate::tests::field::random_serialization_test::<Fq>("secp256k1 scalar".to_string());
+        #[cfg(feature = "derive_serde")]
+        crate::tests::field::random_serde_test::<Fq>("secp256k1 scalar".to_string());
     }
 }

@@ -4,12 +4,15 @@ use crate::ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use core::convert::TryInto;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
-use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
+#[cfg(feature = "derive_serde")]
+use serde::{Deserialize, Serialize};
+
 /// An element of Fq2, represented by c0 + c1 * u.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
 pub struct Fq2 {
     pub c0: Fq,
     pub c1: Fq,
@@ -784,4 +787,6 @@ fn test_field() {
 #[test]
 fn test_serialization() {
     crate::tests::field::random_serialization_test::<Fq2>("fq2".to_string());
+    #[cfg(feature = "derive_serde")]
+    crate::tests::field::random_serde_test::<Fq2>("fq2".to_string());
 }
