@@ -194,10 +194,10 @@ mod tests {
     #[test]
     fn test_endo_consistency() {
         let g = G1::generator();
-        assert_eq!(g * Fr::ZETA, g.endo());
+        assert_eq!(g * (-Fr::ZETA), g.endo());
 
         let g = G2::generator();
-        assert_eq!(g * Fr::ZETA, g.endo());
+        assert_eq!(g * (-Fr::ZETA), g.endo());
     }
 
     #[test]
