@@ -200,6 +200,7 @@ macro_rules! new_curve_impl {
     $base:ident,
     $scalar:ident,
     $generator:expr,
+    $constant_a:expr,
     $constant_b:expr,
     $curve_id:literal,
     ) => {
@@ -255,7 +256,7 @@ macro_rules! new_curve_impl {
                         $base::from_bytes(&xbytes).and_then(|x| {
                             CtOption::new(Self::identity(), x.is_zero() & (is_inf)).or_else(|| {
                                 let x3 = x.square() * x;
-                                (x3 + $name::curve_constant_b()).sqrt().and_then(|y| {
+                                (x3 + $name::curve_constant_a() * x + $name::curve_constant_b()).sqrt().and_then(|y| {
                                     let sign = Choice::from(y.to_bytes()[0] & 1);
 
                                     let y = $base::conditional_select(&y, &-y, ysign ^ sign);
@@ -461,6 +462,10 @@ macro_rules! new_curve_impl {
                 }
             }
 
+            const fn curve_constant_a() -> $base {
+                $name_affine::curve_constant_a()
+            }
+
             const fn curve_constant_b() -> $base {
                 $name_affine::curve_constant_b()
             }
@@ -490,6 +495,10 @@ macro_rules! new_curve_impl {
                 }
             }
 
+            const fn curve_constant_a() -> $base {
+                $constant_a
+            }
+
             const fn curve_constant_b() -> $base {
                 $constant_b
             }
@@ -501,7 +510,7 @@ macro_rules! new_curve_impl {
                     let ysign = (rng.next_u32() % 2) as u8;
 
                     let x3 = x.square() * x;
-                    let y = (x3 + $name::curve_constant_b()).sqrt();
+                    let y = (x3 + $name::curve_constant_a() * x + $name::curve_constant_b()).sqrt();
                     if let Some(y) = Option::<$base>::from(y) {
                         let sign = y.to_bytes()[0] & 1;
                         let y = if ysign ^ sign == 0 { y } else { -y };
@@ -611,10 +620,10 @@ macro_rules! new_curve_impl {
             }
 
             fn is_on_curve(&self) -> Choice {
-                // Check (Y/Z)^2 = (X/Z)^3 + b
-                // <=>    Z Y^2 -  X^3 = Z^3 b
+                // Check (Y/Z)^2 = (X/Z)^3 + a(X/Z) + b
+                // <=>    Z Y^2 -  X^3 - a(X Z^2) = Z^3 b
 
-                (self.z * self.y.square()  - self.x.square() * self.x)
+                (self.z * self.y.square()  - self.x.square() * self.x - $name::curve_constant_a() * self.x * self.z.square())
                     .ct_eq(&(self.z.square() * self.z * $name::curve_constant_b()))
                     | self.z.is_zero()
             }
@@ -624,7 +633,7 @@ macro_rules! new_curve_impl {
             }
 
             fn a() -> Self::Base {
-                Self::Base::zero()
+                $name::curve_constant_a()
             }
 
             fn new_jacobian(x: Self::Base, y: Self::Base, z: Self::Base) -> CtOption<Self> {
@@ -698,25 +707,38 @@ macro_rules! new_curve_impl {
             }
 
             fn double(&self) -> Self {
-                // Algorithm 9, https://eprint.iacr.org/2015/1060.pdf
-                let t0 = self.y.square();
-                let z3 = t0 + t0;
-                let z3 = z3 + z3;
-                let z3 = z3 + z3;
-                let t1 = self.y * self.z;
+                // Algorithm 3, https://eprint.iacr.org/2015/1060.pdf
+                let t0 = self.x.square();
+                let t1 = self.y.square();
                 let t2 = self.z.square();
-                let t2 = $name::mul_by_3b(&t2);
-                let x3 = t2 * z3;
-                let y3 = t0 + t2;
-                let z3 = t1 * z3;
-                let t1 = t2 + t2;
-                let t2 = t1 + t2;
-                let t0 = t0 - t2;
-                let y3 = t0 * y3;
+                let t3 = self.x * self.y;
+                let t3 = t3 + t3;
+                let z3 = self.x * self.z;
+                let z3 = z3 + z3;
+                let x3 = $name::curve_constant_a() * z3;
+                let y3 = $name::mul_by_3b(&t2);
                 let y3 = x3 + y3;
-                let t1 = self.x * self.y;
-                let x3 = t0 * t1;
-                let x3 = x3 + x3;
+                let x3 = t1 - y3;
+                let y3 = t1 + y3;
+                let y3 = x3 * y3;
+                let x3 = t3 * x3;
+                let z3 = $name::mul_by_3b(&z3);
+                let t2 = $name::curve_constant_a() * t2;
+                let t3 = t0 - t2;
+                let t3 = $name::curve_constant_a() * t3;
+                let t3 = t3 + z3;
+                let z3 = t0 + t0;
+                let t0 = z3 + t0;
+                let t0 = t0 + t2;
+                let t0 = t0 * t3;
+                let y3 = y3 + t0;
+                let t2 = self.y * self.z;
+                let t2 = t2 + t2;
+                let t0 = t2 * t3;
+                let x3 = x3 - t0;
+                let z3 = t2 * t1;
+                let z3 = z3 + z3;
+                let z3 = z3 + z3;
 
                 let tmp = $name {
                     x: x3,
@@ -942,8 +964,8 @@ macro_rules! new_curve_impl {
             type CurveExt = $name;
 
             fn is_on_curve(&self) -> Choice {
-                // y^2 - x^3 ?= b
-                (self.y.square() - self.x.square() * self.x).ct_eq(&$name::curve_constant_b())
+                // y^2 - x^3 - ax ?= b
+                (self.y.square() - self.x.square() * self.x - $name::curve_constant_a() * self.x).ct_eq(&$name::curve_constant_b())
                     | self.is_identity()
             }
 
@@ -959,7 +981,7 @@ macro_rules! new_curve_impl {
             }
 
             fn a() -> Self::Base {
-                Self::Base::zero()
+                $name::curve_constant_a()
             }
 
             fn b() -> Self::Base {
@@ -1011,7 +1033,7 @@ macro_rules! new_curve_impl {
             type Output = $name;
 
             fn add(self, rhs: &'a $name) -> $name {
-                // Algorithm 7, https://eprint.iacr.org/2015/1060.pdf
+                // Algorithm 1, https://eprint.iacr.org/2015/1060.pdf
                 let t0 = self.x * rhs.x;
                 let t1 = self.y * rhs.y;
                 let t2 = self.z * rhs.z;
@@ -1020,30 +1042,37 @@ macro_rules! new_curve_impl {
                 let t3 = t3 * t4;
                 let t4 = t0 + t1;
                 let t3 = t3 - t4;
-                let t4 = self.y + self.z;
+                let t4 = self.x + self.z;
+                let t5 = rhs.x + rhs.z;
+                let t4 = t4 * t5;
+                let t5 = t0 + t2;
+                let t4 = t4 - t5;
+                let t5 = self.y + self.z;
                 let x3 = rhs.y + rhs.z;
-                let t4 = t4 * x3;
+                let t5 = t5 * x3;
                 let x3 = t1 + t2;
-                let t4 = t4 - x3;
-                let x3 = self.x + self.z;
-                let y3 = rhs.x + rhs.z;
-                let x3 = x3 * y3;
-                let y3 = t0 + t2;
-                let y3 = x3 - y3;
-                let x3 = t0 + t0;
-                let t0 = x3 + t0;
-                let t2 = $name::mul_by_3b(&t2);
-                let z3 = t1 + t2;
-                let t1 = t1 - t2;
-                let y3 = $name::mul_by_3b(&y3);
-                let x3 = t4 * y3;
-                let t2 = t3 * t1;
-                let x3 = t2 - x3;
-                let y3 = y3 * t0;
-                let t1 = t1 * z3;
-                let y3 = t1 + y3;
-                let t0 = t0 * t3;
-                let z3 = z3 * t4;
+                let t5 = t5 - x3;
+                let z3 = $name::curve_constant_a() * t4;
+                let x3 = $name::mul_by_3b(&t2);
+                let z3 = x3 + z3;
+                let x3 = t1 - z3;
+                let z3 = t1 + z3;
+                let y3 = x3 * z3;
+                let t1 = t0 + t0;
+                let t1 = t1 + t0;
+                let t2 = $name::curve_constant_a() * t2;
+                let t4 = $name::mul_by_3b(&t4);
+                let t1 = t1 + t2;
+                let t2 = t0 - t2;
+                let t2 = $name::curve_constant_a() * t2;
+                let t4 = t4 + t2;
+                let t0 = t1 * t4;
+                let y3 = y3 + t0;
+                let t0 = t5 * t4;
+                let x3 = t3 * x3;
+                let x3 = x3 - t0;
+                let t0 = t3 * t1;
+                let z3 = t5 * z3;
                 let z3 = z3 + t0;
 
                 $name {
@@ -1059,8 +1088,7 @@ macro_rules! new_curve_impl {
 
             // Mixed addition
             fn add(self, rhs: &'a $name_affine) -> $name {
-                // Algorithm 8, https://eprint.iacr.org/2015/1060.pdf
-
+                // Algorithm 2, https://eprint.iacr.org/2015/1060.pdf
                 let t0 = self.x * rhs.x;
                 let t1 = self.y * rhs.y;
                 let t3 = rhs.x + rhs.y;
@@ -1068,24 +1096,31 @@ macro_rules! new_curve_impl {
                 let t3 = t3 * t4;
                 let t4 = t0 + t1;
                 let t3 = t3 - t4;
-                let t4 = rhs.y * self.z;
-                let t4 = t4 + self.y;
-                let y3 = rhs.x * self.z;
-                let y3 = y3 + self.x;
-                let x3 = t0 + t0;
-                let t0 = x3 + t0;
-                let t2 = $name::mul_by_3b(&self.z);
-                let z3 = t1 + t2;
-                let t1 = t1 - t2;
-                let y3 = $name::mul_by_3b(&y3);
-                let x3 = t4 * y3;
-                let t2 = t3 * t1;
-                let x3 = t2 - x3;
-                let y3 = y3 * t0;
-                let t1 = t1 * z3;
-                let y3 = t1 + y3;
-                let t0 = t0 * t3;
-                let z3 = z3 * t4;
+                let t4 = rhs.x * self.z;
+                let t4 = t4 + self.x;
+                let t5 = rhs.y * self.z;
+                let t5 = t5 + self.y;
+                let z3 = $name::curve_constant_a() * t4;
+                let x3 = $name::mul_by_3b(&self.z);
+                let z3 = x3 + z3;
+                let x3 = t1 - z3;
+                let z3 = t1 + z3;
+                let y3 = x3 * z3;
+                let t1 = t0 + t0;
+                let t1 = t1 + t0;
+                let t2 = $name::curve_constant_a() * self.z;
+                let t4 = $name::mul_by_3b(&t4);
+                let t1 = t1 + t2;
+                let t2 = t0 - t2;
+                let t2 = $name::curve_constant_a() * t2;
+                let t4 = t4 + t2;
+                let t0 = t1 * t4;
+                let y3 = y3 + t0;
+                let t0 = t5 * t4;
+                let x3 = t3 * x3;
+                let x3 = x3 - t0;
+                let t0 = t3 * t1;
+                let z3 = t5 * z3;
                 let z3 = z3 + t0;
 
                 let tmp = $name{

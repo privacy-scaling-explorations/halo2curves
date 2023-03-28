@@ -7,6 +7,7 @@ pub mod grumpkin;
 pub mod pairing;
 pub mod pasta;
 pub mod secp256k1;
+pub mod secp256r1;
 pub mod serde;
 
 #[macro_use]

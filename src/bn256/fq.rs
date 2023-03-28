@@ -101,7 +101,6 @@ const TWO_INV: Fq = Fq::from_raw([
     0x183227397098d014,
 ]);
 
-// TODO: Can we simply put 0 here::
 const ROOT_OF_UNITY: Fq = Fq::zero();
 
 // Unused constant for base field
