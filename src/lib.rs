@@ -2,6 +2,7 @@
 
 mod arithmetic;
 
+pub mod bls12_381;
 pub mod bn256;
 pub mod pairing;
 pub mod pasta;
@@ -25,6 +26,7 @@ use group;
 
 #[cfg(test)]
 pub mod tests;
+mod util;
 
 #[cfg(all(feature = "prefetch", target_arch = "x86_64"))]
 #[inline(always)]

@@ -179,12 +179,12 @@ fn projective_addition<G: CurveExt>() {
 
     let a = G::identity();
     let a = a.double();
-    assert!(bool::from(c.is_on_curve()));
+    assert!(bool::from(a.is_on_curve()));
     assert!(bool::from(a.is_identity()));
 
     let a = G::generator();
     let a = a.double();
-    assert!(bool::from(c.is_on_curve()));
+    assert!(bool::from(a.is_on_curve()));
     assert_eq!(a, G::generator() + G::generator());
 
     let a = G::random(OsRng);
