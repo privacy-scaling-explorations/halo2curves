@@ -8,6 +8,9 @@ use std::convert::TryInto;
 use std::ops::{BitAnd, Deref};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
+#[cfg(feature = "derive_serde")]
+use serde::{Deserialize, Serialize};
+
 use crate::bls12_381::fp::Fp;
 use crate::{
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
@@ -15,6 +18,7 @@ use crate::{
 };
 
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
 pub struct Fp2 {
     pub c0: Fp,
     pub c1: Fp,

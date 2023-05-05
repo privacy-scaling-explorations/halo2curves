@@ -176,24 +176,24 @@ impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
 
 impl<T> core::iter::Sum<T> for Fr
-    where
-        T: core::borrow::Borrow<Fr>,
+where
+    T: core::borrow::Borrow<Fr>,
 {
     fn sum<I>(iter: I) -> Self
-        where
-            I: Iterator<Item = T>,
+    where
+        I: Iterator<Item = T>,
     {
         iter.fold(Self::zero(), |acc, item| acc + item.borrow())
     }
 }
 
 impl<T> core::iter::Product<T> for Fr
-    where
-        T: core::borrow::Borrow<Fr>,
+where
+    T: core::borrow::Borrow<Fr>,
 {
     fn product<I>(iter: I) -> Self
-        where
-            I: Iterator<Item = T>,
+    where
+        I: Iterator<Item = T>,
     {
         iter.fold(Self::one(), |acc, item| acc * item.borrow())
     }
@@ -882,7 +882,7 @@ fn test_from_bytes() {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0
         ])
-            .unwrap(),
+        .unwrap(),
         Fr::zero()
     );
 
@@ -891,7 +891,7 @@ fn test_from_bytes() {
             1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0
         ])
-            .unwrap(),
+        .unwrap(),
         Fr::one()
     );
 
@@ -900,7 +900,7 @@ fn test_from_bytes() {
             217, 7, 150, 185, 179, 11, 248, 37, 80, 231, 182, 102, 47, 214, 21, 243, 244, 20, 136,
             235, 238, 20, 37, 147, 198, 85, 145, 71, 111, 252, 166, 9
         ])
-            .unwrap(),
+        .unwrap(),
         R2
     );
 
@@ -910,7 +910,7 @@ fn test_from_bytes() {
             182, 44, 247, 214, 94, 14, 151, 208, 130, 16, 200, 204, 147, 32, 104, 166, 0, 59, 52,
             1, 1, 59, 103, 6, 169, 175, 51, 101, 234, 180, 125, 14
         ])
-            .is_some()
+        .is_some()
     ));
 
     // modulus is invalid
@@ -919,7 +919,7 @@ fn test_from_bytes() {
             183, 44, 247, 214, 94, 14, 151, 208, 130, 16, 200, 204, 147, 32, 104, 166, 0, 59, 52,
             1, 1, 59, 103, 6, 169, 175, 51, 101, 234, 180, 125, 14
         ])
-            .is_none()
+        .is_none()
     ));
 
     // Anything larger than the modulus is invalid
@@ -928,7 +928,7 @@ fn test_from_bytes() {
             184, 44, 247, 214, 94, 14, 151, 208, 130, 16, 200, 204, 147, 32, 104, 166, 0, 59, 52,
             1, 1, 59, 103, 6, 169, 175, 51, 101, 234, 180, 125, 14
         ])
-            .is_none()
+        .is_none()
     ));
 
     assert!(bool::from(
@@ -936,7 +936,7 @@ fn test_from_bytes() {
             183, 44, 247, 214, 94, 14, 151, 208, 130, 16, 200, 204, 147, 32, 104, 166, 0, 59, 52,
             1, 1, 59, 104, 6, 169, 175, 51, 101, 234, 180, 125, 14
         ])
-            .is_none()
+        .is_none()
     ));
 
     assert!(bool::from(
@@ -944,7 +944,7 @@ fn test_from_bytes() {
             183, 44, 247, 214, 94, 14, 151, 208, 130, 16, 200, 204, 147, 32, 104, 166, 0, 59, 52,
             1, 1, 59, 103, 6, 169, 175, 51, 101, 234, 180, 125, 15
         ])
-            .is_none()
+        .is_none()
     ));
 }
 

@@ -169,12 +169,12 @@ impl PartialEq for ExtendedPoint {
 }
 
 impl<T> Sum<T> for ExtendedPoint
-    where
-        T: Borrow<ExtendedPoint>,
+where
+    T: Borrow<ExtendedPoint>,
 {
     fn sum<I>(iter: I) -> Self
-        where
-            I: Iterator<Item = T>,
+    where
+        I: Iterator<Item = T>,
     {
         iter.fold(Self::identity(), |acc, item| acc + item.borrow())
     }
@@ -811,7 +811,7 @@ impl ExtendedPoint {
             z: vv_minus_uu,
             t: zz2 - vv_minus_uu,
         }
-            .into_extended()
+        .into_extended()
     }
 
     #[inline]
@@ -912,7 +912,7 @@ impl<'a, 'b> Add<&'b ExtendedNielsPoint> for &'a ExtendedPoint {
             z: d + c,
             t: d - c,
         }
-            .into_extended()
+        .into_extended()
     }
 }
 
@@ -932,7 +932,7 @@ impl<'a, 'b> Sub<&'b ExtendedNielsPoint> for &'a ExtendedPoint {
             z: d - c,
             t: d + c,
         }
-            .into_extended()
+        .into_extended()
     }
 }
 
@@ -960,7 +960,7 @@ impl<'a, 'b> Add<&'b AffineNielsPoint> for &'a ExtendedPoint {
             z: d + c,
             t: d - c,
         }
-            .into_extended()
+        .into_extended()
     }
 }
 
@@ -980,7 +980,7 @@ impl<'a, 'b> Sub<&'b AffineNielsPoint> for &'a ExtendedPoint {
             z: d - c,
             t: d + c,
         }
-            .into_extended()
+        .into_extended()
     }
 }
 
@@ -1176,12 +1176,12 @@ impl SubgroupPoint {
 }
 
 impl<T> Sum<T> for SubgroupPoint
-    where
-        T: Borrow<SubgroupPoint>,
+where
+    T: Borrow<SubgroupPoint>,
 {
     fn sum<I>(iter: I) -> Self
-        where
-            I: Iterator<Item = T>,
+    where
+        I: Iterator<Item = T>,
     {
         iter.fold(Self::identity(), |acc, item| acc + item.borrow())
     }
@@ -1267,11 +1267,11 @@ impl Group for ExtendedPoint {
             let v2 = v.square();
             let p = ((v2 - Fq::one())
                 * ((Fq::one() + EDWARDS_D * v2).invert().unwrap_or(Fq::zero())))
-                .sqrt()
-                .map(|u| AffinePoint {
-                    u: if flip_sign { -u } else { u },
-                    v,
-                });
+            .sqrt()
+            .map(|u| AffinePoint {
+                u: if flip_sign { -u } else { u },
+                v,
+            });
 
             if p.is_some().into() {
                 let p = p.unwrap().to_curve();
@@ -1566,7 +1566,7 @@ fn test_assoc() {
             0x3793_de18_2f9f_b1d2,
         ]),
     })
-        .mul_by_cofactor();
+    .mul_by_cofactor();
     assert!(p.is_on_curve_vartime());
 
     assert_eq!(
@@ -1591,7 +1591,7 @@ fn test_batch_normalize() {
             0x3793_de18_2f9f_b1d2,
         ]),
     })
-        .mul_by_cofactor();
+    .mul_by_cofactor();
 
     let mut v = vec![];
     for _ in 0..10 {
@@ -1837,7 +1837,7 @@ fn test_mul_consistency() {
             0x3793_de18_2f9f_b1d2,
         ]),
     })
-        .mul_by_cofactor();
+    .mul_by_cofactor();
     assert_eq!(p * c, (p * a) * b);
 
     // Test Mul implemented on ExtendedNielsPoint

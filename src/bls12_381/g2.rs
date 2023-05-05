@@ -7,9 +7,9 @@ use group::{prime::PrimeCurveAffine, Curve, Group, GroupEncoding};
 use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-#[cfg(feature = "alloc")]
-use group::WnafGroup;
 use pasta_curves::arithmetic::{Coordinates, CurveAffine, CurveExt};
+#[cfg(feature = "derive_serde")]
+use serde::{Deserialize, Serialize};
 
 use ff::WithSmallOrderMulGroup;
 use ff::{Field, PrimeField};

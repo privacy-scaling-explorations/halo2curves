@@ -10,6 +10,9 @@ use std::io::Write;
 use std::ops::Deref;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
+#[cfg(feature = "derive_serde")]
+use serde::{Deserialize, Serialize};
+
 use crate::util::{adc, mac, sbb};
 use crate::{
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
@@ -20,6 +23,7 @@ use crate::{
 // integers in little-endian order. `Fp` values are always in
 // Montgomery form; i.e., Scalar(a) = aR mod p, with R = 2^384.
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
 pub struct Fp(pub(crate) [u64; 6]);
 
 impl Ord for Fp {
@@ -872,7 +876,7 @@ impl crate::serde::SerdeObject for Fp {
             reader.read_exact(&mut buf).unwrap();
             u64::from_le_bytes(buf)
         });
-        Self( inner )
+        Self(inner)
     }
     fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
         let mut inner = [0u64; 6];

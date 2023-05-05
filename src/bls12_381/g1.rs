@@ -12,9 +12,9 @@ use ff::PrimeField;
 use ff::WithSmallOrderMulGroup;
 use group::cofactor::CofactorGroup;
 
-#[cfg(feature = "alloc")]
-use group::WnafGroup;
 use pasta_curves::arithmetic::{Coordinates, CurveAffine, CurveExt};
+#[cfg(feature = "derive_serde")]
+use serde::{Deserialize, Serialize};
 
 use crate::bls12_381::fp::Fp;
 use crate::bls12_381::Scalar;
