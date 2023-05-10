@@ -162,6 +162,12 @@ field_bits!(Fr, MODULUS);
 #[cfg(not(target_pointer_width = "64"))]
 field_bits!(Fr, MODULUS, MODULUS_LIMBS_32);
 
+impl Fr {
+    pub const fn size() -> usize {
+        32
+    }
+}
+
 impl ff::Field for Fr {
     const ZERO: Self = Self::zero();
     const ONE: Self = Self::one();
