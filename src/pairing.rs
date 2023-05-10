@@ -1,14 +1,14 @@
-use crate::ff::Field;
-use crate::group::{
+use crate::CurveAffine;
+use core::ops::Mul;
+use ff::PrimeField;
+use group::{
     prime::PrimeCurve, Group, GroupOps, GroupOpsOwned, ScalarMul, ScalarMulOwned,
     UncompressedEncoding,
 };
-use crate::CurveAffine;
-use core::ops::Mul;
 
 pub trait Engine: Sized + 'static + Clone {
     /// This is the scalar field of the engine's groups.
-    type Scalar: Field;
+    type Scalar: PrimeField;
 
     /// The projective representation of an element in G1.
     type G1: PrimeCurve<Scalar = Self::Scalar, Affine = Self::G1Affine>
