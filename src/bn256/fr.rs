@@ -33,7 +33,7 @@ pub struct Fr(pub(crate) [u64; 4]);
 
 /// Constant representing the modulus
 /// r = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001
-pub const MODULUS: Fr = Fr([
+const MODULUS: Fr = Fr([
     0x43e1f593f0000001,
     0x2833e84879b97091,
     0xb85045b68181585d,
@@ -191,7 +191,7 @@ impl ff::Field for Fr {
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
     fn invert(&self) -> CtOption<Self> {
-        let tmp = self.pow(&[
+        let tmp = self.pow([
             0x43e1f593efffffff,
             0x2833e84879b97091,
             0xb85045b68181585d,
@@ -209,7 +209,7 @@ impl ff::Field for Fr {
             0x098d014dc2822db4,
             0x0000000183227397,
         ];
-        ff::helpers::sqrt_tonelli_shanks(self, &T_MINUS1_OVER2)
+        ff::helpers::sqrt_tonelli_shanks(self, T_MINUS1_OVER2)
     }
 
     fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
@@ -332,11 +332,8 @@ mod test {
 
     #[test]
     fn test_delta() {
-        assert_eq!(Fr::DELTA, GENERATOR.pow(&[1u64 << Fr::S, 0, 0, 0]));
-        assert_eq!(
-            Fr::DELTA,
-            Fr::MULTIPLICATIVE_GENERATOR.pow(&[1u64 << Fr::S, 0, 0, 0])
-        );
+        assert_eq!(Fr::DELTA, GENERATOR.pow([1u64 << Fr::S]));
+        assert_eq!(Fr::DELTA, Fr::MULTIPLICATIVE_GENERATOR.pow([1u64 << Fr::S]));
     }
 
     #[test]

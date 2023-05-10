@@ -168,7 +168,7 @@ impl ff::Field for Fp {
 
     /// Computes the square root of this element, if it exists.
     fn sqrt(&self) -> CtOption<Self> {
-        let tmp = self.pow(&[
+        let tmp = self.pow([
             0xffffffffbfffff0c,
             0xffffffffffffffff,
             0xffffffffffffffff,
@@ -181,7 +181,7 @@ impl ff::Field for Fp {
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
     fn invert(&self) -> CtOption<Self> {
-        let tmp = self.pow_vartime(&[
+        let tmp = self.pow_vartime([
             0xfffffffefffffc2d,
             0xffffffffffffffff,
             0xffffffffffffffff,
@@ -334,18 +334,12 @@ mod test {
 
     #[test]
     fn test_delta() {
-        assert_eq!(
-            Fp::DELTA,
-            MULTIPLICATIVE_GENERATOR.pow(&[1u64 << Fp::S, 0, 0, 0])
-        );
+        assert_eq!(Fp::DELTA, MULTIPLICATIVE_GENERATOR.pow([1u64 << Fp::S]));
     }
 
     #[test]
     fn test_root_of_unity() {
-        assert_eq!(
-            Fp::ROOT_OF_UNITY.pow_vartime(&[1 << Fp::S, 0, 0, 0]),
-            Fp::one()
-        );
+        assert_eq!(Fp::ROOT_OF_UNITY.pow_vartime([1 << Fp::S]), Fp::one());
     }
 
     #[test]

@@ -34,7 +34,7 @@ pub struct Fq(pub(crate) [u64; 4]);
 
 /// Constant representing the modulus
 /// q = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-pub const MODULUS: Fq = Fq([
+const MODULUS: Fq = Fq([
     0x3c208c16d87cfd47,
     0x97816a916871ca8d,
     0xb85045b68181585d,
@@ -192,7 +192,7 @@ impl ff::Field for Fq {
 
     /// Computes the square root of this element, if it exists.
     fn sqrt(&self) -> CtOption<Self> {
-        let tmp = self.pow(&[
+        let tmp = self.pow([
             0x4f082305b61f3f52,
             0x65e05aa45a1c72a3,
             0x6e14116da0605617,
@@ -209,7 +209,7 @@ impl ff::Field for Fq {
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
     fn invert(&self) -> CtOption<Self> {
-        let tmp = self.pow(&[
+        let tmp = self.pow([
             0x3c208c16d87cfd45,
             0x97816a916871ca8d,
             0xb85045b68181585d,
