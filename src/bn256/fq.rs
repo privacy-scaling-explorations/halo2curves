@@ -1,11 +1,16 @@
 #[cfg(feature = "asm")]
-use super::assembly::field_arithmetic_asm;
+use crate::bn256::assembly::field_arithmetic_asm;
 #[cfg(not(feature = "asm"))]
 use crate::{field_arithmetic, field_specific};
 
-use super::LegendreSymbol;
 use crate::arithmetic::{adc, mac, sbb};
+use crate::bn256::LegendreSymbol;
 use crate::ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
+use crate::{
+    field_bits, field_common, impl_add_binop_specify_output, impl_binops_additive,
+    impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
+};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
@@ -35,6 +40,19 @@ pub const MODULUS: Fq = Fq([
     0xb85045b68181585d,
     0x30644e72e131a029,
 ]);
+
+/// The modulus as u32 limbs.
+#[cfg(not(target_pointer_width = "64"))]
+const MODULUS_LIMBS_32: [u32; 8] = [
+    0xd87c_fd47,
+    0x3c20_8c16,
+    0x6871_ca8d,
+    0x9781_6a91,
+    0x8181_585d,
+    0xb850_45b6,
+    0xe131_a029,
+    0x3064_4e72,
+];
 
 /// INV = -(q^{-1} mod 2^64) mod 2^64
 const INV: u64 = 0x87d20782e4866389;
@@ -100,11 +118,6 @@ const ZETA: Fq = Fq::from_raw([
     0x0u64,
 ]);
 
-use crate::{
-    field_common, impl_add_binop_specify_output, impl_binops_additive,
-    impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
-};
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
 field_common!(
@@ -121,10 +134,16 @@ field_common!(
     R3
 );
 impl_sum_prod!(Fq);
+
 #[cfg(not(feature = "asm"))]
 field_arithmetic!(Fq, MODULUS, INV, sparse);
 #[cfg(feature = "asm")]
 field_arithmetic_asm!(Fq, MODULUS, INV);
+
+#[cfg(target_pointer_width = "64")]
+field_bits!(Fq, MODULUS);
+#[cfg(not(target_pointer_width = "64"))]
+field_bits!(Fq, MODULUS, MODULUS_LIMBS_32);
 
 impl Fq {
     pub const fn size() -> usize {

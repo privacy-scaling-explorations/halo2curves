@@ -1,5 +1,10 @@
 use crate::arithmetic::{adc, mac, sbb};
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
+use crate::{
+    field_arithmetic, field_bits, field_common, field_specific, impl_add_binop_specify_output,
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
+};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
@@ -106,11 +111,6 @@ const ROOT_OF_UNITY_INV: Fp = Fp([
     0xffffffffffffffffu64,
 ]);
 
-use crate::{
-    field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
-    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
-};
 impl_binops_additive!(Fp, Fp);
 impl_binops_multiplicative!(Fp, Fp);
 field_common!(
@@ -128,6 +128,11 @@ field_common!(
 );
 field_arithmetic!(Fp, MODULUS, INV, dense);
 impl_sum_prod!(Fp);
+
+#[cfg(target_pointer_width = "64")]
+field_bits!(Fp, MODULUS);
+#[cfg(not(target_pointer_width = "64"))]
+field_bits!(Fp, MODULUS, MODULUS_LIMBS_32);
 
 impl Fp {
     pub const fn size() -> usize {

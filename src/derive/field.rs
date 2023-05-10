@@ -574,3 +574,61 @@ macro_rules! field_specific {
         }
     };
 }
+
+#[macro_export]
+macro_rules! field_bits {
+    // For #[cfg(target_pointer_width = "64")]
+    ($field:ident, $modulus:ident) => {
+        #[cfg(feature = "bits")]
+        #[cfg_attr(docsrs, doc(cfg(feature = "bits")))]
+        impl ::ff::PrimeFieldBits for $field {
+            type ReprBits = [u64; 4];
+
+            fn to_le_bits(&self) -> ::ff::FieldBits<Self::ReprBits> {
+                let bytes = self.to_repr();
+
+                let limbs = [
+                    u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
+                    u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
+                    u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
+                    u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
+                ];
+
+                ::ff::FieldBits::new(limbs)
+            }
+
+            fn char_le_bits() -> ::ff::FieldBits<Self::ReprBits> {
+                ::ff::FieldBits::new($modulus.0)
+            }
+        }
+    };
+    // For #[cfg(not(target_pointer_width = "64"))]
+    ($field:ident, $modulus:ident, $modulus_limbs_32:ident) => {
+        #[cfg(feature = "bits")]
+        #[cfg_attr(docsrs, doc(cfg(feature = "bits")))]
+        impl ::ff::PrimeFieldBits for $field {
+            type ReprBits = [u32; 8];
+
+            fn to_le_bits(&self) -> ::ff::FieldBits<Self::ReprBits> {
+                let bytes = self.to_repr();
+
+                let limbs = [
+                    u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[4..8].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[8..12].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[12..16].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[16..20].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[20..24].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[24..28].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[28..32].try_into().unwrap()),
+                ];
+
+                ::ff::FieldBits::new(limbs)
+            }
+
+            fn char_le_bits() -> ::ff::FieldBits<Self::ReprBits> {
+                ::ff::FieldBits::new($modulus_limbs_32)
+            }
+        }
+    };
+}

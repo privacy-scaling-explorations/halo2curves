@@ -1,10 +1,15 @@
 #[cfg(feature = "asm")]
-use super::assembly::field_arithmetic_asm;
+use crate::bn256::assembly::field_arithmetic_asm;
 #[cfg(not(feature = "asm"))]
 use crate::{field_arithmetic, field_specific};
 
 use crate::arithmetic::{adc, mac, sbb};
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
+use crate::{
+    field_bits, field_common, impl_add_binop_specify_output, impl_binops_additive,
+    impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
+};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
@@ -34,6 +39,19 @@ pub const MODULUS: Fr = Fr([
     0xb85045b68181585d,
     0x30644e72e131a029,
 ]);
+
+/// The modulus as u32 limbs.
+#[cfg(not(target_pointer_width = "64"))]
+const MODULUS_LIMBS_32: [u32; 8] = [
+    0xf000_0001,
+    0x43e1_f593,
+    0x79b9_7091,
+    0x2833_e848,
+    0x8181_585d,
+    0xb850_45b6,
+    0xe131_a029,
+    0x3064_4e72,
+];
 
 const MODULUS_STR: &str = "0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001";
 
@@ -117,11 +135,6 @@ const ZETA: Fr = Fr::from_raw([
     0x00,
 ]);
 
-use crate::{
-    field_common, impl_add_binop_specify_output, impl_binops_additive,
-    impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
-};
 impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
 field_common!(
@@ -138,10 +151,16 @@ field_common!(
     R3
 );
 impl_sum_prod!(Fr);
+
 #[cfg(not(feature = "asm"))]
 field_arithmetic!(Fr, MODULUS, INV, sparse);
 #[cfg(feature = "asm")]
 field_arithmetic_asm!(Fr, MODULUS, INV);
+
+#[cfg(target_pointer_width = "64")]
+field_bits!(Fr, MODULUS);
+#[cfg(not(target_pointer_width = "64"))]
+field_bits!(Fr, MODULUS, MODULUS_LIMBS_32);
 
 impl ff::Field for Fr {
     const ZERO: Self = Self::zero();
