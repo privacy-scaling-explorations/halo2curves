@@ -162,6 +162,17 @@ macro_rules! new_curve_impl {
                 #[derive(Copy, Clone)]
                 pub struct [<$name Compressed >]([u8; [< $name _COMPRESSED_SIZE >]]);
 
+                impl [< $name Compressed >] {
+                    pub fn from_slice(slice: &[u8]) -> Result<Self, &'static str> {
+                        if slice.len() != [< $name _COMPRESSED_SIZE >] {
+                            return Err("Slice length not match");
+                        }
+                        let mut c = [0u8; [< $name _COMPRESSED_SIZE >]];
+                        c.copy_from_slice(slice);
+                        Ok(Self(c))
+                    }
+                }
+
                 // Compressed
                 impl std::fmt::Debug for [< $name Compressed >] {
                     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
