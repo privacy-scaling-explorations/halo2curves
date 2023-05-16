@@ -360,6 +360,12 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "bits")]
+    fn test_bits() {
+        crate::tests::field::random_bits_tests::<Fq>("secp256k1 scalar".to_string());
+    }
+
+    #[test]
     fn test_serialization() {
         crate::tests::field::random_serialization_test::<Fq>("secp256k1 scalar".to_string());
         #[cfg(feature = "derive_serde")]

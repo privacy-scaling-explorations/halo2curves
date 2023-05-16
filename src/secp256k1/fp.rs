@@ -353,6 +353,12 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "bits")]
+    fn test_bits() {
+        crate::tests::field::random_bits_tests::<Fp>("secp256k1 base".to_string());
+    }
+
+    #[test]
     fn test_serialization() {
         crate::tests::field::random_serialization_test::<Fp>("secp256k1 base".to_string());
         #[cfg(feature = "derive_serde")]

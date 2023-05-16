@@ -359,6 +359,12 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "bits")]
+    fn test_bits() {
+        crate::tests::field::random_bits_tests::<Fr>("fr".to_string());
+    }
+
+    #[test]
     fn test_serialization() {
         crate::tests::field::random_serialization_test::<Fr>("fr".to_string());
         #[cfg(feature = "derive_serde")]
