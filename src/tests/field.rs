@@ -212,6 +212,25 @@ fn random_expansion_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
     end_timer!(start);
 }
 
+#[cfg(feature = "bits")]
+pub fn random_bits_tests<F: ff::PrimeFieldBits>(type_name: String) {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+    let _message = format!("to_le_bits {}", type_name);
+    let start = start_timer!(|| _message);
+    for _ in 0..1000000 {
+        let a = F::random(&mut rng);
+        let bytes = a.to_repr();
+        let bits = a.to_le_bits();
+        for idx in 0..bits.len() {
+            assert_eq!(bits[idx], ((bytes.as_ref()[idx / 8] >> (idx % 8)) & 1) == 1);
+        }
+    }
+    end_timer!(start);
+}
+
 pub fn random_serialization_test<F: Field + SerdeObject>(type_name: String) {
     let mut rng = XorShiftRng::from_seed([
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,

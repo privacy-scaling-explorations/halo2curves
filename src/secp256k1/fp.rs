@@ -1,5 +1,10 @@
 use crate::arithmetic::{adc, mac, sbb};
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
+use crate::{
+    field_arithmetic, field_bits, field_common, field_specific, impl_add_binop_specify_output,
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
+};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
@@ -106,11 +111,6 @@ const ROOT_OF_UNITY_INV: Fp = Fp([
     0xffffffffffffffffu64,
 ]);
 
-use crate::{
-    field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
-    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
-};
 impl_binops_additive!(Fp, Fp);
 impl_binops_multiplicative!(Fp, Fp);
 field_common!(
@@ -128,6 +128,11 @@ field_common!(
 );
 field_arithmetic!(Fp, MODULUS, INV, dense);
 impl_sum_prod!(Fp);
+
+#[cfg(target_pointer_width = "64")]
+field_bits!(Fp, MODULUS);
+#[cfg(not(target_pointer_width = "64"))]
+field_bits!(Fp, MODULUS, MODULUS_LIMBS_32);
 
 impl Fp {
     pub const fn size() -> usize {
@@ -163,7 +168,7 @@ impl ff::Field for Fp {
 
     /// Computes the square root of this element, if it exists.
     fn sqrt(&self) -> CtOption<Self> {
-        let tmp = self.pow(&[
+        let tmp = self.pow([
             0xffffffffbfffff0c,
             0xffffffffffffffff,
             0xffffffffffffffff,
@@ -176,7 +181,7 @@ impl ff::Field for Fp {
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
     fn invert(&self) -> CtOption<Self> {
-        let tmp = self.pow_vartime(&[
+        let tmp = self.pow_vartime([
             0xfffffffefffffc2d,
             0xffffffffffffffff,
             0xffffffffffffffff,
@@ -329,18 +334,12 @@ mod test {
 
     #[test]
     fn test_delta() {
-        assert_eq!(
-            Fp::DELTA,
-            MULTIPLICATIVE_GENERATOR.pow(&[1u64 << Fp::S, 0, 0, 0])
-        );
+        assert_eq!(Fp::DELTA, MULTIPLICATIVE_GENERATOR.pow([1u64 << Fp::S]));
     }
 
     #[test]
     fn test_root_of_unity() {
-        assert_eq!(
-            Fp::ROOT_OF_UNITY.pow_vartime(&[1 << Fp::S, 0, 0, 0]),
-            Fp::one()
-        );
+        assert_eq!(Fp::ROOT_OF_UNITY.pow_vartime([1 << Fp::S]), Fp::one());
     }
 
     #[test]
@@ -351,6 +350,12 @@ mod test {
     #[test]
     fn test_field() {
         crate::tests::field::random_field_tests::<Fp>("secp256k1 base".to_string());
+    }
+
+    #[test]
+    #[cfg(feature = "bits")]
+    fn test_bits() {
+        crate::tests::field::random_bits_tests::<Fp>("secp256k1 base".to_string());
     }
 
     #[test]

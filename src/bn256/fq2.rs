@@ -364,7 +364,7 @@ impl Field for Fq2 {
                 0x6e14116da0605617,
                 0x0c19139cb84c680a,
             ];
-            let mut a1 = self.pow(&u);
+            let mut a1 = self.pow(u);
             let mut alpha = a1;
 
             alpha.square_assign();
@@ -398,7 +398,7 @@ impl Field for Fq2 {
                         0xdc2822db40c0ac2e,
                         0x183227397098d014,
                     ];
-                    alpha = alpha.pow(&u);
+                    alpha = alpha.pow(u);
                     a1.mul_assign(&alpha);
                 }
                 CtOption::new(a1, Choice::from(1))
@@ -765,7 +765,7 @@ fn test_frobenius() {
             let mut b = a;
 
             for _ in 0..i {
-                a = a.pow(&[
+                a = a.pow([
                     0x3c208c16d87cfd47,
                     0x97816a916871ca8d,
                     0xb85045b68181585d,

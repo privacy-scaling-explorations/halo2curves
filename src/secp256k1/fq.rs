@@ -1,5 +1,10 @@
 use crate::arithmetic::{adc, mac, sbb};
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
+use crate::{
+    field_arithmetic, field_bits, field_common, field_specific, impl_add_binop_specify_output,
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
+};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
@@ -118,11 +123,6 @@ const DELTA: Fq = Fq([
     0x1900960de4b7929c,
 ]);
 
-use crate::{
-    field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
-    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
-};
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
 field_common!(
@@ -140,6 +140,11 @@ field_common!(
 );
 field_arithmetic!(Fq, MODULUS, INV, dense);
 impl_sum_prod!(Fq);
+
+#[cfg(target_pointer_width = "64")]
+field_bits!(Fq, MODULUS);
+#[cfg(not(target_pointer_width = "64"))]
+field_bits!(Fq, MODULUS, MODULUS_LIMBS_32);
 
 impl Fq {
     pub const fn size() -> usize {
@@ -176,7 +181,7 @@ impl ff::Field for Fq {
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
     fn invert(&self) -> CtOption<Self> {
-        let tmp = self.pow_vartime(&[
+        let tmp = self.pow_vartime([
             0xbfd25e8cd036413f,
             0xbaaedce6af48a03b,
             0xfffffffffffffffe,
@@ -212,7 +217,7 @@ impl ff::Field for Fq {
             0x01ffffffffffffff,
         ];
 
-        ff::helpers::sqrt_tonelli_shanks(self, &tm1d2)
+        ff::helpers::sqrt_tonelli_shanks(self, tm1d2)
     }
 
     fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
@@ -336,18 +341,12 @@ mod test {
 
     #[test]
     fn test_delta() {
-        assert_eq!(
-            Fq::DELTA,
-            Fq::MULTIPLICATIVE_GENERATOR.pow(&[1u64 << Fq::S, 0, 0, 0])
-        );
+        assert_eq!(Fq::DELTA, Fq::MULTIPLICATIVE_GENERATOR.pow([1u64 << Fq::S]));
     }
 
     #[test]
     fn test_root_of_unity() {
-        assert_eq!(
-            Fq::ROOT_OF_UNITY.pow_vartime(&[1 << Fq::S, 0, 0, 0]),
-            Fq::one()
-        );
+        assert_eq!(Fq::ROOT_OF_UNITY.pow_vartime([1 << Fq::S]), Fq::one());
     }
 
     #[test]
@@ -358,6 +357,12 @@ mod test {
     #[test]
     fn test_field() {
         crate::tests::field::random_field_tests::<Fq>("secp256k1 scalar".to_string());
+    }
+
+    #[test]
+    #[cfg(feature = "bits")]
+    fn test_bits() {
+        crate::tests::field::random_bits_tests::<Fq>("secp256k1 scalar".to_string());
     }
 
     #[test]

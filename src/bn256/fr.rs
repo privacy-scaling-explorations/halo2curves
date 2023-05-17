@@ -1,10 +1,15 @@
 #[cfg(feature = "asm")]
-use super::assembly::field_arithmetic_asm;
+use crate::bn256::assembly::field_arithmetic_asm;
 #[cfg(not(feature = "asm"))]
 use crate::{field_arithmetic, field_specific};
 
 use crate::arithmetic::{adc, mac, sbb};
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
+use crate::{
+    field_bits, field_common, impl_add_binop_specify_output, impl_binops_additive,
+    impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
+};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
@@ -28,12 +33,25 @@ pub struct Fr(pub(crate) [u64; 4]);
 
 /// Constant representing the modulus
 /// r = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001
-pub const MODULUS: Fr = Fr([
+const MODULUS: Fr = Fr([
     0x43e1f593f0000001,
     0x2833e84879b97091,
     0xb85045b68181585d,
     0x30644e72e131a029,
 ]);
+
+/// The modulus as u32 limbs.
+#[cfg(not(target_pointer_width = "64"))]
+const MODULUS_LIMBS_32: [u32; 8] = [
+    0xf000_0001,
+    0x43e1_f593,
+    0x79b9_7091,
+    0x2833_e848,
+    0x8181_585d,
+    0xb850_45b6,
+    0xe131_a029,
+    0x3064_4e72,
+];
 
 const MODULUS_STR: &str = "0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001";
 
@@ -117,11 +135,6 @@ const ZETA: Fr = Fr::from_raw([
     0x00,
 ]);
 
-use crate::{
-    field_common, impl_add_binop_specify_output, impl_binops_additive,
-    impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
-};
 impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
 field_common!(
@@ -138,10 +151,16 @@ field_common!(
     R3
 );
 impl_sum_prod!(Fr);
+
 #[cfg(not(feature = "asm"))]
 field_arithmetic!(Fr, MODULUS, INV, sparse);
 #[cfg(feature = "asm")]
 field_arithmetic_asm!(Fr, MODULUS, INV);
+
+#[cfg(target_pointer_width = "64")]
+field_bits!(Fr, MODULUS);
+#[cfg(not(target_pointer_width = "64"))]
+field_bits!(Fr, MODULUS, MODULUS_LIMBS_32);
 
 impl ff::Field for Fr {
     const ZERO: Self = Self::zero();
@@ -172,7 +191,7 @@ impl ff::Field for Fr {
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
     fn invert(&self) -> CtOption<Self> {
-        let tmp = self.pow(&[
+        let tmp = self.pow([
             0x43e1f593efffffff,
             0x2833e84879b97091,
             0xb85045b68181585d,
@@ -190,7 +209,7 @@ impl ff::Field for Fr {
             0x098d014dc2822db4,
             0x0000000183227397,
         ];
-        ff::helpers::sqrt_tonelli_shanks(self, &T_MINUS1_OVER2)
+        ff::helpers::sqrt_tonelli_shanks(self, T_MINUS1_OVER2)
     }
 
     fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
@@ -313,11 +332,8 @@ mod test {
 
     #[test]
     fn test_delta() {
-        assert_eq!(Fr::DELTA, GENERATOR.pow(&[1u64 << Fr::S, 0, 0, 0]));
-        assert_eq!(
-            Fr::DELTA,
-            Fr::MULTIPLICATIVE_GENERATOR.pow(&[1u64 << Fr::S, 0, 0, 0])
-        );
+        assert_eq!(Fr::DELTA, GENERATOR.pow([1u64 << Fr::S]));
+        assert_eq!(Fr::DELTA, Fr::MULTIPLICATIVE_GENERATOR.pow([1u64 << Fr::S]));
     }
 
     #[test]
@@ -340,6 +356,12 @@ mod test {
                 0xaaaaaaaaaaaaaaaa
             ])
         );
+    }
+
+    #[test]
+    #[cfg(feature = "bits")]
+    fn test_bits() {
+        crate::tests::field::random_bits_tests::<Fr>("fr".to_string());
     }
 
     #[test]
