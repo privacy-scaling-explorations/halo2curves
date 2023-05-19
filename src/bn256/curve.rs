@@ -183,6 +183,7 @@ mod tests {
     use crate::bn256::{Fr, G1, G2};
     use crate::CurveExt;
     use ff::WithSmallOrderMulGroup;
+    use group::Group;
 
     #[test]
     fn test_curve() {
@@ -208,5 +209,15 @@ mod tests {
             crate::tests::curve::random_serde_test::<G1>();
             crate::tests::curve::random_serde_test::<G2>();
         }
+    }
+
+    #[test]
+    fn test_hash_to_curve() {
+        let hash = G1::hash_to_curve("halo2curves:test");
+        let p: G1 = hash(b"gen point now");
+        assert!(bool::from(p.is_on_curve()));
+        let p = (p * -Fr::one()) + p;
+        assert!(bool::from(p.is_on_curve()));
+        assert!(bool::from(p.is_identity()));
     }
 }
