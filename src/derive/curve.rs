@@ -565,8 +565,17 @@ macro_rules! new_curve_impl {
             }
 
 
-            fn hash_to_curve<'a>(_: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a> {
-                unimplemented!();
+            fn hash_to_curve<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a> {
+               use crate::derive::hashtocurve; 
+               Box::new(move |message| {
+                  let mut us = [Field::ZERO; 2];
+                  hashtocurve::hash_to_field($name::CURVE_ID, domain_prefix, message, &mut us);
+                  let q0: Self = hashtocurve::try_and_increment(&us[0]);
+                  let q1: Self  = hashtocurve::try_and_increment(&us[1]);
+                  let r: Self = q0 + &q1;
+                  debug_assert!(bool::from(r.is_on_curve()));
+                  r
+              })
             }
 
             fn is_on_curve(&self) -> Choice {
