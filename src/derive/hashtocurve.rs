@@ -1,5 +1,4 @@
-//! This module implements "simplified SWU" hashing to short Weierstrass curves
-//! with a = 0.
+//! This module implements "try and increment" hashing to short Weierstrass curves
 //! hash_to_field is from: https://github.com/zcash/pasta_curves
 
 use ff::{FromUniformBytes, PrimeField};
