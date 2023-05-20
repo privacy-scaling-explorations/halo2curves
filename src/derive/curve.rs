@@ -206,7 +206,7 @@ macro_rules! new_curve_impl {
                         let bytes = &bytes.0;
                         let mut tmp = *bytes;
                         let is_inf = Choice::from(tmp[[< $name _COMPRESSED_SIZE >] - 1] >> 7);
-                        let ysign = Choice::from(tmp[[< $name _COMPRESSED_SIZE >] - 1] >> 6);
+                        let ysign = Choice::from((tmp[[< $name _COMPRESSED_SIZE >] - 1] >> 6) & 1);
                         tmp[[< $name _COMPRESSED_SIZE >] - 1] &= 0b0011_1111;
                         let mut xbytes = [0u8; $base::size()];
                         xbytes.copy_from_slice(&tmp[ ..$base::size()]);
