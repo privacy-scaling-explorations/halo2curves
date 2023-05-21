@@ -564,9 +564,8 @@ macro_rules! new_curve_impl {
                 (x, y, self.z)
             }
 
-
             fn hash_to_curve<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a> {
-               use crate::derive::hashtocurve; 
+               use crate::derive::hashtocurve;
                Box::new(move |message| {
                   let mut us = [Field::ZERO; 2];
                   hashtocurve::hash_to_field($name::CURVE_ID, domain_prefix, message, &mut us);

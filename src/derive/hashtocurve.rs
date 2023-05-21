@@ -1,17 +1,16 @@
-//! This module implements "try and increment" hashing to short Weierstrass curves
-//! hash_to_field is from: https://github.com/zcash/pasta_curves
+// This module implements "try and increment" hashing to short Weierstrass curves
+// hash_to_field is from: https://github.com/zcash/pasta_curves
 
+use crate::CurveExt;
 use ff::{FromUniformBytes, PrimeField};
 use static_assertions::const_assert;
 
-use crate::CurveExt;
+// TODO: use simplified swu algorithm
 
-// TODO: use simplified swu algorithm 
-
-pub fn try_and_increment<F:PrimeField, C:CurveExt<Base=F>>(t: &F) -> C {
+pub fn try_and_increment<F: PrimeField, C: CurveExt<Base = F>>(t: &F) -> C {
     let mut x = *t;
     loop {
-        let y2 = (x*x + C::a()) * x + C::b();
+        let y2 = (x * x + C::a()) * x + C::b();
         let y = y2.sqrt();
         if bool::from(y.is_some()) {
             return C::new_jacobian(x, y.unwrap(), C::Base::ONE).unwrap();
