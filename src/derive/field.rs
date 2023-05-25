@@ -1,4 +1,15 @@
 #[macro_export]
+macro_rules! impl_from_u64 {
+    ($field:ident, $r2:ident) => {
+        impl From<u64> for $field {
+            fn from(val: u64) -> $field {
+                $field([val, 0, 0, 0]) * $r2
+            }
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! field_common {
     (
         $field:ident,
@@ -167,12 +178,6 @@ macro_rules! field_common {
                 } else {
                     $field::zero()
                 }
-            }
-        }
-
-        impl From<u64> for $field {
-            fn from(val: u64) -> $field {
-                $field([val, 0, 0, 0]) * $r2
             }
         }
 

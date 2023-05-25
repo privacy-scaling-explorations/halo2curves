@@ -34,13 +34,14 @@ paste = "1.0.11"
 serde = { version = "1.0", default-features = false, optional = true }
 
 [features]
-default = ["reexport", "bits"]
+default = ["reexport", "bits", "bn256-table"]
 asm = []
+bits = ["ff/bits"]
+bn256-table = []
+derive_serde = ["serde/derive"]
 prefetch = []
 print-trace = ["ark-std/print-trace"]
-derive_serde = ["serde/derive"]
 reexport = []
-bits = ["ff/bits"]
 
 [profile.bench]
 opt-level = 3
