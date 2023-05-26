@@ -150,7 +150,6 @@ const ZETA: Fr = Fr::from_raw([
     0x00,
 ]);
 
-
 impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
 field_common!(
