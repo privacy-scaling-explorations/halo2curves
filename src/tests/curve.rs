@@ -4,7 +4,8 @@ use crate::ff::Field;
 use crate::group::prime::PrimeCurveAffine;
 use crate::{group::GroupEncoding, serde::SerdeObject};
 use crate::{CurveAffine, CurveExt};
-use rand_core::OsRng;
+use rand_core::{OsRng, RngCore};
+use std::iter;
 
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
@@ -312,5 +313,17 @@ fn multiplication<G: CurveExt>() {
         let s3 = s1 + s2;
         t1 = a * s3;
         assert_eq!(t0, t1);
+    }
+}
+
+pub fn hash_to_curve_test<G: CurveExt>() {
+    let hasher = G::hash_to_curve("test");
+    let mut rng = OsRng;
+    for _ in 0..1000 {
+        let message = iter::repeat_with(|| rng.next_u32().to_be_bytes())
+            .take(32)
+            .flatten()
+            .collect::<Vec<_>>();
+        assert!(bool::from(hasher(&message).is_on_curve()));
     }
 }

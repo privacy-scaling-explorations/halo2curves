@@ -10,6 +10,7 @@ use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::Curve;
 use crate::group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
+use crate::hash_to_curve::svdw_map_to_curve;
 use crate::{
     batch_add, impl_add_binop_specify_output, impl_binops_additive,
     impl_binops_additive_specify_output, impl_binops_multiplicative,
@@ -38,6 +39,7 @@ new_curve_impl!(
     G1_A,
     G1_B,
     "bn256_g1",
+    |curve_id, domain_prefix| svdw_map_to_curve(curve_id, domain_prefix, Fq::ONE),
 );
 
 new_curve_impl!(
@@ -51,6 +53,7 @@ new_curve_impl!(
     G2_A,
     G2_B,
     "bn256_g2",
+    |_, _| unimplemented!(),
 );
 
 impl CurveAffineExt for G1Affine {
@@ -222,6 +225,11 @@ mod tests {
     use ff::PrimeField;
     use ff::WithSmallOrderMulGroup;
     use rand_core::OsRng;
+
+    #[test]
+    fn test_hash_to_curve() {
+        crate::tests::curve::hash_to_curve_test::<G1>();
+    }
 
     #[test]
     fn test_curve() {

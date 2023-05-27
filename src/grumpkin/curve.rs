@@ -4,6 +4,7 @@ use crate::group::Curve;
 use crate::group::{prime::PrimeCurveAffine, Group, GroupEncoding};
 use crate::grumpkin::Fq;
 use crate::grumpkin::Fr;
+use crate::hash_to_curve::svdw_map_to_curve;
 use crate::{
     batch_add, impl_add_binop_specify_output, impl_binops_additive,
     impl_binops_additive_specify_output, impl_binops_multiplicative,
@@ -31,6 +32,7 @@ new_curve_impl!(
     G1_A,
     G1_B,
     "grumpkin_g1",
+    |curve_id, domain_prefix| svdw_map_to_curve(curve_id, domain_prefix, Fq::ONE),
 );
 
 impl CurveAffineExt for G1Affine {
@@ -79,6 +81,11 @@ mod tests {
     use crate::grumpkin::{Fr, G1};
     use crate::CurveExt;
     use ff::WithSmallOrderMulGroup;
+
+    #[test]
+    fn test_hash_to_curve() {
+        crate::tests::curve::hash_to_curve_test::<G1>();
+    }
 
     #[test]
     fn test_curve() {
