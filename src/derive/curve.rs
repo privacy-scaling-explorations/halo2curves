@@ -202,6 +202,7 @@ macro_rules! new_curve_impl {
     $generator:expr,
     $constant_b:expr,
     $curve_id:literal,
+    $hash_to_curve:expr,
     ) => {
 
         macro_rules! impl_compressed {
@@ -606,8 +607,8 @@ macro_rules! new_curve_impl {
             }
 
 
-            fn hash_to_curve<'a>(_: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a> {
-                unimplemented!();
+            fn hash_to_curve<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a> {
+                $hash_to_curve($curve_id, domain_prefix)
             }
 
             fn is_on_curve(&self) -> Choice {

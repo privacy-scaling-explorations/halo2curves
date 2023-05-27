@@ -1,13 +1,15 @@
 #![cfg_attr(feature = "asm", feature(asm_const))]
+#![allow(clippy::op_ref)]
 
 mod arithmetic;
+pub mod hash_to_curve;
+pub mod pairing;
+pub mod serde;
 
 pub mod bn256;
 pub mod grumpkin;
-pub mod pairing;
 pub mod pasta;
 pub mod secp256k1;
-pub mod serde;
 
 #[macro_use]
 mod derive;
