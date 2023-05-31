@@ -32,13 +32,14 @@ num-bigint = "0.4.3"
 num-traits = "0.2"
 paste = "1.0.11"
 serde = { version = "1.0", default-features = false, optional = true }
+serde_arrays = { version = "0.1.0", optional = true }
 
 [features]
 default = ["reexport", "bits"]
 asm = []
 bits = ["ff/bits"]
 bn256-table = []
-derive_serde = ["serde/derive"]
+derive_serde = ["serde/derive", "serde_arrays"]
 prefetch = []
 print-trace = ["ark-std/print-trace"]
 reexport = []
