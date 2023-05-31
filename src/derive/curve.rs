@@ -159,8 +159,9 @@ macro_rules! new_curve_impl {
 
                 #[allow(non_upper_case_globals)]
                 const [< $name _COMPRESSED_SIZE >]: usize = if $flags_extra_byte {$base::size() + 1} else {$base::size()};
-                #[derive(Copy, Clone)]
-                pub struct [<$name Compressed >]([u8; [< $name _COMPRESSED_SIZE >]]);
+                #[derive(Copy, Clone, PartialEq, Eq)]
+                #[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
+                pub struct [<$name Compressed >](#[cfg_attr(feature = "derive_serde", serde(with = "serde_arrays"))] [u8; [< $name _COMPRESSED_SIZE >]]);
 
                 // Compressed
                 impl std::fmt::Debug for [< $name Compressed >] {
