@@ -3,3 +3,6 @@ Cargo.lock
 **/*.rs.bk
 .vscode
 **/*.html
+
+# script generated source code
+src/bn256/fr/table.rs
