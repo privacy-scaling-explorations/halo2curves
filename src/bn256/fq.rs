@@ -101,13 +101,24 @@ const TWO_INV: Fq = Fq::from_raw([
     0x183227397098d014,
 ]);
 
-const ROOT_OF_UNITY: Fq = Fq::zero();
+/// `0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd46`
+const ROOT_OF_UNITY: Fq = Fq::from_raw([
+    0x3c208c16d87cfd46,
+    0x97816a916871ca8d,
+    0xb85045b68181585d,
+    0x30644e72e131a029,
+]);
 
-// Unused constant for base field
-const ROOT_OF_UNITY_INV: Fq = Fq::zero();
+/// `0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd46`
+const ROOT_OF_UNITY_INV: Fq = Fq::from_raw([
+    0x3c208c16d87cfd46,
+    0x97816a916871ca8d,
+    0xb85045b68181585d,
+    0x30644e72e131a029,
+]);
 
-// Unused constant for base field
-const DELTA: Fq = Fq::zero();
+// `0x9`
+const DELTA: Fq = Fq::from_raw([0x9, 0, 0, 0]);
 
 /// `ZETA^3 = 1 mod r` where `ZETA^2 != 1 mod r`
 const ZETA: Fq = Fq::from_raw([
