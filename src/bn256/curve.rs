@@ -5,6 +5,7 @@ use crate::arithmetic::EndoParameters;
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
+use crate::endo;
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::Curve;
@@ -14,7 +15,6 @@ use crate::{
     impl_binops_additive_specify_output, impl_binops_multiplicative,
     impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, new_curve_impl,
 };
-use crate::endo;
 use crate::{Coordinates, CurveAffine, CurveAffineExt, CurveExt};
 use core::cmp;
 use core::fmt::Debug;
