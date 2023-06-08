@@ -116,7 +116,6 @@ const G2_GENERATOR_Y: Fq2 = Fq2 {
         0x090689d0585ff075,
     ]),
 };
-
 // Generated using https://github.com/ConsenSys/gnark-crypto/blob/master/ecc/utils.go
 // with `bn256::Fr::ZETA`
 // See https://github.com/demining/Endomorphism-Secp256k1/blob/main/README.md

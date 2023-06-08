@@ -26,15 +26,15 @@ def decompose_field_element(a):
 #          4 u64 a0, a1, a2, a3 s.t.
 #          a = a3 * 2^192 + a2 * 2^128 + a1 * 2^64 + a0
 def format_field_element(a):
-    [a0, a1, a2, a3] = decompose_field_element(a);
+    [a0, a1, a2, a3] = decompose_field_element(a)
     return "Fr([" + hex(a0) + "," + hex(a1) + "," + hex(a2) + "," + hex(a3) + "]),\n"
 
 
-f = open("src/bn256/fr/table.rs", "w")
+f = open("src/bn256/fr_internal/table.rs", "w")
 f.write("//! auto generated file from scripts/bn256.sage, do not modify\n")
 f.write("//! see src/bn256/fr.rs for more details\n")
-f.write("use super::Fr;\n")
-f.write("pub const FR_TABLE: &[Fr] = &[\n")
+f.write("use crate::bn256::fr_internal::Fr;\n")
+f.write("pub const FR_TABLE: [Fr; " + hex(table_size) + "] = [\n")
 
 for i in range(table_size):
     a = (i * R) % modulus

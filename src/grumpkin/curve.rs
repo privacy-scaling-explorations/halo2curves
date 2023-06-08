@@ -42,13 +42,33 @@ impl CurveAffineExt for G1Affine {
 
 // Parameters in montgomery form taken from
 // https://github.com/AztecProtocol/barretenberg/blob/97ccf76c42db581a8b8f8bfbcffe8ca015a3dd22/cpp/src/barretenberg/ecc/curves/grumpkin/grumpkin.hpp#L14
-const G1_GENERATOR_X: Fq = Fq::one();
+const G1_GENERATOR_X: Fq = Fq::ONE;
+
+#[cfg(feature = "maybe_u64")]
+const G1_GENERATOR_Y: Fq = Fq::Full(crate::bn256::FrInternal([
+    0x11b2dff1448c41d8,
+    0x23d3446f21c77dc3,
+    0xaa7b8cf435dfafbb,
+    0x14b34cf69dc25d68,
+]));
+
+#[cfg(not(feature = "maybe_u64"))]
 const G1_GENERATOR_Y: Fq = Fq([
     0x11b2dff1448c41d8,
     0x23d3446f21c77dc3,
     0xaa7b8cf435dfafbb,
     0x14b34cf69dc25d68,
 ]);
+
+#[cfg(feature = "maybe_u64")]
+const G1_B: Fq = Fq::Full(crate::bn256::FrInternal([
+    0xdd7056026000005a,
+    0x223fa97acb319311,
+    0xcc388229877910c0,
+    0x034394632b724eaa,
+]));
+
+#[cfg(not(feature = "maybe_u64"))]
 const G1_B: Fq = Fq([
     0xdd7056026000005a,
     0x223fa97acb319311,

@@ -9,6 +9,11 @@ pub mod pasta;
 pub mod secp256k1;
 pub mod serde;
 
+#[cfg(feature = "maybe_u64")]
+pub mod maybe_u64;
+#[cfg(feature = "maybe_u64")]
+pub use maybe_u64::{MaybeU64, MaybeU64Coversion};
+
 #[macro_use]
 mod derive;
 pub use arithmetic::CurveAffineExt;

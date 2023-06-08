@@ -751,14 +751,25 @@ fn random_bilinearity_tests() {
         let mut cd = c;
         cd.mul_assign(&d);
 
-        cd *= Fr([1, 0, 0, 0]);
+        let base = Bn256::pairing(&G1Affine::from(a), &G2Affine::from(b)).0;
 
-        let abcd = Gt(Bn256::pairing(&G1Affine::from(a), &G2Affine::from(b))
-            .0
-            .pow_vartime(cd.0));
+        #[cfg(not(feature = "maybe_u64"))]
+        {
+            cd *= Fr([1, 0, 0, 0]);
+            let abcd = Gt(base.pow_vartime(cd.0));
+        }
+
+        #[cfg(feature = "maybe_u64")]
+        {
+            cd *= crate::MaybeU64::Full(FrInternal([1, 0, 0, 0]));
+            let abcd = match cd {
+                crate::MaybeU64::Full(b) => Gt(base.pow_vartime(b.0.as_ref())),
+                crate::MaybeU64::U64(a) => Gt(base.pow_vartime(&[a])),
+            };
+            assert_eq!(acbd, abcd);
+        }
 
         assert_eq!(acbd, adbc);
-        assert_eq!(acbd, abcd);
     }
 }
 

@@ -6,7 +6,7 @@ fn main() {
     }
     #[cfg(feature = "bn256-table")]
     {
-        if std::path::Path::new("src/bn256/fr/table.rs").exists() {
+        if std::path::Path::new("src/bn256/fr_internal/table.rs").exists() {
             eprintln!("Pre-computed table for BN256 scalar field exists.");
             eprintln!("Skip pre-computation\n");
         } else {

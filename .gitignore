@@ -5,4 +5,4 @@ Cargo.lock
 **/*.html
 
 # script generated source code
-src/bn256/fr/table.rs
+src/bn256/fr_internal/table.rs

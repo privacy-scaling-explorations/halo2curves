@@ -27,7 +27,7 @@ macro_rules! batch_add {
             // - y_3 = lambda * (x_1 - x_3) - y_1
 
             // Batch invert accumulator
-            let mut acc = Self::Base::one();
+            let mut acc = Self::Base::ONE;
 
             for i in (0..num_points).step_by(2) {
                 // Where that result of the point addition will be stored
@@ -413,10 +413,10 @@ macro_rules! new_curve_impl {
                             let mut res = [0; [< $name _UNCOMPRESSED_SIZE >]];
 
                             res[0..$base::size()].copy_from_slice(
-                                &$base::conditional_select(&self.x, &$base::zero(), self.is_identity()).to_bytes()[..],
+                                &$base::conditional_select(&self.x, &$base::ZERO, self.is_identity()).to_bytes()[..],
                             );
                             res[$base::size().. 2*$base::size()].copy_from_slice(
-                                &$base::conditional_select(&self.y, &$base::zero(), self.is_identity()).to_bytes()[..],
+                                &$base::conditional_select(&self.y, &$base::ZERO, self.is_identity()).to_bytes()[..],
                             );
 
                             res[[< $name _UNCOMPRESSED_SIZE >] - 1] |= u8::conditional_select(&0u8, &(1u8 << 6), self.is_identity());
@@ -457,7 +457,7 @@ macro_rules! new_curve_impl {
                 Self {
                     x: generator.x,
                     y: generator.y,
-                    z: $base::one(),
+                    z: $base::ONE,
                 }
             }
 
@@ -624,17 +624,17 @@ macro_rules! new_curve_impl {
             }
 
             fn a() -> Self::Base {
-                Self::Base::zero()
+                Self::Base::ZERO
             }
 
             fn new_jacobian(x: Self::Base, y: Self::Base, z: Self::Base) -> CtOption<Self> {
                 // Jacobian to homogenous
-                let z_inv = z.invert().unwrap_or($base::zero());
+                let z_inv = z.invert().unwrap_or($base::ZERO);
                 let p_x = x * z_inv;
                 let p_y = y * z_inv.square();
                 let p = $name {
                     x:p_x,
-                    y:$base::conditional_select(&p_y, &$base::one(), z.is_zero()),
+                    y:$base::conditional_select(&p_y, &$base::ONE, z.is_zero()),
                     z
                 };
                 CtOption::new(p, p.is_on_curve())
@@ -648,7 +648,7 @@ macro_rules! new_curve_impl {
             fn batch_normalize(p: &[Self], q: &mut [Self::AffineRepr]) {
                 assert_eq!(p.len(), q.len());
 
-                let mut acc = $base::one();
+                let mut acc = $base::ONE;
                 for (p, q) in p.iter().zip(q.iter_mut()) {
                     // We use the `x` field of $name_affine to store the product
                     // of previous z-coordinates seen.
@@ -679,7 +679,7 @@ macro_rules! new_curve_impl {
             }
 
             fn to_affine(&self) -> Self::AffineRepr {
-                let zinv = self.z.invert().unwrap_or($base::zero());
+                let zinv = self.z.invert().unwrap_or($base::ZERO);
                 let x = self.x * zinv;
                 let y = self.y * zinv;
                 let tmp = $name_affine {
@@ -733,9 +733,9 @@ macro_rules! new_curve_impl {
 
             fn identity() -> Self {
                 Self {
-                    x: $base::zero(),
-                    y: $base::one(),
-                    z: $base::zero(),
+                    x: $base::ZERO,
+                    y: $base::ONE,
+                    z: $base::ZERO,
                 }
             }
 
@@ -895,8 +895,8 @@ macro_rules! new_curve_impl {
 
             fn identity() -> Self {
                 Self {
-                    x: $base::zero(),
-                    y: $base::zero(),
+                    x: $base::ZERO,
+                    y: $base::ZERO,
                 }
             }
 
@@ -908,7 +908,7 @@ macro_rules! new_curve_impl {
                 let tmp = $name {
                     x: self.x,
                     y: self.y,
-                    z: $base::one(),
+                    z: $base::ONE,
                 };
                 $name::conditional_select(&tmp, &$name::identity(), self.is_identity())
             }
@@ -959,7 +959,7 @@ macro_rules! new_curve_impl {
             }
 
             fn a() -> Self::Base {
-                Self::Base::zero()
+                Self::Base::ZERO
             }
 
             fn b() -> Self::Base {

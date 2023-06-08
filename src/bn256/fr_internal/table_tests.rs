@@ -1,4 +1,5 @@
-use crate::bn256::{Fr, FR_TABLE};
+use crate::bn256::fr_internal::Fr;
+use crate::bn256::FR_TABLE;
 
 #[test]
 fn test_table() {

@@ -35,7 +35,9 @@ serde = { version = "1.0", default-features = false, optional = true }
 serde_arrays = { version = "0.1.0", optional = true }
 
 [features]
-default = ["reexport", "bits"]
+default = [ "reexport", "bits", "maybe_u64" ]
+# maybe_u64 uses u64 to store a field element when possible
+maybe_u64 = [ ]
 asm = []
 bits = ["ff/bits"]
 bn256-table = []
