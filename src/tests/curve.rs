@@ -27,12 +27,6 @@ fn serdes<G: CurveExt>() {
         let projective_repr = projective_point.to_bytes();
         let affine_repr = affine_point.to_bytes();
 
-        println!(
-            "{:?} \n{:?}",
-            projective_repr.as_ref(),
-            affine_repr.as_ref()
-        );
-
         let projective_point_rec = G::from_bytes(&projective_repr).unwrap();
         let projective_point_rec_unchecked = G::from_bytes(&projective_repr).unwrap();
         let affine_point_rec = G::AffineExt::from_bytes(&affine_repr).unwrap();

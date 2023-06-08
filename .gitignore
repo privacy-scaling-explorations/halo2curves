@@ -4,5 +4,8 @@ Cargo.lock
 .vscode
 **/*.html
 
+# log files
+*.log
+
 # script generated source code
 src/bn256/fr_internal/table.rs

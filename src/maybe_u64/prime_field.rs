@@ -29,7 +29,7 @@ where
         let is_u64 = repr.iter().skip(8).all(|x| *x == 0);
         if is_u64 {
             CtOption::new(
-                Self::U64(u64::from_le_bytes(repr[..0].try_into().unwrap())),
+                Self::U64(u64::from_le_bytes(repr[..8].try_into().unwrap())),
                 1.into(),
             )
         } else {
