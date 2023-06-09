@@ -56,3 +56,7 @@ codegen-units = 1
 [[bench]]
 name = "less_than"
 harness = false
+
+[[bench]]
+name = "bn256_field"
+harness = false
