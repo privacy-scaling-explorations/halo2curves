@@ -37,7 +37,7 @@ new_curve_impl!(
     Fr,
     (G1_GENERATOR_X,G1_GENERATOR_Y),
     G1_B,
-    "bn256_g1",
+    "BN254G1",
     |curve_id, domain_prefix| svdw_map_to_curve(curve_id, domain_prefix, Fq::ONE),
 );
 
@@ -209,18 +209,55 @@ impl CofactorGroup for G2 {
 
 #[cfg(test)]
 mod tests {
-
     use crate::arithmetic::CurveEndo;
-    use crate::bn256::{Fr, G1, G2};
+    use crate::bn256::{Fr, G1Affine, G1, G2};
+    use crate::tests::from_hex;
     use crate::CurveExt;
     use ff::Field;
     use ff::PrimeField;
     use ff::WithSmallOrderMulGroup;
+    use group::Curve;
+    use pasta_curves::arithmetic::CurveAffine;
     use rand_core::OsRng;
 
     #[test]
     fn test_hash_to_curve() {
         crate::tests::curve::hash_to_curve_test::<G1>();
+
+        // Test vector taken from https://github.com/ConsenSys/gnark-crypto/blob/441dc0ffe639294b8d09e394f24ba7575577229c/ecc/bn254/hash_vectors_test.go#L29
+        let domain_prefix = "QUUX-V01-CS02-with";
+        let hasher = G1::hash_to_curve(domain_prefix);
+        for (message, x, y) in [
+            (
+                "",
+                "0xa976ab906170db1f9638d376514dbf8c42aef256a54bbd48521f20749e59e86",
+                "0x2925ead66b9e68bfc309b014398640ab55f6619ab59bc1fab2210ad4c4d53d5",
+            ),
+            (
+                "abc",
+                "0x23f717bee89b1003957139f193e6be7da1df5f1374b26a4643b0378b5baf53d1",
+                "0x4142f826b71ee574452dbc47e05bc3e1a647478403a7ba38b7b93948f4e151d",
+            ),
+            (
+                "abcdef0123456789",
+                "0x187dbf1c3c89aceceef254d6548d7163fdfa43084145f92c4c91c85c21442d4a",
+                "0xabd99d5b0000910b56058f9cc3b0ab0a22d47cf27615f588924fac1e5c63b4d",
+            ),
+            (
+                "q128_qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",
+                "0xfe2b0743575324fc452d590d217390ad48e5a16cf051bee5c40a2eba233f5c",
+                "0x794211e0cc72d3cbbdf8e4e5cd6e7d7e78d101ff94862caae8acbe63e9fdc78",
+            ),
+            (
+                "a512_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "0x1b05dc540bd79fd0fea4fbb07de08e94fc2e7bd171fe025c479dc212a2173ce",
+                "0x1bf028afc00c0f843d113758968f580640541728cfc6d32ced9779aa613cd9b0",
+            ),
+        ] {
+            let output = G1Affine::from_xy(from_hex(x), from_hex(y)).unwrap();
+            let a = hasher(message.as_bytes()).to_affine();
+            assert_eq!(a, output)
+        }
     }
 
     #[test]

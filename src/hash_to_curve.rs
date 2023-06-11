@@ -1,6 +1,10 @@
 use ff::{Field, FromUniformBytes, PrimeField};
+use num_bigint::BigUint;
+use num_traits::Num;
 use pasta_curves::arithmetic::CurveExt;
+use sha2::{Digest, Sha256};
 use static_assertions::const_assert;
+use std::iter;
 use subtle::{ConditionallySelectable, ConstantTimeEq};
 
 /// Hashes over a message and writes the output to all of `buf`.
@@ -15,69 +19,89 @@ fn hash_to_field<F: FromUniformBytes<64>>(
     assert!(domain_prefix.len() < 256);
     assert!((18 + method.len() + curve_id.len() + domain_prefix.len()) < 256);
 
-    // Assume that the field size is 32 bytes and k is 256, where k is defined in
+    // Assume that the field size is 32 bytes and k is 128, where k is defined in
     // <https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-10.html#name-security-considerations-3>.
-    const CHUNKLEN: usize = 64;
+    const CHUNKLEN: usize = 48;
     const_assert!(CHUNKLEN * 2 < 256);
 
-    // Input block size of BLAKE2b.
-    const R_IN_BYTES: usize = 128;
+    // Input block size of SHA-256.
+    const R_IN_BYTES: usize = 64;
 
-    let personal = [0u8; 16];
-    let empty_hasher = blake2b_simd::Params::new()
-        .hash_length(CHUNKLEN)
-        .personal(&personal)
-        .to_state();
+    let empty_hasher = Sha256::new();
 
     let b_0 = empty_hasher
         .clone()
-        .update(&[0; R_IN_BYTES])
-        .update(message)
-        .update(&[0, (CHUNKLEN * 2) as u8, 0])
-        .update(domain_prefix.as_bytes())
-        .update(b"-")
-        .update(curve_id.as_bytes())
-        .update(b"_XMD:BLAKE2b_")
-        .update(method.as_bytes())
-        .update(b"_RO_")
-        .update(&[(18 + method.len() + curve_id.len() + domain_prefix.len()) as u8])
+        .chain_update(&[0; R_IN_BYTES])
+        .chain_update(message)
+        .chain_update(&[0, (CHUNKLEN * 2) as u8, 0])
+        .chain_update(domain_prefix.as_bytes())
+        .chain_update(b"-")
+        .chain_update(curve_id.as_bytes())
+        .chain_update(b"_XMD:SHA-256_")
+        .chain_update(method.as_bytes())
+        .chain_update(b"_RO_")
+        .chain_update(&[(18 + method.len() + curve_id.len() + domain_prefix.len()) as u8])
         .finalize();
 
     let b_1 = empty_hasher
         .clone()
-        .update(b_0.as_array())
-        .update(&[1])
-        .update(domain_prefix.as_bytes())
-        .update(b"-")
-        .update(curve_id.as_bytes())
-        .update(b"_XMD:BLAKE2b_")
-        .update(method.as_bytes())
-        .update(b"_RO_")
-        .update(&[(18 + method.len() + curve_id.len() + domain_prefix.len()) as u8])
+        .chain_update(b_0.as_slice())
+        .chain_update(&[1])
+        .chain_update(domain_prefix.as_bytes())
+        .chain_update(b"-")
+        .chain_update(curve_id.as_bytes())
+        .chain_update(b"_XMD:SHA-256_")
+        .chain_update(method.as_bytes())
+        .chain_update(b"_RO_")
+        .chain_update(&[(18 + method.len() + curve_id.len() + domain_prefix.len()) as u8])
         .finalize();
 
     let b_2 = {
-        let mut empty_hasher = empty_hasher;
-        for (l, r) in b_0.as_array().iter().zip(b_1.as_array().iter()) {
+        let mut empty_hasher = empty_hasher.clone();
+        for (l, r) in b_0.as_slice().iter().zip(b_1.as_slice().iter()) {
             empty_hasher.update(&[*l ^ *r]);
         }
         empty_hasher
-            .update(&[2])
-            .update(domain_prefix.as_bytes())
-            .update(b"-")
-            .update(curve_id.as_bytes())
-            .update(b"_XMD:BLAKE2b_")
-            .update(method.as_bytes())
-            .update(b"_RO_")
-            .update(&[(18 + method.len() + curve_id.len() + domain_prefix.len()) as u8])
+            .chain_update(&[2])
+            .chain_update(domain_prefix.as_bytes())
+            .chain_update(b"-")
+            .chain_update(curve_id.as_bytes())
+            .chain_update(b"_XMD:SHA-256_")
+            .chain_update(method.as_bytes())
+            .chain_update(b"_RO_")
+            .chain_update(&[(18 + method.len() + curve_id.len() + domain_prefix.len()) as u8])
             .finalize()
     };
 
-    for (big, buf) in [b_1, b_2].iter().zip(buf.iter_mut()) {
-        let mut little = [0u8; CHUNKLEN];
-        little.copy_from_slice(big.as_array());
-        little.reverse();
-        *buf = F::from_uniform_bytes(&little);
+    let b_3 = {
+        let mut empty_hasher = empty_hasher;
+        for (l, r) in b_0.as_slice().iter().zip(b_2.as_slice().iter()) {
+            empty_hasher.update(&[*l ^ *r]);
+        }
+        empty_hasher
+            .chain_update(&[3])
+            .chain_update(domain_prefix.as_bytes())
+            .chain_update(b"-")
+            .chain_update(curve_id.as_bytes())
+            .chain_update(b"_XMD:SHA-256_")
+            .chain_update(method.as_bytes())
+            .chain_update(b"_RO_")
+            .chain_update(&[(18 + method.len() + curve_id.len() + domain_prefix.len()) as u8])
+            .finalize()
+    };
+
+    let bytes = iter::empty()
+        .chain(b_1)
+        .chain(b_2)
+        .chain(b_3)
+        .collect::<Vec<_>>();
+
+    let modulus = &BigUint::from_str_radix(&F::MODULUS[2..], 16).unwrap();
+    for (bytes, buf) in bytes.chunks(CHUNKLEN).zip(buf.iter_mut()) {
+        let reduced_bytes_le = (BigUint::from_bytes_be(bytes) % modulus).to_bytes_le();
+        let mut repr = F::Repr::default();
+        repr.as_mut()[..reduced_bytes_le.len()].copy_from_slice(&reduced_bytes_le);
+        *buf = F::from_repr(repr).unwrap();
     }
 }
 
