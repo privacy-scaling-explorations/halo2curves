@@ -122,7 +122,7 @@ const DELTA: Fq = Fq::from_raw([0x1e39a5057d81, 0, 0, 0]);
 use crate::{
     field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
     impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod, impl_from_u64,
 };
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
@@ -139,6 +139,7 @@ field_common!(
     R2,
     R3
 );
+impl_from_u64!(Fq, R2);
 field_arithmetic!(Fq, MODULUS, INV, dense);
 impl_sum_prod!(Fq);
 

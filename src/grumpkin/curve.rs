@@ -28,6 +28,7 @@ new_curve_impl!(
     Fq,
     Fr,
     (G1_GENERATOR_X, G1_GENERATOR_Y),
+    G1_A,
     G1_B,
     "grumpkin_g1",
 );
@@ -49,6 +50,7 @@ const G1_GENERATOR_Y: Fq = Fq([
     0xaa7b8cf435dfafbb,
     0x14b34cf69dc25d68,
 ]);
+const G1_A: Fq = Fq::zero();
 const G1_B: Fq = Fq([
     0xdd7056026000005a,
     0x223fa97acb319311,

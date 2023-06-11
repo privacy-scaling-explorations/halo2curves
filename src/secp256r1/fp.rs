@@ -1,5 +1,10 @@
 use crate::arithmetic::{adc, mac, sbb};
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
+use crate::{
+    field_arithmetic, field_bits, field_common, field_specific, impl_add_binop_specify_output,
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, impl_from_u64, impl_sub_binop_specify_output, impl_sum_prod,
+};
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
@@ -124,11 +129,6 @@ const ROOT_OF_UNITY_INV: Fp = Fp::from_raw([
     0xffffffff00000001,
 ]);
 
-use crate::{
-    field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
-    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
-};
 impl_binops_additive!(Fp, Fp);
 impl_binops_multiplicative!(Fp, Fp);
 field_common!(
@@ -144,8 +144,14 @@ field_common!(
     R2,
     R3
 );
+impl_from_u64!(Fp, R2);
 field_arithmetic!(Fp, MODULUS, INV, dense);
 impl_sum_prod!(Fp);
+
+#[cfg(target_pointer_width = "64")]
+field_bits!(Fp, MODULUS);
+#[cfg(not(target_pointer_width = "64"))]
+field_bits!(Fp, MODULUS, MODULUS_LIMBS_32);
 
 impl Fp {
     pub const fn size() -> usize {
@@ -347,18 +353,12 @@ mod test {
 
     #[test]
     fn test_delta() {
-        assert_eq!(
-            Fp::DELTA,
-            MULTIPLICATIVE_GENERATOR.pow(&[1u64 << Fp::S, 0, 0, 0])
-        );
+        assert_eq!(Fp::DELTA, MULTIPLICATIVE_GENERATOR.pow([1u64 << Fp::S]));
     }
 
     #[test]
     fn test_root_of_unity() {
-        assert_eq!(
-            Fp::ROOT_OF_UNITY.pow_vartime(&[1 << Fp::S, 0, 0, 0]),
-            Fp::one()
-        );
+        assert_eq!(Fp::ROOT_OF_UNITY.pow_vartime([1 << Fp::S]), Fp::one());
     }
 
     #[test]
@@ -368,13 +368,19 @@ mod test {
 
     #[test]
     fn test_field() {
-        crate::tests::field::random_field_tests::<Fp>("secp256r1 base".to_string());
+        crate::tests::field::random_field_tests::<Fp>("secp256k1 base".to_string());
+    }
+
+    #[test]
+    #[cfg(feature = "bits")]
+    fn test_bits() {
+        crate::tests::field::random_bits_tests::<Fp>("secp256k1 base".to_string());
     }
 
     #[test]
     fn test_serialization() {
-        crate::tests::field::random_serialization_test::<Fp>("secp256r1 base".to_string());
+        crate::tests::field::random_serialization_test::<Fp>("secp256k1 base".to_string());
         #[cfg(feature = "derive_serde")]
-        crate::tests::field::random_serde_test::<Fp>("secp256r1 base".to_string());
+        crate::tests::field::random_serde_test::<Fp>("secp256k1 base".to_string());
     }
 }
