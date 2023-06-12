@@ -295,8 +295,6 @@ mod tests {
                 .to_string();
             let u = Fq::from_str_vartime(&big_u).unwrap();
 
-            println!("{:x?}", u);
-
             let to_fq = |arg: [u64; 4]| {
                 let arg_bytes: [u8; 32] = unsafe { ::std::mem::transmute(arg) };
                 Fq::from_raw_bytes_unchecked(&arg_bytes)
