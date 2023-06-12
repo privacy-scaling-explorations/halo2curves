@@ -83,6 +83,97 @@ fn hash_to_field<F: FromUniformBytes<64>>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn map_to_curve<C>(
+    u: C::Base,
+    c1: &C::Base,
+    c2: C::Base,
+    c3: &C::Base,
+    c4: &C::Base,
+    a: &C::Base,
+    b: &C::Base,
+    z: &C::Base,
+) -> C
+where
+    C: CurveExt,
+    C::Base: FromUniformBytes<64>,
+{
+    let one = C::Base::ONE;
+
+    // 1. tv1 = u^2
+    let tv1 = u.square();
+    // 2. tv1 = tv1 * c1
+    let tv1 = tv1 * c1;
+    // 3. tv2 = 1 + tv1
+    let tv2 = one + tv1;
+    // 4. tv1 = 1 - tv1
+    let tv1 = one - tv1;
+    // 5. tv3 = tv1 * tv2
+    let tv3 = tv1 * tv2;
+    // 6. tv3 = inv0(tv3)
+    let tv3 = tv3.invert().unwrap_or(C::Base::ZERO);
+    // 7. tv4 = u * tv1
+    let tv4 = u * tv1;
+    // 8. tv4 = tv4 * tv3
+    let tv4 = tv4 * tv3;
+    // 9. tv4 = tv4 * c3
+    let tv4 = tv4 * c3;
+    // 10. x1 = c2 - tv4
+    let x1 = c2 - tv4;
+    // 11. gx1 = x1^2
+    let gx1 = x1.square();
+    // 12. gx1 = gx1 + A
+    let gx1 = gx1 + a;
+    // 13. gx1 = gx1 * x1
+    let gx1 = gx1 * x1;
+    // 14. gx1 = gx1 + B
+    let gx1 = gx1 + b;
+    // 15. e1 = is_square(gx1)
+    let e1 = gx1.sqrt().is_some();
+    // 16. x2 = c2 + tv4
+    let x2 = c2 + tv4;
+    // 17. gx2 = x2^2
+    let gx2 = x2.square();
+    // 18. gx2 = gx2 + A
+    let gx2 = gx2 + a;
+    // 19. gx2 = gx2 * x2
+    let gx2 = gx2 * x2;
+    // 20. gx2 = gx2 + B
+    let gx2 = gx2 + b;
+    // 21. e2 = is_square(gx2) AND NOT e1    # Avoid short-circuit logic ops
+    let e2 = gx2.sqrt().is_some() & (!e1);
+    // 22. x3 = tv2^2
+    let x3 = tv2.square();
+    // 23. x3 = x3 * tv3
+    let x3 = x3 * tv3;
+    // 24. x3 = x3^2
+    let x3 = x3.square();
+    // 25. x3 = x3 * c4
+    let x3 = x3 * c4;
+    // 26. x3 = x3 + Z
+    let x3 = x3 + z;
+    // 27. x = CMOV(x3, x1, e1)    # x = x1 if gx1 is square, else x = x3
+    let x = C::Base::conditional_select(&x3, &x1, e1);
+    // 28. x = CMOV(x, x2, e2)    # x = x2 if gx2 is square and gx1 is not
+    let x = C::Base::conditional_select(&x, &x2, e2);
+    // 29. gx = x^2
+    let gx = x.square();
+    // 30. gx = gx + A
+    let gx = gx + a;
+    // 31. gx = gx * x
+    let gx = gx * x;
+    // 32. gx = gx + B
+    let gx = gx + b;
+    // 33. y = sqrt(gx)
+    let y = gx.sqrt().unwrap();
+    // 34. e3 = sgn0(u) == sgn0(y)
+    let e3 = u.is_odd().ct_eq(&y.is_odd());
+    // 35. y = CMOV(-y, y, e3)    # Select correct sign of y
+    let y = C::Base::conditional_select(&-y, &y, e3);
+    // 36. return (x, y)
+    C::new_jacobian(x, y, one).unwrap()
+}
+
 /// Implementation of https://www.ietf.org/id/draft-irtf-cfrg-hash-to-curve-16.html#name-shallue-van-de-woestijne-met
 #[allow(clippy::type_complexity)]
 pub(crate) fn svdw_map_to_curve<'a, C>(
@@ -118,80 +209,7 @@ where
         let mut us = [C::Base::ZERO; 2];
         hash_to_field("SVDW", curve_id, domain_prefix, message, &mut us);
 
-        let [q0, q1] = us.map(|u| {
-            // 1. tv1 = u^2
-            let tv1 = u.square();
-            // 2. tv1 = tv1 * c1
-            let tv1 = tv1 * c1;
-            // 3. tv2 = 1 + tv1
-            let tv2 = one + tv1;
-            // 4. tv1 = 1 - tv1
-            let tv1 = one - tv1;
-            // 5. tv3 = tv1 * tv2
-            let tv3 = tv1 * tv2;
-            // 6. tv3 = inv0(tv3)
-            let tv3 = tv3.invert().unwrap_or(C::Base::ZERO);
-            // 7. tv4 = u * tv1
-            let tv4 = u * tv1;
-            // 8. tv4 = tv4 * tv3
-            let tv4 = tv4 * tv3;
-            // 9. tv4 = tv4 * c3
-            let tv4 = tv4 * c3;
-            // 10. x1 = c2 - tv4
-            let x1 = c2 - tv4;
-            // 11. gx1 = x1^2
-            let gx1 = x1.square();
-            // 12. gx1 = gx1 + A
-            let gx1 = gx1 + a;
-            // 13. gx1 = gx1 * x1
-            let gx1 = gx1 * x1;
-            // 14. gx1 = gx1 + B
-            let gx1 = gx1 + b;
-            // 15. e1 = is_square(gx1)
-            let e1 = gx1.sqrt().is_some();
-            // 16. x2 = c2 + tv4
-            let x2 = c2 + tv4;
-            // 17. gx2 = x2^2
-            let gx2 = x2.square();
-            // 18. gx2 = gx2 + A
-            let gx2 = gx2 + a;
-            // 19. gx2 = gx2 * x2
-            let gx2 = gx2 * x2;
-            // 20. gx2 = gx2 + B
-            let gx2 = gx2 + b;
-            // 21. e2 = is_square(gx2) AND NOT e1    # Avoid short-circuit logic ops
-            let e2 = gx2.sqrt().is_some() & (!e1);
-            // 22. x3 = tv2^2
-            let x3 = tv2.square();
-            // 23. x3 = x3 * tv3
-            let x3 = x3 * tv3;
-            // 24. x3 = x3^2
-            let x3 = x3.square();
-            // 25. x3 = x3 * c4
-            let x3 = x3 * c4;
-            // 26. x3 = x3 + Z
-            let x3 = x3 + z;
-            // 27. x = CMOV(x3, x1, e1)    # x = x1 if gx1 is square, else x = x3
-            let x = C::Base::conditional_select(&x3, &x1, e1);
-            // 28. x = CMOV(x, x2, e2)    # x = x2 if gx2 is square and gx1 is not
-            let x = C::Base::conditional_select(&x, &x2, e2);
-            // 29. gx = x^2
-            let gx = x.square();
-            // 30. gx = gx + A
-            let gx = gx + a;
-            // 31. gx = gx * x
-            let gx = gx * x;
-            // 32. gx = gx + B
-            let gx = gx + b;
-            // 33. y = sqrt(gx)
-            let y = gx.sqrt().unwrap();
-            // 34. e3 = sgn0(u) == sgn0(y)
-            let e3 = u.is_odd().ct_eq(&y.is_odd());
-            // 35. y = CMOV(-y, y, e3)    # Select correct sign of y
-            let y = C::Base::conditional_select(&-y, &y, e3);
-            // 36. return (x, y)
-            C::new_jacobian(x, y, one).unwrap()
-        });
+        let [q0, q1]: [C; 2] = us.map(|u| map_to_curve(u, &c1, c2, &c3, &c4, &a, &b, &z));
 
         let r = q0 + &q1;
         debug_assert!(bool::from(r.is_on_curve()));
