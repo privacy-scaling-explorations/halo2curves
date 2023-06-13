@@ -234,7 +234,7 @@ macro_rules! field_arithmetic_asm {
 
                         a_ptr = in(reg) a.as_ptr(),
                         m_ptr = in(reg) $modulus.0.as_ptr(),
-                        inv = const $inv,
+                        inv = in(reg) $inv,
                         out("rax") _,
                         out("rcx") _,
                         out("rdx") _,
