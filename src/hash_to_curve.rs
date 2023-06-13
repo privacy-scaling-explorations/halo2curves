@@ -84,21 +84,20 @@ fn hash_to_field<F: FromUniformBytes<64>>(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn map_to_curve<C>(
+pub(crate) fn svdw_map_to_curve<C>(
     u: C::Base,
-    c1: &C::Base,
+    c1: C::Base,
     c2: C::Base,
-    c3: &C::Base,
-    c4: &C::Base,
-    a: &C::Base,
-    b: &C::Base,
-    z: &C::Base,
+    c3: C::Base,
+    c4: C::Base,
+    z: C::Base,
 ) -> C
 where
     C: CurveExt,
-    C::Base: FromUniformBytes<64>,
 {
     let one = C::Base::ONE;
+    let a = C::a();
+    let b = C::b();
 
     // 1. tv1 = u^2
     let tv1 = u.square();
@@ -176,7 +175,7 @@ where
 
 /// Implementation of https://www.ietf.org/id/draft-irtf-cfrg-hash-to-curve-16.html#name-shallue-van-de-woestijne-met
 #[allow(clippy::type_complexity)]
-pub(crate) fn svdw_map_to_curve<'a, C>(
+pub(crate) fn svdw_hash_to_curve<'a, C>(
     curve_id: &'static str,
     domain_prefix: &'a str,
     z: C::Base,
@@ -185,14 +184,28 @@ where
     C: CurveExt,
     C::Base: FromUniformBytes<64>,
 {
+    let [c1, c2, c3, c4] = svdw_precomputed_constants::<C>(z);
+
+    Box::new(move |message| {
+        let mut us = [C::Base::ZERO; 2];
+        hash_to_field("SVDW", curve_id, domain_prefix, message, &mut us);
+
+        let [q0, q1]: [C; 2] = us.map(|u| svdw_map_to_curve(u, c1, c2, c3, c4, z));
+
+        let r = q0 + &q1;
+        debug_assert!(bool::from(r.is_on_curve()));
+        r
+    })
+}
+
+pub(crate) fn svdw_precomputed_constants<C: CurveExt>(z: C::Base) -> [C::Base; 4] {
+    let a = C::a();
+    let b = C::b();
     let one = C::Base::ONE;
     let three = one + one + one;
     let four = three + one;
-    let a = C::a();
-    let b = C::b();
     let tmp = three * z.square() + four * a;
 
-    // Precomputed constants:
     // 1. c1 = g(Z)
     let c1 = (z.square() + a) * z + b;
     // 2. c2 = -Z / 2
@@ -205,14 +218,5 @@ where
     // 4. c4 = -4 * g(Z) / (3 * Z^2 + 4 * A)
     let c4 = -four * c1 * tmp.invert().unwrap();
 
-    Box::new(move |message| {
-        let mut us = [C::Base::ZERO; 2];
-        hash_to_field("SVDW", curve_id, domain_prefix, message, &mut us);
-
-        let [q0, q1]: [C; 2] = us.map(|u| map_to_curve(u, &c1, c2, &c3, &c4, &a, &b, &z));
-
-        let r = q0 + &q1;
-        debug_assert!(bool::from(r.is_on_curve()));
-        r
-    })
+    [c1, c2, c3, c4]
 }

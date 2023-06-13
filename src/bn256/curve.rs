@@ -10,7 +10,7 @@ use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::Curve;
 use crate::group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
-use crate::hash_to_curve::svdw_map_to_curve;
+use crate::hash_to_curve::svdw_hash_to_curve;
 use crate::{
     batch_add, impl_add_binop_specify_output, impl_binops_additive,
     impl_binops_additive_specify_output, impl_binops_multiplicative,
@@ -39,7 +39,7 @@ new_curve_impl!(
     G1_A,
     G1_B,
     "bn256_g1",
-    |curve_id, domain_prefix| svdw_map_to_curve(curve_id, domain_prefix, Fq::ONE),
+    |curve_id, domain_prefix| svdw_hash_to_curve(curve_id, domain_prefix, G1::SVDW_Z),
 );
 
 new_curve_impl!(
@@ -215,20 +215,17 @@ impl CofactorGroup for G2 {
     }
 }
 
+impl G1 {
+    const SVDW_Z: Fq = Fq::ONE;
+}
+
 #[cfg(test)]
 mod tests {
-
     use crate::arithmetic::CurveEndo;
-    use crate::bn256::{Fq, Fr, G1Affine, G1, G2};
-    use crate::hash_to_curve::map_to_curve;
-    use crate::serde::SerdeObject;
+    use crate::bn256::{Fr, G1, G2};
     use crate::CurveExt;
     use ff::Field;
     use ff::{PrimeField, WithSmallOrderMulGroup};
-    use group::Curve;
-    use num_bigint::BigUint;
-    use num_traits::Num;
-    use pasta_curves::arithmetic::CurveAffine;
     use rand_core::OsRng;
 
     #[test]
@@ -237,116 +234,55 @@ mod tests {
     }
 
     #[test]
-    fn test_map_to_curve_bn256() {
-        // from https://github.com/ConsenSys/gnark-crypto/blob/master/ecc/bn254/hash_vectors_test.go
-        let encode_tests = vec![
-            (
-                //u
-                "0xcb81538a98a2e3580076eed495256611813f6dae9e16d3d4f8de7af0e9833e1",
-                // Q
+    fn test_map_to_curve() {
+        crate::tests::curve::svdw_map_to_curve_test::<G1>(
+            G1::SVDW_Z,
+            // Precomputed constants taken from https://github.com/ConsenSys/gnark-crypto/blob/441dc0ffe639294b8d09e394f24ba7575577229c/internal/generator/config/bn254.go#L26-L32.
+            [
+                "4",
+                "10944121435919637611123202872628637544348155578648911831344518947322613104291",
+                "8815841940592487685674414971303048083897117035520822607866",
+                "7296080957279758407415468581752425029565437052432607887563012631548408736189",
+            ],
+            // List of (u, (Q.x, Q.y)) taken from https://github.com/ConsenSys/gnark-crypto/blob/441dc0ffe639294b8d09e394f24ba7575577229c/ecc/bn254/hash_vectors_test.go#L4-L28
+            [
                 (
-                    "0x1bb8810e2ceaf04786d4efd216fc2820ddd9363712efc736ada11049d8af5925",
-                    "0x1efbf8d54c60d865cce08437668ea30f5bf90d287dbd9b5af31da852915e8f11",
+                    "0xcb81538a98a2e3580076eed495256611813f6dae9e16d3d4f8de7af0e9833e1",
+                    (
+                        "0x1bb8810e2ceaf04786d4efd216fc2820ddd9363712efc736ada11049d8af5925",
+                        "0x1efbf8d54c60d865cce08437668ea30f5bf90d287dbd9b5af31da852915e8f11",
+                    ),
                 ),
-            ),
-            (
-                //u
-                "0xba35e127276e9000b33011860904ddee28f1d48ddd3577e2a797ef4a5e62319",
-                // Q
                 (
-                    "0xda4a96147df1f35b0f820bd35c6fac3b80e8e320de7c536b1e054667b22c332",
-                    "0x189bd3fbffe4c8740d6543754d95c790e44cd2d162858e3b733d2b8387983bb7",
+                    "0xba35e127276e9000b33011860904ddee28f1d48ddd3577e2a797ef4a5e62319",
+                    (
+                        "0xda4a96147df1f35b0f820bd35c6fac3b80e8e320de7c536b1e054667b22c332",
+                        "0x189bd3fbffe4c8740d6543754d95c790e44cd2d162858e3b733d2b8387983bb7",
+                    ),
                 ),
-            ),
-            (
-                //u
-                "0x11852286660cd970e9d7f46f99c7cca2b75554245e91b9b19d537aa6147c28fc",
-                // Q
                 (
-                    "0x2ff727cfaaadb3acab713fa22d91f5fddab3ed77948f3ef6233d7ea9b03f4da1",
-                    "0x304080768fd2f87a852155b727f97db84b191e41970506f0326ed4046d1141aa",
+                    "0x11852286660cd970e9d7f46f99c7cca2b75554245e91b9b19d537aa6147c28fc",
+                    (
+                        "0x2ff727cfaaadb3acab713fa22d91f5fddab3ed77948f3ef6233d7ea9b03f4da1",
+                        "0x304080768fd2f87a852155b727f97db84b191e41970506f0326ed4046d1141aa",
+                    ),
                 ),
-            ),
-            (
-                //u
-                "0x174d1c85d8a690a876cc1deba0166d30569fafdb49cb3ed28405bd1c5357a1cc",
-                // Q
                 (
-                    "0x11a2eaa8e3e89de056d1b3a288a7f733c8a1282efa41d28e71af065ab245df9b",
-                    "0x60f37c447ac29fd97b9bb83be98ddccf15e34831a9cdf5493b7fede0777ae06",
+                    "0x174d1c85d8a690a876cc1deba0166d30569fafdb49cb3ed28405bd1c5357a1cc",
+                    (
+                        "0x11a2eaa8e3e89de056d1b3a288a7f733c8a1282efa41d28e71af065ab245df9b",
+                        "0x60f37c447ac29fd97b9bb83be98ddccf15e34831a9cdf5493b7fede0777ae06",
+                    ),
                 ),
-            ),
-            (
-                //u
-                "0x73b81432b4cf3a8a9076201500d1b94159539f052a6e0928db7f2df74bff672",
-                // Q
                 (
-                    "0x27409dccc6ee4ce90e24744fda8d72c0bc64e79766f778da0c1c0ef1c186ea84",
-                    "0x1ac201a542feca15e77f30370da183514dc99d8a0b2c136d64ede35cd0b51dc0",
+                    "0x73b81432b4cf3a8a9076201500d1b94159539f052a6e0928db7f2df74bff672",
+                    (
+                        "0x27409dccc6ee4ce90e24744fda8d72c0bc64e79766f778da0c1c0ef1c186ea84",
+                        "0x1ac201a542feca15e77f30370da183514dc99d8a0b2c136d64ede35cd0b51dc0",
+                    ),
                 ),
-            ),
-        ];
-
-        // inspired by TestMapToCurve1 in
-        // https://github.com/ConsenSys/gnark-crypto/blob/master/ecc/bn254/hash_to_g1_test.go
-        for (u, pt_q) in encode_tests {
-            let big_u = BigUint::from_str_radix(&u.strip_prefix("0x").unwrap(), 16)
-                .unwrap()
-                .to_string();
-            let u = Fq::from_str_vartime(&big_u).unwrap();
-
-            let to_fq = |arg: [u64; 4]| {
-                let arg_bytes: [u8; 32] = unsafe { ::std::mem::transmute(arg) };
-                Fq::from_raw_bytes_unchecked(&arg_bytes)
-            };
-
-            // from https://github.com/ConsenSys/gnark-crypto/blob/master/ecc/bn254/hash_to_g1.go
-            let z = to_fq([
-                15230403791020821917,
-                754611498739239741,
-                7381016538464732716,
-                1011752739694698287,
-            ]);
-            let c1 = to_fq([
-                1248766071674976557,
-                10548065924188627562,
-                16242874202584236114,
-                560012691975822483,
-            ]);
-            let c2 = to_fq([
-                12997850613838968789,
-                14304628359724097447,
-                2950087706404981016,
-                1237622763554136189,
-            ]);
-            let c3 = to_fq([
-                8972444824031832946,
-                5898165201680709844,
-                10690697896010808308,
-                824354360198587078,
-            ]);
-            let c4 = to_fq([
-                12077013577332951089,
-                1872782865047492001,
-                13514471836495169457,
-                415649166299893576,
-            ]);
-
-            let g: G1 = map_to_curve(u, &c1, c2, &c3, &c4, &G1::a(), &G1::b(), &z);
-            let g_aff = g.to_affine();
-
-            let big_x = BigUint::from_str_radix(&pt_q.0.strip_prefix("0x").unwrap(), 16)
-                .unwrap()
-                .to_string();
-            let big_y = BigUint::from_str_radix(&pt_q.1.strip_prefix("0x").unwrap(), 16)
-                .unwrap()
-                .to_string();
-            let x = Fq::from_str_vartime(&big_x).unwrap();
-            let y = Fq::from_str_vartime(&big_y).unwrap();
-            let expected_g = G1Affine::from_xy(x, y).unwrap();
-
-            assert_eq!(g_aff, expected_g);
-        }
+            ],
+        );
     }
 
     #[test]
