@@ -22,12 +22,24 @@ pub fn bench_bn256_field(c: &mut Criterion) {
     group.significance_level(0.1).sample_size(10000);
     group.throughput(Throughput::Elements(1));
 
-    group.bench_function("bn256_fq_add", |bencher| bencher.iter(|| black_box(&a).add(black_box(&b))));
-    group.bench_function("bn256_fq_double", |bencher| bencher.iter(|| black_box(&a).double()));
-    group.bench_function("bn256_fq_sub", |bencher| bencher.iter(|| black_box(&a).sub(black_box(&b))));
-    group.bench_function("bn256_fq_neg", |bencher| bencher.iter(|| black_box(&a).neg()));
-    group.bench_function("bn256_fq_mul", |bencher| bencher.iter(|| black_box(&a).mul(black_box(&b))));
-    group.bench_function("bn256_fq_square", |bencher| bencher.iter(|| black_box(&a).square()));
+    group.bench_function("bn256_fq_add", |bencher| {
+        bencher.iter(|| black_box(&a).add(black_box(&b)))
+    });
+    group.bench_function("bn256_fq_double", |bencher| {
+        bencher.iter(|| black_box(&a).double())
+    });
+    group.bench_function("bn256_fq_sub", |bencher| {
+        bencher.iter(|| black_box(&a).sub(black_box(&b)))
+    });
+    group.bench_function("bn256_fq_neg", |bencher| {
+        bencher.iter(|| black_box(&a).neg())
+    });
+    group.bench_function("bn256_fq_mul", |bencher| {
+        bencher.iter(|| black_box(&a).mul(black_box(&b)))
+    });
+    group.bench_function("bn256_fq_square", |bencher| {
+        bencher.iter(|| black_box(&a).square())
+    });
 }
 
 criterion_group!(benches, bench_bn256_field);
