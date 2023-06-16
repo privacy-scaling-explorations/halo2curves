@@ -296,7 +296,6 @@ where
     }
 }
 
-
 impl<F> PartialOrd for MaybeU64<F>
 where
     F: PrimeField<Repr = [u8; 32]> + Ord,
