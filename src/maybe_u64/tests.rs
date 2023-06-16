@@ -117,33 +117,33 @@ fn test_sqrt() {
     }
 }
 
-// #[test]
-// fn test_root_of_unity() {
-//     assert_eq!(
-//         MockField::root_of_unity().pow_vartime(&[1 << MockField::S, 0, 0, 0]),
-//         MockField::ONE
-//     );
-// }
-// #[test]
-// fn test_inv_root_of_unity() {
-//     assert_eq!(
-//         MockField::ROOT_OF_UNITY_INV,
-//         MockField::root_of_unity().invert().unwrap()
-//     );
-// }
+#[test]
+fn test_root_of_unity() {
+    assert_eq!(
+        MockField::ROOT_OF_UNITY.pow_vartime(&[1 << MockField::S, 0, 0, 0]),
+        MockField::ONE
+    );
+}
+#[test]
+fn test_inv_root_of_unity() {
+    assert_eq!(
+        MockField::ROOT_OF_UNITY_INV,
+        MockField::ROOT_OF_UNITY.invert().unwrap()
+    );
+}
 
 #[test]
 fn test_field() {
     crate::tests::field::random_field_tests::<MockField>("test field".to_string());
 }
 
-// #[test]
-// fn test_delta() {
-//     assert_eq!(
-//         MockField::DELTA,
-//         MockField::multiplicative_generator().pow(&[1u64 << MockField::S, 0, 0, 0])
-//     );
-// }
+#[test]
+fn test_delta() {
+    assert_eq!(
+        MockField::DELTA,
+        MockField::MULTIPLICATIVE_GENERATOR.pow(&[1u64 << MockField::S, 0, 0, 0])
+    );
+}
 
 #[test]
 fn test_serialization() {
