@@ -82,21 +82,21 @@ const R3: Fq = Fq([
 const GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00]);
 
 /// GENERATOR^t where t * 2^s + 1 = r with t odd. In other words, this is a 2^s root of unity.
-/// `ffc97f062a770992ba807ace842a3dfc1546cad004378daf0592d7fbb41e6602`
+/// `ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632550`
 const ROOT_OF_UNITY: Fq = Fq::from_raw([
-    0x0592d7fbb41e6602,
-    0x1546cad004378daf,
-    0xba807ace842a3dfc,
-    0xffc97f062a770992,
+    0xf3b9cac2fc632550,
+    0xbce6faada7179e84,
+    0xffffffffffffffff,
+    0xffffffff00000000,
 ]);
 
 /// 1 / ROOT_OF_UNITY mod q
-/// `a0a66a5562d46f2ac645fa0458131caee3ac117c794c4137379c7f0657c73764`
+/// `ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632550`
 const ROOT_OF_UNITY_INV: Fq = Fq::from_raw([
-    0x379c7f0657c73764,
-    0xe3ac117c794c4137,
-    0xc645fa0458131cae,
-    0xa0a66a5562d46f2a,
+    0xf3b9cac2fc632550,
+    0xbce6faada7179e84,
+    0xffffffffffffffff,
+    0xffffffff00000000,
 ]);
 
 /// 1 / 2 mod q
@@ -122,7 +122,7 @@ const DELTA: Fq = Fq::from_raw([0x1e39a5057d81, 0, 0, 0]);
 use crate::{
     field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
     impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod, impl_from_u64,
+    impl_binops_multiplicative_mixed, impl_from_u64, impl_sub_binop_specify_output, impl_sum_prod,
 };
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
