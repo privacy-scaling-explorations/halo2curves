@@ -82,21 +82,21 @@ const R3: Fq = Fq([
 const GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00]);
 
 /// GENERATOR^t where t * 2^s + 1 = r with t odd. In other words, this is a 2^s root of unity.
-/// `ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632550`
+/// `ffc97f062a770992ba807ace842a3dfc1546cad004378daf0592d7fbb41e6602`
 const ROOT_OF_UNITY: Fq = Fq::from_raw([
-    0xf3b9cac2fc632550,
-    0xbce6faada7179e84,
-    0xffffffffffffffff,
-    0xffffffff00000000,
+    0x0592d7fbb41e6602,
+    0x1546cad004378daf,
+    0xba807ace842a3dfc,
+    0xffc97f062a770992,
 ]);
 
 /// 1 / ROOT_OF_UNITY mod q
-/// `ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632550`
+/// `a0a66a5562d46f2ac645fa0458131caee3ac117c794c4137379c7f0657c73764`
 const ROOT_OF_UNITY_INV: Fq = Fq::from_raw([
-    0xf3b9cac2fc632550,
-    0xbce6faada7179e84,
-    0xffffffffffffffff,
-    0xffffffff00000000,
+    0x379c7f0657c73764,
+    0xe3ac117c794c4137,
+    0xc645fa0458131cae,
+    0xa0a66a5562d46f2a,
 ]);
 
 /// 1 / 2 mod q
@@ -116,7 +116,7 @@ const ZETA: Fq = Fq::from_raw([
 
 /// Generator of the t-order multiplicative subgroup.
 /// Computed by exponentiating Self::MULTIPLICATIVE_GENERATOR by 2^s, where s is Self::S.
-const DELTA: Fq = Fq::from_raw([0x31, 0, 0, 0]);
+const DELTA: Fq = Fq::from_raw([0x1e39a5057d81, 0, 0, 0]);
 
 use crate::{
     field_arithmetic, field_common, field_specific, impl_add_binop_specify_output,
@@ -206,11 +206,12 @@ impl ff::Field for Fq {
     }
 
     fn sqrt(&self) -> CtOption<Self> {
+        // 7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a
         let tm1d2 = [
-            0x18541eb9ddbdf752,
-            0xd6105cac886ec313,
-            0x9fffffffffffffff,
-            0x9fffffff60000000,
+            0x279dce5617e3192a,
+            0xfde737d56d38bcf4,
+            0x07ffffffffffffff,
+            0x7fffffff8000000,
         ];
 
         ff::helpers::sqrt_tonelli_shanks(self, &tm1d2)
@@ -232,7 +233,7 @@ impl ff::PrimeField for Fq {
     const ROOT_OF_UNITY_INV: Self = ROOT_OF_UNITY_INV;
     const TWO_INV: Self = TWO_INV;
     const DELTA: Self = DELTA;
-    const S: u32 = 1;
+    const S: u32 = 4;
 
     fn from_repr(repr: Self::Repr) -> CtOption<Self> {
         let mut tmp = Fq([0, 0, 0, 0]);

@@ -82,7 +82,7 @@ macro_rules! field_common {
                     let (r5, carry) = mac(r5, val[3], $r2.0[2], carry);
                     let (r6, r7) = mac(r6, val[3], $r2.0[3], carry);
 
-                    // Montgomery reduction (first part)
+                    // Montgomery reduction
                     let k = r0.wrapping_mul($inv);
                     let (_, carry) = mac(r0, k, $modulus.0[0], 0);
                     let (r1, carry) = mac(r1, k, $modulus.0[1], carry);
@@ -109,14 +109,14 @@ macro_rules! field_common {
                     let (r4, carry) = mac(r4, k, $modulus.0[1], carry);
                     let (r5, carry) = mac(r5, k, $modulus.0[2], carry);
                     let (r6, carry) = mac(r6, k, $modulus.0[3], carry);
-                    let (r7, _) = adc(r7, carry2, carry);
+                    let (r7, carry2) = adc(r7, carry2, carry);
 
-                    // Montgomery reduction (sub part)
+                    // Result may be within MODULUS of the correct value
                     let (d0, borrow) = sbb(r4, $modulus.0[0], 0);
                     let (d1, borrow) = sbb(r5, $modulus.0[1], borrow);
                     let (d2, borrow) = sbb(r6, $modulus.0[2], borrow);
                     let (d3, borrow) = sbb(r7, $modulus.0[3], borrow);
-
+                    let (_, borrow) = sbb(carry2, 0, borrow);
                     let (d0, carry) = adc(d0, $modulus.0[0] & borrow, 0);
                     let (d1, carry) = adc(d1, $modulus.0[1] & borrow, carry);
                     let (d2, carry) = adc(d2, $modulus.0[2] & borrow, carry);
