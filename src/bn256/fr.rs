@@ -302,7 +302,12 @@ impl ff::PrimeField for Fr {
     fn to_repr(&self) -> Self::Repr {
         // Turn into canonical form by computing
         // (a.R) / R = a
-        let tmp = Fr::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
+
+        #[cfg(not(feature = "asm"))]
+        let tmp =
+            Self::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
+        #[cfg(feature = "asm")]
+        let tmp = self.montgomery_reduce_256();
 
         let mut res = [0; 32];
         res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
