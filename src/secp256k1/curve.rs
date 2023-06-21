@@ -64,6 +64,7 @@ new_curve_impl!(
     SECP_A,
     SECP_B,
     "secp256k1",
+    |_, _| unimplemented!(),
 );
 
 impl CurveAffineExt for Secp256k1Affine {

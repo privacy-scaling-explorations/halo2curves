@@ -187,7 +187,7 @@ impl ff::Field for Fp {
 
     /// Computes the square root of this element, if it exists.
     fn sqrt(&self) -> CtOption<Self> {
-        let tmp = self.pow(&[
+        let tmp = self.pow([
             0x0000000000000000,
             0x0000000040000000,
             0x4000000000000000,
@@ -200,7 +200,7 @@ impl ff::Field for Fp {
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
     fn invert(&self) -> CtOption<Self> {
-        let tmp = self.pow_vartime(&[
+        let tmp = self.pow_vartime([
             0xfffffffffffffffd,
             0x00000000ffffffff,
             0x0000000000000000,

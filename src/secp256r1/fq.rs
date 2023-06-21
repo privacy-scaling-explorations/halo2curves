@@ -177,7 +177,7 @@ impl ff::Field for Fq {
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
     fn invert(&self) -> CtOption<Self> {
-        let tmp = self.pow_vartime(&[
+        let tmp = self.pow_vartime([
             0xf3b9cac2fc63254f,
             0xbce6faada7179e84,
             0xffffffffffffffff,
@@ -214,7 +214,7 @@ impl ff::Field for Fq {
             0x7fffffff8000000,
         ];
 
-        ff::helpers::sqrt_tonelli_shanks(self, &tm1d2)
+        ff::helpers::sqrt_tonelli_shanks(self, tm1d2)
     }
 
     fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
@@ -344,18 +344,12 @@ mod test {
 
     #[test]
     fn test_delta() {
-        assert_eq!(
-            Fq::DELTA,
-            Fq::MULTIPLICATIVE_GENERATOR.pow(&[1u64 << Fq::S, 0, 0, 0])
-        );
+        assert_eq!(Fq::DELTA, Fq::MULTIPLICATIVE_GENERATOR.pow([1u64 << Fq::S]));
     }
 
     #[test]
     fn test_root_of_unity() {
-        assert_eq!(
-            Fq::ROOT_OF_UNITY.pow_vartime(&[1 << Fq::S, 0, 0, 0]),
-            Fq::one()
-        );
+        assert_eq!(Fq::ROOT_OF_UNITY.pow_vartime([1 << Fq::S]), Fq::one());
     }
 
     #[test]

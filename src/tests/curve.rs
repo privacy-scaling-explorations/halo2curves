@@ -2,9 +2,11 @@
 
 use crate::ff::Field;
 use crate::group::prime::PrimeCurveAffine;
+use crate::tests::fe_from_str;
 use crate::{group::GroupEncoding, serde::SerdeObject};
-use crate::{CurveAffine, CurveExt};
-use rand_core::OsRng;
+use crate::{hash_to_curve, CurveAffine, CurveExt};
+use rand_core::{OsRng, RngCore};
+use std::iter;
 
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
@@ -312,5 +314,32 @@ fn multiplication<G: CurveExt>() {
         let s3 = s1 + s2;
         t1 = a * s3;
         assert_eq!(t0, t1);
+    }
+}
+
+pub fn hash_to_curve_test<G: CurveExt>() {
+    let hasher = G::hash_to_curve("test");
+    let mut rng = OsRng;
+    for _ in 0..1000 {
+        let message = iter::repeat_with(|| rng.next_u32().to_be_bytes())
+            .take(32)
+            .flatten()
+            .collect::<Vec<_>>();
+        assert!(bool::from(hasher(&message).is_on_curve()));
+    }
+}
+
+pub fn svdw_map_to_curve_test<G: CurveExt>(
+    z: G::Base,
+    precomputed_constants: [&'static str; 4],
+    test_vector: impl IntoIterator<Item = (&'static str, (&'static str, &'static str))>,
+) {
+    let [c1, c2, c3, c4] = hash_to_curve::svdw_precomputed_constants::<G>(z);
+    assert_eq!([c1, c2, c3, c4], precomputed_constants.map(fe_from_str));
+    for (u, (x, y)) in test_vector.into_iter() {
+        let u = fe_from_str(u);
+        let expected = G::AffineExt::from_xy(fe_from_str(x), fe_from_str(y)).unwrap();
+        let output = hash_to_curve::svdw_map_to_curve::<G>(u, c1, c2, c3, c4, z).to_affine();
+        assert_eq!(output, expected);
     }
 }
