@@ -1,5 +1,6 @@
 name: CI Check
 on:
+  merge_group:
   pull_request:
   push:
     branches:
@@ -34,26 +35,6 @@ concurrency:
   
 
 jobs:
-  build:
-    if: github.event.pull_request.draft == false
-    name: Build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - feature: default
-          - feature: asm
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-      - uses: Swatinem/rust-cache@v2
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          # make sure benches don't bit-rot
-          args: --features ${{ matrix.feature }} --all-targets
-
   test:
     if: github.event.pull_request.draft == false
     name: Test
@@ -61,17 +42,21 @@ jobs:
     strategy:
       matrix:
         include:
+          - feature: 
           - feature: default
-          - feature: asm
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
       # use the more efficient nextest
       - uses: taiki-e/install-action@nextest
       - uses: Swatinem/rust-cache@v2
+      - name: Build
+        # This build will be reused by nextest,
+        # and also checks (--all-targets) that benches don't bit-rot
+        run: cargo build --release --all-targets --no-default-features --features "${{ matrix.feature }}"
       - name: Test
         run: |
-          cargo nextest run --profile ci --release --workspace --features ${{ matrix.feature }}
+          cargo nextest run --profile ci --release --workspace --no-default-features --features "${{ matrix.feature }}"
       - name: Doctests # nextest does not support doc tests
         run: |
           cargo test --doc
@@ -81,7 +66,6 @@ jobs:
     name: Rustfmt
     timeout-minutes: 30
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -94,10 +78,8 @@ jobs:
 
   clippy:
     if: github.event.pull_request.draft == false
-
     name: Clippy lint checks
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -114,7 +96,12 @@ jobs:
     if: github.event.pull_request.draft == false
     name: Bench
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        include:
+          - feature: default
+          - feature: asm
+          - feature: bn256-table
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -128,4 +115,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --profile bench test_field --features asm -- --nocapture
+          args: --profile bench test_field --features ${{ matrix.feature }} -- --nocapture
