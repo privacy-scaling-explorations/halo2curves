@@ -463,8 +463,8 @@ mod test {
         let mut rng = ark_std::test_rng();
         let base = (0..repeat).map(|_| (rng.next_u32() % (1 << 16)) as u64);
 
-        let timer = start_timer!(|| format!("generate {} Bn256 scalar field elements", repeat));
-        let _res: Vec<_> = base.map(|b| Fr::from(b)).collect();
+        let timer = start_timer!(|| format!("generate {repeat} Bn256 scalar field elements"));
+        let _res: Vec<_> = base.map(Fr::from).collect();
 
         end_timer!(timer);
     }
