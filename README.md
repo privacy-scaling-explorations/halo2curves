@@ -1,4 +1,4 @@
-# BN256 and Additional Curves
+# A collection of Elliptic Curves for ZkCrypto traits
 
 This library provides efficient and flexible implementations of various halo2-friendly elliptic curves, originally implementing the BN256 curve with traits from the `zkcrypto` ecosystem,
 
@@ -8,7 +8,6 @@ This library provides efficient and flexible implementations of various halo2-fr
 
 The implementations were originally ported from [matterlabs/pairing](https://github.com/matter-labs/pairing/tree/master/src/bn256) and [zkcrypto/bls12-381](https://github.com/zkcrypto/bls12_381), but have been extended and optimized to cover a broader set of curves and use cases. Since its initial release, the library has expanded to include additional curves, along with the following features:
 
-* `FieldExt`, `CurveExt` [traits](https://github.com/zcash/pasta_curves/tree/main/src/arithmetic) that are used in the `halo2` library.
 * `secp256k1`, `secp256r1`, and `grumpkin` curves, enhancing its usability across a range of cryptographic protocols.
 * Assembly optimizations leading to significantly improved performance.
 * Various features related to serialization and deserialization of curve points and field elements.
