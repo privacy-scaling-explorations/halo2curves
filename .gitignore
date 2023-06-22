@@ -3,6 +3,8 @@ Cargo.lock
 **/*.rs.bk
 .vscode
 **/*.html
+.DS_Store
 
 # script generated source code
 src/bn256/fr/table.rs
+
