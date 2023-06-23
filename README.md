@@ -34,7 +34,7 @@ $ cargo test --profile bench test_field --features asm -- --nocapture
 
 2. **Hash to Curve**: For the `bn256::G1` and `grumpkin::G1` curves, `hash_to_curve` is implemented, enabling more efficient hash-and-sign signature schemes.
 
-3. **Lookup Table**: A pre-computed lookup table is available for `bn256::scalarfield`, accelerating scalar multiplication operations.
+3. **Lookup Table**: A pre-computed lookup table is available for `bn256::Fr`, accelerating conversion from `u16` to montgomery representation.
 
 ## Structure
 
