@@ -1,15 +1,10 @@
 [package]
 name = "halo2curves"
-version = "0.3.3"
-authors = [
-  "Sean Bowe <ewillbefull@gmail.com>",
-  "Jack Grigg <jack@z.cash>",
-  "Alex Vlasov <alex.m.vlasov@gmail.com>",
-  "Alex Gluchowski <alex@gluchowski.net>",
-]
+version = "0.1.0"
+authors = ["Privacy Scaling Explorations team"]
 license = "MIT/Apache-2.0"
-edition = "2018"
-repository = "https://github.com/kilic/pairing"
+edition = "2021"
+repository = "https://github.com/privacy-scaling-explorations/halo2curves"
 readme = "README.md"
 description = "Elliptic curve implementations and wrappers for halo2 library"
 rust-version = "1.63.0"

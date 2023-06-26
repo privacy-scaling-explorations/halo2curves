@@ -154,7 +154,7 @@ macro_rules! field_common {
         }
 
         impl fmt::Debug for $field {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 let tmp = self.to_repr();
                 write!(f, "0x")?;
                 for &b in tmp.iter().rev() {

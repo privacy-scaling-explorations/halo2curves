@@ -218,7 +218,7 @@ macro_rules! new_curve_impl {
 
                 // Compressed
                 impl std::fmt::Debug for [< $name Compressed >] {
-                    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                         self.0[..].fmt(f)
                     }
                 }
@@ -328,7 +328,7 @@ macro_rules! new_curve_impl {
                 #[derive(Copy, Clone)]
                 pub struct [< $name Uncompressed >]([u8; [< $name _UNCOMPRESSED_SIZE >]]);
                     impl std::fmt::Debug for [< $name Uncompressed >] {
-                        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                             self.0[..].fmt(f)
                         }
                     }
