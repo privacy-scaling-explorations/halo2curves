@@ -23,6 +23,16 @@ pub fn curve_tests<G: CurveExt>() {
 }
 
 fn serdes<G: CurveExt>() {
+    assert!(bool::from(
+        G::from_bytes(&G::identity().to_bytes())
+            .unwrap()
+            .is_identity()
+    ));
+    assert!(bool::from(
+        G::AffineExt::from_bytes(&G::AffineExt::identity().to_bytes())
+            .unwrap()
+            .is_identity()
+    ));
     for _ in 0..100 {
         let projective_point = G::random(OsRng);
         let affine_point: G::AffineExt = projective_point.into();
