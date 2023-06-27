@@ -47,7 +47,7 @@ jobs:
           exit 1
 
       - name: Install cargo-release
-        uses: taiki-e/install-action@v1
+        uses: taiki-e/install-action@v2
         with:
           tool: cargo-release
           
