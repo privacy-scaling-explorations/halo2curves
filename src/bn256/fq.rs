@@ -131,6 +131,7 @@ impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
 field_common!(
     Fq,
+    4,
     MODULUS,
     INV,
     MODULUS_STR,
@@ -143,7 +144,7 @@ field_common!(
     R3
 );
 impl_sum_prod!(Fq);
-impl_from_u64!(Fq, R2);
+impl_from_u64!(Fq, R2, 4);
 
 #[cfg(not(feature = "asm"))]
 field_arithmetic!(Fq, MODULUS, INV, sparse);

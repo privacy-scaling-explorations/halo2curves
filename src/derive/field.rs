@@ -1,9 +1,11 @@
 #[macro_export]
 macro_rules! impl_from_u64 {
-    ($field:ident, $r2:ident) => {
+    ($field:ident, $r2:ident, $num_limbs:expr) => {
         impl From<u64> for $field {
             fn from(val: u64) -> $field {
-                $field([val, 0, 0, 0]) * $r2
+                let mut array = [0u64; $num_limbs];
+                array[0] = val;
+                $field(array) * $r2
             }
         }
     };
@@ -13,6 +15,7 @@ macro_rules! impl_from_u64 {
 macro_rules! field_common {
     (
         $field:ident,
+        $num_limbs:expr,
         $modulus:ident,
         $inv:ident,
         $modulus_str:ident,
@@ -28,7 +31,7 @@ macro_rules! field_common {
             /// Returns zero, the additive identity.
             #[inline]
             pub const fn zero() -> $field {
-                $field([0, 0, 0, 0])
+                $field([0; num_limbs])
             }
 
             /// Returns one, the multiplicative identity.

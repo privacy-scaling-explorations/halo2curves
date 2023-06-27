@@ -126,6 +126,7 @@ impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
 field_common!(
     Fq,
+    4,
     MODULUS,
     INV,
     MODULUS_STR,
@@ -137,7 +138,7 @@ field_common!(
     R2,
     R3
 );
-impl_from_u64!(Fq, R2);
+impl_from_u64!(Fq, R2, 4);
 field_arithmetic!(Fq, MODULUS, INV, dense);
 impl_sum_prod!(Fq);
 

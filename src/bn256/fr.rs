@@ -154,6 +154,7 @@ impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
 field_common!(
     Fr,
+    4,
     MODULUS,
     INV,
     MODULUS_STR,
@@ -169,7 +170,7 @@ impl_sum_prod!(Fr);
 prime_field_legendre!(Fr);
 
 #[cfg(not(feature = "bn256-table"))]
-impl_from_u64!(Fr, R2);
+impl_from_u64!(Fr, R2, 4);
 #[cfg(feature = "bn256-table")]
 // A field element is represented in the montgomery form -- this allows for cheap mul_mod operations.
 // The catch is, if we build an Fr element, regardless of its format, we need to perform one big integer multiplication:
