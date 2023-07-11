@@ -12,11 +12,11 @@ use crate::group::Curve;
 use crate::group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
 use crate::hash_to_curve::svdw_hash_to_curve;
 use crate::{
-    batch_add, impl_add_binop_specify_output, impl_binops_additive,
-    impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, new_curve_impl,
+    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
+    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+    new_curve_impl,
 };
-use crate::{Coordinates, CurveAffine, CurveAffineExt, CurveExt};
+use crate::{Coordinates, CurveAffine, CurveExt};
 use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
@@ -55,22 +55,6 @@ new_curve_impl!(
     "bn256_g2",
     |_, _| unimplemented!(),
 );
-
-impl CurveAffineExt for G1Affine {
-    batch_add!();
-
-    fn into_coordinates(self) -> (Self::Base, Self::Base) {
-        (self.x, self.y)
-    }
-}
-
-impl CurveAffineExt for G2Affine {
-    batch_add!();
-
-    fn into_coordinates(self) -> (Self::Base, Self::Base) {
-        (self.x, self.y)
-    }
-}
 
 const G1_GENERATOR_X: Fq = Fq::one();
 const G1_GENERATOR_Y: Fq = Fq::from_raw([2, 0, 0, 0]);
