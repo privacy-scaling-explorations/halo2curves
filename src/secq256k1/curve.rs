@@ -22,17 +22,17 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use serde::{Deserialize, Serialize};
 
 const SECQ_GENERATOR_X: Fq = Fq::from_raw([
-    0x860FEE175831BB20,
-    0x2CABB9347A25101B,
-    0xE7590CBEF17C26FC,
-    0x9214B8774EB1412B,
+    0xA24288E37702EDA6,
+    0x3134E45A097781A6,
+    0xB6B06C87A2CE32E2,
+    0x76C39F5585CB160E,
 ]);
 
 const SECQ_GENERATOR_Y: Fq = Fq::from_raw([
-    0x14A1BC519466EB6B,
-    0x836A6E341A88892A,
-    0xECC5B53440A7598A,
-    0x28CB5B51A30B5532,
+    0xA4120DDAD952677F,
+    0xD18983D26E8DC055,
+    0xDC2D265A8E82A7F7,
+    0x3FFC646C7B2918B5,
 ]);
 
 const SECQ_A: Fq = Fq::from_raw([0, 0, 0, 0]);
