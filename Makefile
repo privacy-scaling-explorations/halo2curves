@@ -9,7 +9,7 @@ release:
 ifndef VERSION
 	$(error VERSION is not set. Run with `make VERSION=<version> release`)
 endif
-ifeq (, $(shell cargo-release --version))
+ifeq (, $(shell cargo --list|grep release))
 	$(error "Please, install cargo-release in order to be able to use this rule")
 endif
 	git pull
