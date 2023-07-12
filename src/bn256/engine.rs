@@ -8,10 +8,10 @@ use crate::bn256::fr::*;
 use crate::ff::{Field, PrimeField};
 use crate::group::cofactor::CofactorCurveAffine;
 use crate::group::Group;
-use crate::pairing::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use core::borrow::Borrow;
 use core::iter::Sum;
 use core::ops::{Add, Mul, MulAssign, Neg, Sub};
+use pairing::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -633,7 +633,7 @@ pub fn pairing(g1: &G1Affine, g2: &G2Affine) -> Gt {
 pub struct Bn256;
 
 impl Engine for Bn256 {
-    type Scalar = Fr;
+    type Fr = Fr;
     type G1 = G1;
     type G1Affine = G1Affine;
     type G2 = G2;
