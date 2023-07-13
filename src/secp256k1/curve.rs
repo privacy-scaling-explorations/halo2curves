@@ -1,6 +1,7 @@
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
+use crate::hash_to_curve::svdw_hash_to_curve;
 use crate::secp256k1::Fp;
 use crate::secp256k1::Fq;
 use crate::{Coordinates, CurveAffine, CurveAffineExt, CurveExt};
@@ -64,8 +65,12 @@ new_curve_impl!(
     SECP_A,
     SECP_B,
     "secp256k1",
-    |_, _| unimplemented!(),
+    |curve_id, domain_prefix| svdw_hash_to_curve(curve_id, domain_prefix, Secp256k1::SVDW_Z),
 );
+
+impl Secp256k1 {
+    const SVDW_Z: Fp = Fp::ONE;
+}
 
 impl CurveAffineExt for Secp256k1Affine {
     batch_add!();
@@ -78,6 +83,11 @@ impl CurveAffineExt for Secp256k1Affine {
 #[test]
 fn test_curve() {
     crate::tests::curve::curve_tests::<Secp256k1>();
+}
+
+#[test]
+fn test_hash_to_curve() {
+    crate::tests::curve::hash_to_curve_test::<Secp256k1>();
 }
 
 #[test]
