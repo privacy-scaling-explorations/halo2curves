@@ -1,6 +1,5 @@
 mod arithmetic;
 pub mod hash_to_curve;
-pub mod pairing;
 pub mod serde;
 
 pub mod bn256;
