@@ -11,7 +11,6 @@ pub mod secq256k1;
 
 #[macro_use]
 mod derive;
-pub use arithmetic::CurveAffineExt;
 pub use pasta_curves::arithmetic::{Coordinates, CurveAffine, CurveExt};
 
 // Re-export ff and group to simplify down stream dependencies

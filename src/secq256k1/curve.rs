@@ -6,11 +6,11 @@ use crate::hash_to_curve::svdw_hash_to_curve;
 use crate::secp256k1::{Fp, Fq};
 
 use crate::{
-    batch_add, impl_add_binop_specify_output, impl_binops_additive,
+    impl_add_binop_specify_output, impl_binops_additive,
     impl_binops_additive_specify_output, impl_binops_multiplicative,
     impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, new_curve_impl,
 };
-use crate::{Coordinates, CurveAffine, CurveAffineExt, CurveExt};
+use crate::{Coordinates, CurveAffine, CurveExt};
 use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
@@ -51,14 +51,6 @@ new_curve_impl!(
     "secq256k1",
     |curve_id, domain_prefix| svdw_hash_to_curve(curve_id, domain_prefix, Secq256k1::SVDW_Z),
 );
-
-impl CurveAffineExt for Secq256k1Affine {
-    batch_add!();
-
-    fn into_coordinates(self) -> (Self::Base, Self::Base) {
-        (self.x, self.y)
-    }
-}
 
 impl group::cofactor::CofactorGroup for Secq256k1 {
     type Subgroup = Secq256k1;
