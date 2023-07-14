@@ -4,11 +4,10 @@ use crate::group::Curve;
 use crate::group::{prime::PrimeCurveAffine, Group, GroupEncoding};
 use crate::hash_to_curve::svdw_hash_to_curve;
 use crate::secp256k1::{Fp, Fq};
-
 use crate::{
-    impl_add_binop_specify_output, impl_binops_additive,
-    impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, new_curve_impl,
+    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
+    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+    new_curve_impl,
 };
 use crate::{Coordinates, CurveAffine, CurveExt};
 use core::cmp;
