@@ -205,7 +205,6 @@ mod tests {
     use crate::CurveExt;
     use ff::Field;
     use ff::{PrimeField, WithSmallOrderMulGroup};
-    use group::Curve;
     use rand_core::OsRng;
 
     #[test]
