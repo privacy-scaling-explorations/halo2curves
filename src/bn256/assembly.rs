@@ -270,8 +270,6 @@ macro_rules! field_arithmetic_asm {
                         "adox r8, r12",
 
                         // i1
-                        // "mov rdx, {inv}",
-                        // "mulx rcx, rdx, r9",
                         "mov rdx, r9",
                         "mulx rcx, rdx, r15",
 
@@ -295,8 +293,6 @@ macro_rules! field_arithmetic_asm {
                         "adox r9, r12",
 
                         // i2
-                        // "mov rdx, {inv}",
-                        // "mulx rcx, rdx, r10",
                         "mov rdx, r10",
                         "mulx rcx, rdx, r15",
 
@@ -322,8 +318,6 @@ macro_rules! field_arithmetic_asm {
                         "adox r10, r12",
 
                         // i3
-                        // "mov rdx, {inv}",
-                        // "mulx rcx, rdx, r11",
                         "mov rdx, r11",
                         "mulx rcx, rdx, r15",
                         // j0
