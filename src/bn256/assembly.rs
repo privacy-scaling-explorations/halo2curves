@@ -69,7 +69,7 @@ macro_rules! field_arithmetic_asm {
             }
 
             #[inline(always)]
-            pub(crate) fn montgomery_reduce(a: &[u64; 8]) -> $field {
+            pub(crate) fn montgomery_reduce_256(&self) -> $field {
                 let mut r0: u64;
                 let mut r1: u64;
                 let mut r2: u64;
@@ -77,179 +77,125 @@ macro_rules! field_arithmetic_asm {
 
                 unsafe {
                     asm!(
-                        // The Montgomery reduction here is based on Algorithm 14.32 in
-                        // Handbook of Applied Cryptography
-                        // <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>.
-
                         "mov r8, qword ptr [{a_ptr} + 0]",
                         "mov r9, qword ptr [{a_ptr} + 8]",
                         "mov r10, qword ptr [{a_ptr} + 16]",
                         "mov r11, qword ptr [{a_ptr} + 24]",
-                        "mov r12, qword ptr [{a_ptr} + 32]",
-                        "mov r13, qword ptr [{a_ptr} + 40]",
-                        "mov r14, qword ptr [{a_ptr} + 48]",
-                        "mov r15, qword ptr [{a_ptr} + 56]",
+                        "mov r15, {inv}",
+                        "xor r12, r12",
 
-                        // `r8` -> 0
-                        "mov rdx, {inv}",
-                        "mulx rax, rdx, r8",
+                        // i0
+                        "mov rdx, r8",
+                        "mulx rcx, rdx, r15",
 
-                        // r8' * m0
+                        // j0
                         "mulx rcx, rax, qword ptr [{m_ptr} + 0]",
-                        "add r8, rax",
+                        "adox r8, rax",
                         "adcx r9, rcx",
-                        "adc r10, 0",
-
-                        // r8' * m1
+                        // j1
                         "mulx rcx, rax, qword ptr [{m_ptr} + 8]",
-                        "add r9, rax",
+                        "adox r9, rax",
                         "adcx r10, rcx",
-                        "adc r11, 0",
-
-                        // // r8' * m2
+                        // j2
                         "mulx rcx, rax, qword ptr [{m_ptr} + 16]",
-                        "add r10, rax",
+                        "adox r10, rax",
                         "adcx r11, rcx",
-                        "adc r12, 0",
-
-                        // // r8' * m3
+                        // j3
                         "mulx rcx, rax, qword ptr [{m_ptr} + 24]",
-                        "add r11, rax",
-                        "adcx r12, rcx",
-                        "adc r13, 0",
+                        "adox r11, rax",
+                        "adcx r8, rcx",
+                        "adox r8, r12",
 
-                        // `r9` -> 0
-                        "mov rdx, {inv}",
-                        "mulx rax, rdx, r9",
+                        // i1
+                        "mov rdx, r9",
+                        "mulx rcx, rdx, r15",
 
-                        // r9' * m0
-                        "mulx rax, rcx, qword ptr [{m_ptr} + 0]",
-                        "add r9, rcx",
-                        "adcx r10, rax",
-                        "adc r11, 0",
+                        // j0
+                        "mulx rcx, rax, qword ptr [{m_ptr} + 0]",
+                        "adox r9, rax",
+                        "adcx r10, rcx",
 
-                        // r9' * m1
-                        "mulx rax, rcx, qword ptr [{m_ptr} + 8]",
-                        "add r10, rcx",
-                        "adcx r11, rax",
-                        "adc r12, 0",
+                        // j1
+                        "mulx rcx, rax, qword ptr [{m_ptr} + 8]",
+                        "adox r10, rax",
+                        "adcx r11, rcx",
+                        // j2
+                        "mulx rcx, rax, qword ptr [{m_ptr} + 16]",
+                        "adox r11, rax",
+                        "adcx r8, rcx",
+                        // j3
+                        "mulx rcx, rax, qword ptr [{m_ptr} + 24]",
+                        "adox r8, rax",
+                        "adcx r9, rcx",
+                        "adox r9, r12",
 
-                        // r9' * m2
-                        "mulx rax, rcx, qword ptr [{m_ptr} + 16]",
-                        "add r11, rcx",
-                        "adcx r12, rax",
-                        "adc r13, 0",
+                        // i2
+                        "mov rdx, r10",
+                        "mulx rcx, rdx, r15",
 
-                        // r9' * m3
-                        "mulx rax, rcx, qword ptr [{m_ptr} + 24]",
-                        "add r12, rcx",
-                        "adcx r13, rax",
-                        "adc r14, 0",
+                        // j0
+                        "mulx rcx, rax, qword ptr [{m_ptr} + 0]",
+                        "adox r10, rax",
+                        "adcx r11, rcx",
 
-                        // `r10` -> 0
-                        "mov rdx, {inv}",
-                        "mulx rax, rdx, r10",
+                        // j1
+                        "mulx rcx, rax, qword ptr [{m_ptr} + 8]",
+                        "adox r11, rax",
+                        "adcx r8, rcx",
 
-                        // r10' * m0
-                        "mulx rax, rcx, qword ptr [{m_ptr} + 0]",
-                        "add r10, rcx",
-                        "adcx r11, rax",
-                        "adc r12, 0",
+                        // j2
+                        "mulx rcx, rax, qword ptr [{m_ptr} + 16]",
+                        "adox r8, rax",
+                        "adcx r9, rcx",
 
-                        // r10' * m1
-                        "mulx rax, rcx, qword ptr [{m_ptr} + 8]",
-                        "add r11, rcx",
-                        "adcx r12, rax",
-                        "adc r13, 0",
+                        // j3
+                        "mulx rcx, rax, qword ptr [{m_ptr} + 24]",
+                        "adox r9, rax",
+                        "adcx r10, rcx",
+                        "adox r10, r12",
 
-                        // r10' * m2
-                        "mulx rax, rcx, qword ptr [{m_ptr} + 16]",
-                        "add r12, rcx",
-                        "adcx r13, rax",
-                        "adc r14, 0",
+                        // i3
+                        "mov rdx, r11",
+                        "mulx rcx, rdx, r15",
+                        // j0
+                        "mulx rcx, rax, qword ptr [{m_ptr} + 0]",
+                        "adox r11, rax",
+                        "adcx r8, rcx",
+                        // j1
+                        "mulx rcx, rax, qword ptr [{m_ptr} + 8]",
+                        "adox r8, rax",
+                        "adcx r9, rcx",
+                        // j2
+                        "mulx rcx, rax, qword ptr [{m_ptr} + 16]",
+                        "adox r9, rax",
+                        "adcx r10, rcx",
+                        // j3
+                        "mulx rcx, rax, qword ptr [{m_ptr} + 24]",
+                        "adox r10, rax",
+                        "adcx r11, rcx",
+                        "adox r11, r12",
 
-                        // r10' * m3
-                        "mulx rax, rcx, qword ptr [{m_ptr} + 24]",
-                        "add r13, rcx",
-                        "adcx r14, rax",
-                        "adc r15, 0",
+                        // modular reduction is not required since:
+                        // high(inv * p3) + 2 < p3
 
-                        // `r11` -> 0
-                        "mov rdx, {inv}",
-                        "mulx rax, rdx, r11",
-
-                        // r11' * m0
-                        "mulx rax, rcx, qword ptr [{m_ptr} + 0]",
-                        "add r11, rcx",
-                        "adcx r12, rax",
-                        "adc r13, 0",
-
-                        // r11' * m1
-                        "mulx rax, rcx, qword ptr [{m_ptr} + 8]",
-                        "add r12, rcx",
-                        "adcx r13, rax",
-                        "adc r14, 0",
-
-                        // r11' * m2
-                        "mulx rax, rcx, qword ptr [{m_ptr} + 16]",
-                        "add r13, rcx",
-                        "adcx r14, rax",
-                        "adc r15, 0",
-
-                        // r11' * m3
-                        "mulx rax, rcx, qword ptr [{m_ptr} + 24]",
-                        "add r14, rcx",
-                        "adcx r15, rax",
-
-                        // reduction if limbs is greater then mod
-                        "mov r8, r12",
-                        "mov r9, r13",
-                        "mov r10, r14",
-                        "mov r11, r15",
-
-                        "sub r8, qword ptr [{m_ptr} + 0]",
-                        "sbb r9, qword ptr [{m_ptr} + 8]",
-                        "sbb r10, qword ptr [{m_ptr} + 16]",
-                        "sbb r11, qword ptr [{m_ptr} + 24]",
-
-                        "cmovc r8, r12",
-                        "cmovc r9, r13",
-                        "cmovc r10, r14",
-                        "cmovc r11, r15",
-
-                        "mov r12, r8",
-                        "mov r13, r9",
-                        "mov r14, r10",
-                        "mov r15, r11",
-
-                        "sub r12, qword ptr [{m_ptr} + 0]",
-                        "sbb r13, qword ptr [{m_ptr} + 8]",
-                        "sbb r14, qword ptr [{m_ptr} + 16]",
-                        "sbb r15, qword ptr [{m_ptr} + 24]",
-
-                        "cmovc r12, r8",
-                        "cmovc r13, r9",
-                        "cmovc r14, r10",
-                        "cmovc r15, r11",
-
-                        a_ptr = in(reg) a.as_ptr(),
+                        a_ptr = in(reg) self.0.as_ptr(),
                         m_ptr = in(reg) $modulus.0.as_ptr(),
                         inv = in(reg) $inv,
+
                         out("rax") _,
                         out("rcx") _,
                         out("rdx") _,
-                        out("r8") _,
-                        out("r9") _,
-                        out("r10") _,
-                        out("r11") _,
-                        out("r12") r0,
-                        out("r13") r1,
-                        out("r14") r2,
-                        out("r15") r3,
+                        out("r8") r0,
+                        out("r9") r1,
+                        out("r10") r2,
+                        out("r11") r3,
+                        out("r12") _,
+                        out("r13") _,
+                        out("r14") _,
+                        out("r15") _,
                         options(pure, readonly, nostack)
                     )
                 }
-
                 $field([r0, r1, r2, r3])
             }
 
