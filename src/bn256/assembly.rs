@@ -178,6 +178,10 @@ macro_rules! field_arithmetic_asm {
                         // modular reduction is not required since:
                         // high(inv * p3) + 2 < p3
 
+                        a_ptr = in(reg) self.0.as_ptr(),
+                        m_ptr = in(reg) $modulus.0.as_ptr(),
+                        inv = in(reg) $inv,
+
                         out("rax") _,
                         out("rcx") _,
                         out("rdx") _,
@@ -189,10 +193,6 @@ macro_rules! field_arithmetic_asm {
                         out("r13") _,
                         out("r14") _,
                         out("r15") _,
-
-                        a_ptr = in(reg) self.0.as_ptr(),
-                        m_ptr = in(reg) $modulus.0.as_ptr(),
-                        inv = in(reg) $inv,
                         options(pure, readonly, nostack)
                     )
                 }
