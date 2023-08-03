@@ -1,3 +1,7 @@
+use crate::arithmetic::mul_512;
+use crate::arithmetic::sbb;
+use crate::arithmetic::CurveEndo;
+use crate::arithmetic::EndoParameters;
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::Curve;
@@ -6,7 +10,7 @@ use crate::grumpkin::Fq;
 use crate::grumpkin::Fr;
 use crate::hash_to_curve::svdw_hash_to_curve;
 use crate::{
-    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
+    endo, impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
     impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
     new_curve_impl,
 };
@@ -52,6 +56,19 @@ const G1_B: Fq = Fq([
     0x034394632b724eaa,
 ]);
 
+// Generated using https://github.com/ConsenSys/gnark-crypto/blob/master/ecc/utils.go
+// with `bn256::Fq::ZETA`
+// See https://github.com/demining/Endomorphism-Secp256k1/blob/main/README.md
+// to have more details about the endomorphism.
+const ENDO_PARAMS_GRUMPKIN: EndoParameters = EndoParameters {
+    gamma1: [0xd91d232ec7e0b3d2, 0x2, 0, 0],
+    gamma2: [0x5398fd0300ff655f, 0x4ccef014a773d2d2, 0x02, 0],
+    b1: [0x89d3256894d213e2, 0, 0, 0],
+    b2: [0x0be4e1541221250b, 0x6f4d8248eeb859fd, 0, 0],
+};
+
+endo!(G1, Fr, ENDO_PARAMS_GRUMPKIN);
+
 impl group::cofactor::CofactorGroup for G1 {
     type Subgroup = G1;
 
@@ -74,9 +91,11 @@ impl G1 {
 
 #[cfg(test)]
 mod tests {
+    use crate::arithmetic::CurveEndo;
     use crate::grumpkin::{Fr, G1};
     use crate::CurveExt;
-    use ff::WithSmallOrderMulGroup;
+    use ff::{Field, PrimeField, WithSmallOrderMulGroup};
+    use rand_core::OsRng;
 
     #[test]
     fn test_hash_to_curve() {
@@ -89,9 +108,34 @@ mod tests {
     }
 
     #[test]
-    fn test_endo_consistency() {
+    fn test_endo() {
+        let z_impl = Fr::ZETA;
+        let z_other = Fr::from_raw([
+            0xe4bd44e5607cfd48,
+            0xc28f069fbb966e3d,
+            0x5e6dd9e7e0acccb0,
+            0x30644e72e131a029,
+        ]);
+
+        assert_eq!(z_impl * z_impl + z_impl, -Fr::ONE);
+        assert_eq!(z_other * z_other + z_other, -Fr::ONE);
+
         let g = G1::generator();
         assert_eq!(g * Fr::ZETA, g.endo());
+
+        for _ in 0..100000 {
+            let k = Fr::random(OsRng);
+            let (k1, k1_neg, k2, k2_neg) = G1::decompose_scalar(&k);
+            if k1_neg & k2_neg {
+                assert_eq!(k, -Fr::from_u128(k1) + Fr::ZETA * Fr::from_u128(k2))
+            } else if k1_neg {
+                assert_eq!(k, -Fr::from_u128(k1) - Fr::ZETA * Fr::from_u128(k2))
+            } else if k2_neg {
+                assert_eq!(k, Fr::from_u128(k1) + Fr::ZETA * Fr::from_u128(k2))
+            } else {
+                assert_eq!(k, Fr::from_u128(k1) - Fr::ZETA * Fr::from_u128(k2))
+            }
+        }
     }
 
     #[test]

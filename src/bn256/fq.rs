@@ -122,10 +122,10 @@ const DELTA: Fq = Fq::from_raw([0x9, 0, 0, 0]);
 
 /// `ZETA^3 = 1 mod r` where `ZETA^2 != 1 mod r`
 const ZETA: Fq = Fq::from_raw([
-    0x5763473177fffffeu64,
-    0xd4f263f1acdb5c4fu64,
-    0x59e26bcea0d48bacu64,
-    0x0u64,
+    0xe4bd44e5607cfd48,
+    0xc28f069fbb966e3d,
+    0x5e6dd9e7e0acccb0,
+    0x30644e72e131a029,
 ]);
 
 impl_binops_additive!(Fq, Fq);

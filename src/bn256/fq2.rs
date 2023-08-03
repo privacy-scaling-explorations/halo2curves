@@ -547,10 +547,10 @@ impl WithSmallOrderMulGroup<3> for Fq2 {
     // Fq::ZETA ^2
     const ZETA: Self = Fq2 {
         c0: Fq::from_raw([
-            0xe4bd44e5607cfd48,
-            0xc28f069fbb966e3d,
-            0x5e6dd9e7e0acccb0,
-            0x30644e72e131a029,
+            0x5763473177fffffe,
+            0xd4f263f1acdb5c4f,
+            0x59e26bcea0d48bac,
+            0x0000000000000000,
         ]),
         c1: Fq::zero(),
     };
@@ -777,6 +777,12 @@ fn test_frobenius() {
             assert_eq!(a, b);
         }
     }
+}
+
+#[test]
+fn test_zeta() {
+    let zeta = Fq2::new(Fq::ZETA.square(), Fq::zero());
+    assert_eq!(zeta, Fq2::ZETA);
 }
 
 #[test]
