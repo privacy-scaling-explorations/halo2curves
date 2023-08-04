@@ -7,6 +7,7 @@ use crate::{
 };
 use ff::PrimeField;
 use ff::WithSmallOrderMulGroup;
+use pasta_curves::arithmetic::CurveExt;
 pub use pasta_curves::{pallas, vesta, Ep, EpAffine, Eq, EqAffine, Fp, Fq};
 use std::convert::TryInto;
 
@@ -85,6 +86,10 @@ const fn is_less_than(x: &[u64; 4], y: &[u64; 4]) -> bool {
 
 const FP_SIZE: usize = 32;
 const FQ_SIZE: usize = 32;
+const FP_MODULUS_LE: &'static str =
+    "0x10000000de03d299b19fc490cf89642200000000000000000000000000000004";
+const FQ_MODULUS_LE: &'static str =
+    "1000000012be64c8dd8a4990cf89642200000000000000000000000000000004";
 
 struct AccessibleFp(pub [u64; 4]);
 
@@ -95,9 +100,23 @@ impl From<AccessibleFp> for Fp {
     }
 }
 
+impl From<&AccessibleFp> for Fp {
+    fn from(fp: &AccessibleFp) -> Fp {
+        let scalar = unsafe { std::mem::transmute::<AccessibleFp, Fp>(*fp) };
+        scalar
+    }
+}
+
 impl From<Fp> for AccessibleFp {
     fn from(scalar: Fp) -> AccessibleFp {
         let fp = unsafe { std::mem::transmute::<Fp, AccessibleFp>(scalar) };
+        fp
+    }
+}
+
+impl From<&Fp> for AccessibleFp {
+    fn from(scalar: &Fp) -> AccessibleFp {
+        let fp = unsafe { std::mem::transmute::<Fp, AccessibleFp>(*scalar) };
         fp
     }
 }
@@ -127,13 +146,9 @@ impl SerdeObject for Fp {
         res
     }
     fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
-        let inner = [(); 4].map(|_| {
-            let mut buf = [0; 8];
-            reader.read_exact(&mut buf).unwrap();
-            u64::from_le_bytes(buf)
-        });
-
-        Fp::from(AccessibleFp(inner))
+        let mut buf = [0; 32];
+        reader.read_exact(&mut buf).unwrap();
+        Self::from_raw_bytes_unchecked(&buf[..])
     }
     fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
         let mut inner = [0u64; 4];
@@ -145,7 +160,8 @@ impl SerdeObject for Fp {
 
         let elt = Fp::from(AccessibleFp(inner));
         unsafe {
-            is_less_than(&inner, &std::mem::transmute_copy(&Fp::MODULUS))
+            // MODULUS is big_endian, we need little_endian
+            is_less_than(&inner, &std::mem::transmute_copy(&FP_MODULUS_LE))
                 .then(|| elt)
                 .ok_or_else(|| {
                     std::io::Error::new(
@@ -156,7 +172,7 @@ impl SerdeObject for Fp {
         }
     }
     fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        let limbs: [u64; 4] = unsafe { std::mem::transmute_copy(&self) };
+        let limbs: [u64; 4] = AccessibleFp::from(self).0;
         for limb in limbs {
             writer.write_all(&limb.to_le_bytes())?;
         }
@@ -223,7 +239,7 @@ impl SerdeObject for Fq {
 
         let elt = Fq::from(AccessibleFq(inner));
         unsafe {
-            is_less_than(&inner, &std::mem::transmute_copy(&Fq::MODULUS))
+            is_less_than(&inner, &std::mem::transmute_copy(&FQ_MODULUS_LE))
                 .then(|| elt)
                 .ok_or_else(|| {
                     std::io::Error::new(
@@ -275,13 +291,13 @@ impl SerdeObject for pallas::Point {
             return None;
         }
         let [x, y, z] =
-            [0, 1, 2].map(|i| Fp::from_raw_bytes(&bytes[i * FP_SIZE..(i + 1) * FP_SIZE]));
-        x.zip(y).zip(z).and_then(|((x, y), z)| {
-            let res = Self::from(AccessiblePallasPoint { x, y, z });
-            // Check that the point is on the curve.
-            bool::from(res.is_on_curve()).then(|| res)
-        })
+            [0, 1, 2].map(|i| Fp::from_raw_bytes_unchecked(&bytes[i * FP_SIZE..(i + 1) * FP_SIZE]));
+
+        let res = Self::from(AccessiblePallasPoint { x, y, z });
+        // Check that the point is on the curve.
+        bool::from(res.is_on_curve()).then(|| res)
     }
+
     fn to_raw_bytes(&self) -> Vec<u8> {
         let mut res = Vec::with_capacity(3 * FP_SIZE);
         Self::write_raw(self, &mut res).unwrap();
@@ -339,13 +355,12 @@ impl SerdeObject for vesta::Point {
             return None;
         }
         let [x, y, z] =
-            [0, 1, 2].map(|i| Fp::from_raw_bytes(&bytes[i * FP_SIZE..(i + 1) * FP_SIZE]));
-        x.zip(y).zip(z).and_then(|((x, y), z)| {
-            let res = Self::from(AccessibleVestaPoint { x, y, z });
-            // Check that the point is on the curve.
-            bool::from(res.is_on_curve()).then(|| res)
-        })
+            [0, 1, 2].map(|i| Fp::from_raw_bytes_unchecked(&bytes[i * FP_SIZE..(i + 1) * FP_SIZE]));
+        let res = Self::from(AccessibleVestaPoint { x, y, z });
+        // Check that the point is on the curve.
+        bool::from(res.is_on_curve()).then(|| res)
     }
+
     fn to_raw_bytes(&self) -> Vec<u8> {
         let mut res = Vec::with_capacity(3 * FP_SIZE);
         Self::write_raw(self, &mut res).unwrap();
