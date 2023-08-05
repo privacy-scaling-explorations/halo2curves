@@ -1,9 +1,11 @@
 #![allow(clippy::op_ref)]
 
 use ff::{Field, FromUniformBytes, PrimeField};
+use num_bigint::BigUint;
+use num_traits::Num;
 use pasta_curves::arithmetic::CurveExt;
 use static_assertions::const_assert;
-use subtle::{ConditionallySelectable, ConstantTimeEq};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 /// Hashes over a message and writes the output to all of `buf`.
 /// Modified from https://github.com/zcash/pasta_curves/blob/7e3fc6a4919f6462a32b79dd226cb2587b7961eb/src/hashtocurve.rs#L11.
@@ -128,7 +130,7 @@ where
     // 14. gx1 = gx1 + B
     let gx1 = gx1 + b;
     // 15. e1 = is_square(gx1)
-    let e1 = gx1.sqrt().is_some();
+    let e1 = !is_quadratic_non_residue(gx1);
     // 16. x2 = c2 + tv4
     let x2 = c2 + tv4;
     // 17. gx2 = x2^2
@@ -140,7 +142,7 @@ where
     // 20. gx2 = gx2 + B
     let gx2 = gx2 + b;
     // 21. e2 = is_square(gx2) AND NOT e1    # Avoid short-circuit logic ops
-    let e2 = gx2.sqrt().is_some() & (!e1);
+    let e2 = !is_quadratic_non_residue(gx2) & (!e1);
     // 22. x3 = tv2^2
     let x3 = tv2.square();
     // 23. x3 = x3 * tv3
@@ -219,4 +221,12 @@ pub(crate) fn svdw_precomputed_constants<C: CurveExt>(z: C::Base) -> [C::Base; 4
     let c4 = -four * c1 * tmp.invert().unwrap();
 
     [c1, c2, c3, c4]
+}
+
+fn is_quadratic_non_residue<F: PrimeField>(e: F) -> Choice {
+    let modulus: BigUint =
+        BigUint::from_str_radix(F::MODULUS.strip_prefix("0x").unwrap(), 16).unwrap();
+    let exp = (modulus - 1u64) / 2u64;
+    let ls = e.pow(exp.to_u64_digits());
+    ls.ct_eq(&-F::ONE)
 }
