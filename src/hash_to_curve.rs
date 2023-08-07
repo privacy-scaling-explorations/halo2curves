@@ -226,7 +226,7 @@ pub(crate) fn svdw_precomputed_constants<C: CurveExt>(z: C::Base) -> [C::Base; 4
 
 #[inline]
 fn legendre<F: PrimeField>(elem: F, p: BigUint) -> F {
-    let exp = (p - 1u64) / 2u64;
+    let exp: BigUint = (p - 1u64) >> 1;
     elem.pow(exp.to_u64_digits())
 }
 
