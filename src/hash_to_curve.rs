@@ -2,7 +2,6 @@
 
 use ff::{Field, FromUniformBytes, PrimeField};
 use num_bigint::BigUint;
-use num_traits::Num;
 use pasta_curves::arithmetic::CurveExt;
 use static_assertions::const_assert;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
@@ -100,7 +99,7 @@ where
     let one = C::Base::ONE;
     let a = C::a();
     let b = C::b();
-    let p = modulus::<C::Base>();
+    let p_minus_one = mod_minus_one::<C::Base>();
 
     // 1. tv1 = u^2
     let tv1 = u.square();
@@ -131,7 +130,7 @@ where
     // 14. gx1 = gx1 + B
     let gx1 = gx1 + b;
     // 15. e1 = is_square(gx1)
-    let e1 = !is_quadratic_non_residue(gx1, p.clone());
+    let e1 = !is_quadratic_non_residue(gx1, p_minus_one.clone());
     // 16. x2 = c2 + tv4
     let x2 = c2 + tv4;
     // 17. gx2 = x2^2
@@ -143,7 +142,7 @@ where
     // 20. gx2 = gx2 + B
     let gx2 = gx2 + b;
     // 21. e2 = is_square(gx2) AND NOT e1    # Avoid short-circuit logic ops
-    let e2 = !is_quadratic_non_residue(gx2, p) & (!e1);
+    let e2 = !is_quadratic_non_residue(gx2, p_minus_one) & (!e1);
     // 22. x3 = tv2^2
     let x3 = tv2.square();
     // 23. x3 = x3 * tv3
@@ -225,17 +224,17 @@ pub(crate) fn svdw_precomputed_constants<C: CurveExt>(z: C::Base) -> [C::Base; 4
 }
 
 #[inline]
-fn legendre<F: PrimeField>(elem: F, p: BigUint) -> F {
-    let exp: BigUint = (p - 1u64) >> 1;
+fn legendre<F: PrimeField>(elem: F, p_minus_one: BigUint) -> F {
+    let exp: BigUint = p_minus_one >> 1;
     elem.pow(exp.to_u64_digits())
 }
 
 #[inline]
-fn is_quadratic_non_residue<F: PrimeField>(e: F, p: BigUint) -> Choice {
-    legendre(e, p).ct_eq(&-F::ONE)
+fn is_quadratic_non_residue<F: PrimeField>(e: F, p_minus_one: BigUint) -> Choice {
+    legendre(e, p_minus_one).ct_eq(&-F::ONE)
 }
 
 #[inline]
-fn modulus<F: PrimeField>() -> BigUint {
-    BigUint::from_str_radix(F::MODULUS.strip_prefix("0x").unwrap(), 16).unwrap()
+fn mod_minus_one<F: PrimeField>() -> BigUint {
+    BigUint::from_bytes_le((-F::ONE).to_repr().as_ref())
 }
