@@ -1,6 +1,8 @@
-use crate::ff::Field;
+use crate::hash_to_curve::is_quadratic_non_residue;
 use crate::serde::SerdeObject;
+use crate::{ff::Field, hash_to_curve::mod_minus_one};
 use ark_std::{end_timer, start_timer};
+use ff::PrimeField;
 use rand::{RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
 
@@ -286,4 +288,18 @@ where
         assert_eq!(a, b);
     }
     end_timer!(start);
+}
+
+pub fn random_quadratic_residue_test<F: PrimeField>() {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+    let p_minus_one = mod_minus_one::<F>();
+    for _ in 0..100000 {
+        let elem = F::random(&mut rng);
+        let is_quad_res_or_zero: bool = elem.sqrt().is_some().into();
+        let is_quad_non_res: bool = is_quadratic_non_residue(elem, p_minus_one.clone()).into();
+        assert_eq!(!is_quad_non_res, is_quad_res_or_zero)
+    }
 }

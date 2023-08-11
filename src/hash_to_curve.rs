@@ -224,17 +224,17 @@ pub(crate) fn svdw_precomputed_constants<C: CurveExt>(z: C::Base) -> [C::Base; 4
 }
 
 #[inline]
-fn legendre<F: PrimeField>(elem: F, p_minus_one: BigUint) -> F {
+pub(crate) fn legendre<F: PrimeField>(elem: F, p_minus_one: BigUint) -> F {
     let exp: BigUint = p_minus_one >> 1;
     elem.pow(exp.to_u64_digits())
 }
 
 #[inline]
-fn is_quadratic_non_residue<F: PrimeField>(e: F, p_minus_one: BigUint) -> Choice {
+pub(crate) fn is_quadratic_non_residue<F: PrimeField>(e: F, p_minus_one: BigUint) -> Choice {
     legendre(e, p_minus_one).ct_eq(&-F::ONE)
 }
 
 #[inline]
-fn mod_minus_one<F: PrimeField>() -> BigUint {
+pub(crate) fn mod_minus_one<F: PrimeField>() -> BigUint {
     BigUint::from_bytes_le((-F::ONE).to_repr().as_ref())
 }
