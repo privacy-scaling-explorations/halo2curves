@@ -8,6 +8,7 @@ use crate::{
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
+use num_bigint::BigUint;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -301,6 +302,8 @@ impl FromUniformBytes<64> for Fq {
 impl WithSmallOrderMulGroup<3> for Fq {
     const ZETA: Self = ZETA;
 }
+
+prime_field_legendre!(Fq);
 
 #[cfg(test)]
 mod test {

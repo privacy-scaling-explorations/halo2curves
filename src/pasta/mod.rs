@@ -38,6 +38,9 @@ const ENDO_PARAMS_EP: EndoParameters = EndoParameters {
 endo!(Eq, Fp, ENDO_PARAMS_EQ);
 endo!(Ep, Fq, ENDO_PARAMS_EP);
 
+// prime_field_legendre!(Fp);
+// prime_field_legendre!(Fq);
+
 #[test]
 fn test_endo() {
     use ff::Field;
