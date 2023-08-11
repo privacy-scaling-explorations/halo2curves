@@ -314,21 +314,6 @@ impl WithSmallOrderMulGroup<3> for Fp {
 }
 
 prime_field_legendre!(Fp);
-// lazy_static::lazy_static! {
-//     static ref LE_AS_BIGUINT: BigUint = BigUint::from_bytes_le((-Fp::ONE).to_repr().as_ref())/2usize ;
-//     static ref LEGENDRE_EXP: Vec<u64> = LE_AS_BIGUINT.to_u64_digits();
-// }
-
-// impl Legendre for Fp {
-//     type BasePrimeField = Self;
-
-//     fn legendre_exp() -> &'static Vec<u64> {
-//         &*LEGENDRE_EXP
-//     }
-//     fn norm(&self) -> &Self::BasePrimeField {
-//         &self
-//     }
-// }
 
 #[cfg(test)]
 mod test {
