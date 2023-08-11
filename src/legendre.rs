@@ -18,7 +18,7 @@ macro_rules! prime_field_legendre {
     ($field:ident ) => {
 
     lazy_static::lazy_static! {
-        static ref LE_AS_BIGUINT: BigUint = BigUint::from_bytes_le((-<$field as ff::Field>::ONE).to_repr().as_ref())/2usize ;
+        static ref LE_AS_BIGUINT: num_bigint::BigUint = num_bigint::BigUint::from_bytes_le((-<$field as ff::Field>::ONE).to_repr().as_ref())/2usize ;
         static ref LEGENDRE_EXP: Vec<u64> = LE_AS_BIGUINT.to_u64_digits();
     }
         impl crate::legendre::Legendre for $field {
