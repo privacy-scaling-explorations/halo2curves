@@ -74,3 +74,9 @@ fn test_endo() {
         }
     }
 }
+
+#[test]
+fn test_quadratic_residue() {
+    crate::tests::field::random_quadratic_residue_test::<Fp>();
+    crate::tests::field::random_quadratic_residue_test::<Fq>();
+}

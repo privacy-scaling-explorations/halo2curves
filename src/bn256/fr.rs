@@ -470,4 +470,9 @@ mod test {
 
         end_timer!(timer);
     }
+
+    #[test]
+    fn test_quadratic_residue() {
+        crate::tests::field::random_quadratic_residue_test::<Fr>();
+    }
 }
