@@ -273,14 +273,6 @@ macro_rules! field_common {
             }
         }
 
-        impl From<$field> for [u64; 4] {
-            fn from(elt: $field) -> [u64; 4] {
-                // Turn into canonical form by computing
-                // (a.R) / R = a
-                $field::montgomery_reduce_short(&elt.0).0
-            }
-        }
-
         impl From<$field> for [u8; 32] {
             fn from(value: $field) -> [u8; 32] {
                 value.to_repr()
@@ -490,6 +482,14 @@ macro_rules! field_arithmetic {
 
                 // Result may be within MODULUS of the correct value
                 (&$field([r0, r1, r2, r3])).sub(&$modulus)
+            }
+        }
+
+        impl From<$field> for [u64; 4] {
+            fn from(elt: $field) -> [u64; 4] {
+                // Turn into canonical form by computing
+                // (a.R) / R = a
+                $field::montgomery_reduce_short(&elt.0).0
             }
         }
     };
