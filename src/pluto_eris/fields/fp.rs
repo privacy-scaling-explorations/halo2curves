@@ -5,8 +5,8 @@ use crate::{
 };
 use crate::{
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
-    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_from_u64,
-    impl_sub_binop_specify_output, impl_sum_prod,
+    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+    impl_sum_prod,
 };
 use core::convert::TryInto;
 use core::fmt;
@@ -177,7 +177,7 @@ field_bits_7_limbs!(Fp, MODULUS, MODULUS_LIMBS_32);
 
 impl Fp {
     pub const fn size() -> usize {
-        32
+        56
     }
 }
 
@@ -210,6 +210,7 @@ impl ff::Field for Fp {
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
     fn invert(&self) -> CtOption<Self> {
+        // TODO: Re-compute this.
         let tmp = self.pow([
             0x43e1f593efffffff,
             0x2833e84879b97091,
@@ -222,11 +223,14 @@ impl ff::Field for Fp {
 
     fn sqrt(&self) -> CtOption<Self> {
         /// `(t - 1) // 2` where t * 2^s + 1 = p with t odd.
-        const T_MINUS1_OVER2: [u64; 4] = [
-            0xcdcb848a1f0fac9f,
-            0x0c0ac2e9419f4243,
-            0x098d014dc2822db4,
-            0x0000000183227397,
+        const T_MINUS1_OVER2: [u64; 7] = [
+            0x0006b9459ffffcd3,
+            0x8fadffd6a2a7e8c3,
+            0xda8a6c7be4a7a5fe,
+            0xf439266f443f9a5c,
+            0x0d7f70e4a803ca76,
+            0x000024000130e000,
+            0x24000000,
         ];
         ff::helpers::sqrt_tonelli_shanks(self, T_MINUS1_OVER2)
     }
