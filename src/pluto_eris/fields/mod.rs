@@ -445,7 +445,6 @@ macro_rules! field_arithmetic {
             }
 
             /// Squares this element.
-            /// // TODO: Fix
             #[inline]
             pub const fn square(&self) -> $field {
                 let (r1, carry) = mac(0, self.0[0], self.0[1], 0);
@@ -455,14 +454,25 @@ macro_rules! field_arithmetic {
                 let (r5, carry) = mac(0, self.0[0], self.0[5], carry);
                 let (r6, r7) = mac(0, self.0[0], self.0[6], carry);
 
-                // This def needs fix lol
-                let (r6, carry) = mac(r6, self.0[1], self.0[3], 0);
-                let (r7, r8) = mac(r7, self.0[1], self.0[4], carry);
-                let (r8, r9) = mac(r8, self.0[1], self.0[5], carry);
-                let (r9, r10) = mac(r9, self.0[1], self.0[6], carry);
+                let (r6, carry) = mac(r6, self.0[1], self.0[2], 0);
+                let (r7, r8) = mac(r7, self.0[1], self.0[3], carry);
+                let (r8, r9) = mac(r8, self.0[1], self.0[4], carry);
+                let (r9, r10) = mac(r9, self.0[1], self.0[5], carry);
                 let (r10, r11) = mac(r10, self.0[1], self.0[6], carry);
-                let (r11, r12) = mac(r11, self.0[1], self.0[6], carry);
-                let (r12, r13) = mac(r12, self.0[1], self.0[6], carry);
+
+                let (r10, r11) = mac(r10, self.0[2], self.0[3], carry);
+                let (r11, r12) = mac(r11, self.0[2], self.0[4], carry);
+                let (r12, r13) = mac(r12, self.0[2], self.0[5], carry);
+                let (r13, r14) = mac(r13, self.0[2], self.0[6], carry);
+
+                let (r13, r14) = mac(r13, self.0[3], self.0[4], carry);
+                let (r14, r15) = mac(r14, self.0[3], self.0[5], carry);
+                let (r15, r16) = mac(r15, self.0[3], self.0[6], carry);
+
+                let (r15, r16) = mac(r15, self.0[4], self.0[5], carry);
+                let (r16, r17) = mac(r16, self.0[4], self.0[6], carry);
+
+                let (r16, r17) = mac(r16, self.0[5], self.0[6], carry);
 
                 let r14 = r13 >> 63;
                 let r13 = (r13 << 1) | (r5 >> 63);
