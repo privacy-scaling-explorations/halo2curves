@@ -767,13 +767,13 @@ macro_rules! field_specific {
 }
 
 #[macro_export]
-macro_rules! field_bits {
+macro_rules! field_bits_7_limbs {
     // For #[cfg(target_pointer_width = "64")]
     ($field:ident, $modulus:ident) => {
         #[cfg(feature = "bits")]
         #[cfg_attr(docsrs, doc(cfg(feature = "bits")))]
         impl ::ff::PrimeFieldBits for $field {
-            type ReprBits = [u64; 4];
+            type ReprBits = [u64; 7];
 
             fn to_le_bits(&self) -> ::ff::FieldBits<Self::ReprBits> {
                 let bytes = self.to_repr();
@@ -783,6 +783,9 @@ macro_rules! field_bits {
                     u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
                     u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
                     u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
+                    u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
+                    u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
+                    u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
                 ];
 
                 ::ff::FieldBits::new(limbs)
@@ -798,7 +801,7 @@ macro_rules! field_bits {
         #[cfg(feature = "bits")]
         #[cfg_attr(docsrs, doc(cfg(feature = "bits")))]
         impl ::ff::PrimeFieldBits for $field {
-            type ReprBits = [u32; 8];
+            type ReprBits = [u32; 14];
 
             fn to_le_bits(&self) -> ::ff::FieldBits<Self::ReprBits> {
                 let bytes = self.to_repr();
@@ -812,6 +815,12 @@ macro_rules! field_bits {
                     u32::from_le_bytes(bytes[20..24].try_into().unwrap()),
                     u32::from_le_bytes(bytes[24..28].try_into().unwrap()),
                     u32::from_le_bytes(bytes[28..32].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[32..36].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[36..40].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[40..44].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[44..48].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[48..52].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[..56].try_into().unwrap()),
                 ];
 
                 ::ff::FieldBits::new(limbs)
