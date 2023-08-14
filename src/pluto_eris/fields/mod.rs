@@ -64,7 +64,7 @@ macro_rules! field_common_7_limbs {
 
             /// Converts from an integer represented in little endian
             /// into its (congruent) `$field` representation.
-            pub const fn from_raw(val: [u64; 4]) -> Self {
+            pub const fn from_raw(val: [u64; 7]) -> Self {
                 #[cfg(feature = "asm")]
                 {
                     let (r0, carry) = mac(0, val[0], $r2.0[0], 0);
@@ -434,9 +434,9 @@ macro_rules! field_common_7_limbs {
 }
 
 #[macro_export]
-macro_rules! field_arithmetic {
+macro_rules! field_arithmetic_7_limbs {
     ($field:ident, $modulus:ident, $inv:ident, $field_type:ident) => {
-        field_specific!($field, $modulus, $inv, $field_type);
+        crate::field_specific_7_limbs!($field, $modulus, $inv, $field_type);
         impl $field {
             /// Doubles this field element.
             #[inline]
@@ -640,7 +640,7 @@ macro_rules! field_arithmetic {
 }
 
 #[macro_export]
-macro_rules! field_specific {
+macro_rules! field_specific_7_limbs {
     ($field:ident, $modulus:ident, $inv:ident, sparse) => {
         impl $field {
             /// Adds `rhs` to `self`, returning the result.

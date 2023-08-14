@@ -1,9 +1,12 @@
 use crate::arithmetic::{adc, mac, sbb};
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use crate::{
-    field_bits, field_common, impl_add_binop_specify_output, impl_binops_additive,
-    impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_from_u64, impl_sub_binop_specify_output, impl_sum_prod,
+    field_arithmetic_7_limbs, field_bits_7_limbs, field_common_7_limbs, impl_from_u64_7_limbs,
+};
+use crate::{
+    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
+    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_from_u64,
+    impl_sub_binop_specify_output, impl_sum_prod,
 };
 use core::convert::TryInto;
 use core::fmt;
@@ -18,7 +21,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// `r = 0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5cda8a6c7be4a7a5fe8fadffd6a2a7e8c30006b9459ffffcd300000001`
 ///
-/// is the scalar field of the BN254 curve.
+/// is the scalar field of the Pluto curve.
 /// The internal representation of this type is seven 64-bit unsigned
 /// integers in little-endian order which account for the 446 bits required to be represented.
 ///`Fp` values are always in Montgomery form; i.e., Fp(a) = aR mod r, with R = 2^448.
@@ -146,13 +149,12 @@ const DELTA: Fp = Fp::from_raw([
 ]);
 
 /// `ZETA^3 = 1 mod r` where `ZETA^2 != 1 mod r`
-const ZETA: Fp = Fp::from_raw([]);
+const ZETA: Fp = Fp::from_raw([0u64, 0, 0, 0, 0, 0, 0]);
 
 impl_binops_additive!(Fp, Fp);
 impl_binops_multiplicative!(Fp, Fp);
-field_common!(
+field_common_7_limbs!(
     Fp,
-    7,
     MODULUS,
     INV,
     MODULUS_STR,
@@ -165,13 +167,13 @@ field_common!(
     R3
 );
 impl_sum_prod!(Fp);
-impl_from_u64!(Fp, R2, 7);
-field_arithmetic!(Fp, MODULUS, INV, sparse);
+impl_from_u64_7_limbs!(Fp, R2);
+field_arithmetic_7_limbs!(Fp, MODULUS, INV, sparse);
 
 #[cfg(target_pointer_width = "64")]
-field_bits!(Fp, MODULUS);
+field_bits_7_limbs!(Fp, MODULUS);
 #[cfg(not(target_pointer_width = "64"))]
-field_bits!(Fp, MODULUS, MODULUS_LIMBS_32);
+field_bits_7_limbs!(Fp, MODULUS, MODULUS_LIMBS_32);
 
 impl Fp {
     pub const fn size() -> usize {
@@ -235,10 +237,10 @@ impl ff::Field for Fp {
 }
 
 impl ff::PrimeField for Fp {
-    type Repr = [u8; 32];
+    type Repr = [u8; 56];
 
-    const NUM_BITS: u32 = 254;
-    const CAPACITY: u32 = 253;
+    const NUM_BITS: u32 = 446;
+    const CAPACITY: u32 = 446;
     const MODULUS: &'static str = MODULUS_STR;
     const MULTIPLICATIVE_GENERATOR: Self = GENERATOR;
     const ROOT_OF_UNITY: Self = ROOT_OF_UNITY;
@@ -248,18 +250,24 @@ impl ff::PrimeField for Fp {
     const S: u32 = S;
 
     fn from_repr(repr: Self::Repr) -> CtOption<Self> {
-        let mut tmp = Fp([0, 0, 0, 0]);
+        let mut tmp = Fp([0, 0, 0, 0, 0, 0, 0]);
 
         tmp.0[0] = u64::from_le_bytes(repr[0..8].try_into().unwrap());
         tmp.0[1] = u64::from_le_bytes(repr[8..16].try_into().unwrap());
         tmp.0[2] = u64::from_le_bytes(repr[16..24].try_into().unwrap());
         tmp.0[3] = u64::from_le_bytes(repr[24..32].try_into().unwrap());
+        tmp.0[4] = u64::from_le_bytes(repr[32..40].try_into().unwrap());
+        tmp.0[5] = u64::from_le_bytes(repr[40..48].try_into().unwrap());
+        tmp.0[6] = u64::from_le_bytes(repr[48..56].try_into().unwrap());
 
         // Try to subtract the modulus
         let (_, borrow) = sbb(tmp.0[0], MODULUS.0[0], 0);
         let (_, borrow) = sbb(tmp.0[1], MODULUS.0[1], borrow);
         let (_, borrow) = sbb(tmp.0[2], MODULUS.0[2], borrow);
         let (_, borrow) = sbb(tmp.0[3], MODULUS.0[3], borrow);
+        let (_, borrow) = sbb(tmp.0[4], MODULUS.0[4], borrow);
+        let (_, borrow) = sbb(tmp.0[5], MODULUS.0[5], borrow);
+        let (_, borrow) = sbb(tmp.0[6], MODULUS.0[6], borrow);
 
         // If the element is smaller than MODULUS then the
         // subtraction will underflow, producing a borrow value
@@ -276,14 +284,19 @@ impl ff::PrimeField for Fp {
     fn to_repr(&self) -> Self::Repr {
         // Turn into canonical form by computing
         // (a.R) / R = a
-        let tmp = Fp::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
+        let tmp = Fp::montgomery_reduce(&[
+            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5], self.0[6], 0, 0, 0,
+            0, 0, 0, 0,
+        ]);
 
-        let mut res = [0; 32];
+        let mut res = [0; 56];
         res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
         res[8..16].copy_from_slice(&tmp.0[1].to_le_bytes());
         res[16..24].copy_from_slice(&tmp.0[2].to_le_bytes());
         res[24..32].copy_from_slice(&tmp.0[3].to_le_bytes());
-
+        res[32..40].copy_from_slice(&tmp.0[3].to_le_bytes());
+        res[40..48].copy_from_slice(&tmp.0[3].to_le_bytes());
+        res[48..56].copy_from_slice(&tmp.0[3].to_le_bytes());
         res
     }
 
@@ -354,15 +367,18 @@ mod test {
     }
 
     #[test]
-    fn test_From_u512() {
+    fn test_from_u512() {
         assert_eq!(
-            Fp::From_raw([
+            Fp::from_raw([
+                0x0000000000000000,
+                0x0000000000000000,
+                0x0000000000000000,
                 0x7e7140b5196b9e6f,
                 0x9abac9e4157b6172,
                 0xf04bc41062fd7322,
                 0x1185fa9c9fef6326,
             ]),
-            Fp::From_u512([
+            Fp::from_u512([
                 0xaaaaaaaaaaaaaaaa,
                 0xaaaaaaaaaaaaaaaa,
                 0xaaaaaaaaaaaaaaaa,
@@ -388,7 +404,22 @@ mod test {
         crate::tests::field::random_serde_test::<Fp>("Fp".to_string());
     }
 
-    fn is_less_than(x: &[u64; 4], y: &[u64; 4]) -> bool {
+    fn is_less_than(x: &[u64; 7], y: &[u64; 7]) -> bool {
+        match x[6].cmp(&y[6]) {
+            core::cmp::Ordering::Less => return true,
+            core::cmp::Ordering::Greater => return false,
+            _ => {}
+        }
+        match x[5].cmp(&y[5]) {
+            core::cmp::Ordering::Less => return true,
+            core::cmp::Ordering::Greater => return false,
+            _ => {}
+        }
+        match x[4].cmp(&y[4]) {
+            core::cmp::Ordering::Less => return true,
+            core::cmp::Ordering::Greater => return false,
+            _ => {}
+        }
         match x[3].cmp(&y[3]) {
             core::cmp::Ordering::Less => return true,
             core::cmp::Ordering::Greater => return false,
@@ -416,15 +447,15 @@ mod test {
         let start = start_timer!(|| "serialize Fp");
         // failure check
         for _ in 0..1000000 {
-            let rand_word = [(); 4].map(|_| rng.next_u64());
+            let rand_word = [(); 7].map(|_| rng.next_u64());
             let a = Fp(rand_word);
             let rand_bytes = a.to_raw_bytes();
             match is_less_than(&rand_word, &MODULUS.0) {
                 false => {
-                    assert!(Fp::From_raw_bytes(&rand_bytes).is_none());
+                    assert!(Fp::from_raw_bytes(&rand_bytes).is_none());
                 }
                 _ => {
-                    assert_eq!(Fp::From_raw_bytes(&rand_bytes), Some(a));
+                    assert_eq!(Fp::from_raw_bytes(&rand_bytes), Some(a));
                 }
             }
         }
@@ -438,7 +469,7 @@ mod test {
         let base = (0..repeat).map(|_| (rng.next_u32() % (1 << 16)) as u64);
 
         let timer = start_timer!(|| format!("generate {} Bn256 scalar field elements", repeat));
-        let _res: Vec<_> = base.map(|b| Fp::From(b)).collect();
+        let _res: Vec<_> = base.map(|b| Fp::from(b)).collect();
 
         end_timer!(timer);
     }
