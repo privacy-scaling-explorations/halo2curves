@@ -166,6 +166,7 @@ field_common!(
     R3
 );
 impl_sum_prod!(Fr);
+prime_field_legendre!(Fr);
 
 #[cfg(not(feature = "bn256-table"))]
 impl_from_u64!(Fr, R2);

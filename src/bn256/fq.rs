@@ -160,26 +160,9 @@ impl Fq {
     pub const fn size() -> usize {
         32
     }
-
-    pub fn legendre(&self) -> LegendreSymbol {
-        // s = self^((modulus - 1) // 2)
-        // 0x183227397098d014dc2822db40c0ac2ecbc0b548b438e5469e10460b6c3e7ea3
-        let s = &[
-            0x9e10460b6c3e7ea3u64,
-            0xcbc0b548b438e546u64,
-            0xdc2822db40c0ac2eu64,
-            0x183227397098d014u64,
-        ];
-        let s = self.pow(s);
-        if s == Self::zero() {
-            LegendreSymbol::Zero
-        } else if s == Self::one() {
-            LegendreSymbol::QuadraticResidue
-        } else {
-            LegendreSymbol::QuadraticNonResidue
-        }
-    }
 }
+
+prime_field_legendre!(Fq);
 
 impl ff::Field for Fq {
     const ZERO: Self = Self::zero();
@@ -310,6 +293,7 @@ impl WithSmallOrderMulGroup<3> for Fq {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::legendre::Legendre;
     use ff::Field;
     use rand_core::OsRng;
 
@@ -322,7 +306,7 @@ mod test {
             let a = Fq::random(OsRng);
             let mut b = a;
             b = b.square();
-            assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
+            assert_eq!(b.legendre(), Fq::ONE);
 
             let b = b.sqrt().unwrap();
             let mut negb = b;
@@ -335,7 +319,7 @@ mod test {
         for _ in 0..10000 {
             let mut b = c;
             b = b.square();
-            assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
+            assert_eq!(b.legendre(), Fq::ONE);
 
             b = b.sqrt().unwrap();
 
@@ -392,10 +376,5 @@ mod test {
         crate::tests::field::random_serialization_test::<Fq>("fq".to_string());
         #[cfg(feature = "derive_serde")]
         crate::tests::field::random_serde_test::<Fq>("fq".to_string());
-    }
-
-    #[test]
-    fn test_quadratic_residue() {
-        crate::tests::field::random_quadratic_residue_test::<Fq>();
     }
 }

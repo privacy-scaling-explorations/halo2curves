@@ -1,10 +1,11 @@
 #![allow(clippy::op_ref)]
 
 use ff::{Field, FromUniformBytes, PrimeField};
-use num_bigint::BigUint;
 use pasta_curves::arithmetic::CurveExt;
 use static_assertions::const_assert;
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+use subtle::{ConditionallySelectable, ConstantTimeEq};
+
+use crate::legendre::Legendre;
 
 /// Hashes over a message and writes the output to all of `buf`.
 /// Modified from https://github.com/zcash/pasta_curves/blob/7e3fc6a4919f6462a32b79dd226cb2587b7961eb/src/hashtocurve.rs#L11.
@@ -95,11 +96,11 @@ pub(crate) fn svdw_map_to_curve<C>(
 ) -> C
 where
     C: CurveExt,
+    C::Base: Legendre,
 {
     let one = C::Base::ONE;
     let a = C::a();
     let b = C::b();
-    let p_minus_one = mod_minus_one::<C::Base>();
 
     // 1. tv1 = u^2
     let tv1 = u.square();
@@ -130,7 +131,7 @@ where
     // 14. gx1 = gx1 + B
     let gx1 = gx1 + b;
     // 15. e1 = is_square(gx1)
-    let e1 = !is_quadratic_non_residue(gx1, p_minus_one.clone());
+    let e1 = !gx1.ct_quadratic_non_residue();
     // 16. x2 = c2 + tv4
     let x2 = c2 + tv4;
     // 17. gx2 = x2^2
@@ -142,7 +143,7 @@ where
     // 20. gx2 = gx2 + B
     let gx2 = gx2 + b;
     // 21. e2 = is_square(gx2) AND NOT e1    # Avoid short-circuit logic ops
-    let e2 = !is_quadratic_non_residue(gx2, p_minus_one) & (!e1);
+    let e2 = !gx2.ct_quadratic_non_residue() & (!e1);
     // 22. x3 = tv2^2
     let x3 = tv2.square();
     // 23. x3 = x3 * tv3
@@ -184,7 +185,7 @@ pub(crate) fn svdw_hash_to_curve<'a, C>(
 ) -> Box<dyn Fn(&[u8]) -> C + 'a>
 where
     C: CurveExt,
-    C::Base: FromUniformBytes<64>,
+    C::Base: FromUniformBytes<64> + Legendre,
 {
     let [c1, c2, c3, c4] = svdw_precomputed_constants::<C>(z);
 
@@ -221,20 +222,4 @@ pub(crate) fn svdw_precomputed_constants<C: CurveExt>(z: C::Base) -> [C::Base; 4
     let c4 = -four * c1 * tmp.invert().unwrap();
 
     [c1, c2, c3, c4]
-}
-
-#[inline]
-pub(crate) fn legendre<F: PrimeField>(elem: F, p_minus_one: BigUint) -> F {
-    let exp: BigUint = p_minus_one >> 1;
-    elem.pow(exp.to_u64_digits())
-}
-
-#[inline]
-pub(crate) fn is_quadratic_non_residue<F: PrimeField>(e: F, p_minus_one: BigUint) -> Choice {
-    legendre(e, p_minus_one).ct_eq(&-F::ONE)
-}
-
-#[inline]
-pub(crate) fn mod_minus_one<F: PrimeField>() -> BigUint {
-    BigUint::from_bytes_le((-F::ONE).to_repr().as_ref())
 }
