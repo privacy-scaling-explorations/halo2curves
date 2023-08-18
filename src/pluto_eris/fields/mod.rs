@@ -16,6 +16,7 @@ macro_rules! impl_from_u64_7_limbs {
 macro_rules! field_common_7_limbs {
     (
         $field:ident,
+        $field_repr:ident,
         $modulus:ident,
         $inv:ident,
         $modulus_str:ident,
@@ -192,7 +193,7 @@ macro_rules! field_common_7_limbs {
                     let (r10, carry) = mac(r10, k, $modulus.0[4], carry);
                     let (r11, carry) = mac(r11, k, $modulus.0[5], carry);
                     let (r12, carry) = mac(r12, k, $modulus.0[6], carry);
-                    let (r13, carry2) = adc(r32, carry2, carry);
+                    let (r13, carry2) = adc(r13, carry2, carry);
 
                     // Result may be within MODULUS of the correct value
                     let (d0, borrow) = sbb(r7, $modulus.0[0], 0);
@@ -222,13 +223,13 @@ macro_rules! field_common_7_limbs {
             /// Attempts to convert a little-endian byte representation of
             /// a scalar into a `Fr`, failing if the input is not canonical.
             pub fn from_bytes(bytes: &[u8; 56]) -> CtOption<$field> {
-                <Self as ff::PrimeField>::from_repr(*bytes)
+                <Self as ff::PrimeField>::from_repr($field_repr { repr: *bytes })
             }
 
             /// Converts an element of `Fr` into a byte representation in
             /// little-endian byte order.
             pub fn to_bytes(&self) -> [u8; 56] {
-                <Self as ff::PrimeField>::to_repr(self)
+                <Self as ff::PrimeField>::to_repr(self).repr
             }
 
             /// Lexicographic comparison of Montgomery forms.
@@ -367,13 +368,13 @@ macro_rules! field_common_7_limbs {
 
         impl From<$field> for [u8; 56] {
             fn from(value: $field) -> [u8; 56] {
-                value.to_repr()
+                value.to_repr().repr
             }
         }
 
         impl<'a> From<&'a $field> for [u8; 56] {
             fn from(value: &'a $field) -> [u8; 56] {
-                value.to_repr()
+                value.to_repr().repr
             }
         }
 
@@ -786,7 +787,7 @@ macro_rules! field_bits_7_limbs {
             type ReprBits = [u64; 7];
 
             fn to_le_bits(&self) -> ::ff::FieldBits<Self::ReprBits> {
-                let bytes = self.to_repr();
+                let bytes = self.to_repr().repr;
 
                 let limbs = [
                     u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
@@ -814,7 +815,7 @@ macro_rules! field_bits_7_limbs {
             type ReprBits = [u32; 14];
 
             fn to_le_bits(&self) -> ::ff::FieldBits<Self::ReprBits> {
-                let bytes = self.to_repr();
+                let bytes = self.to_repr().repr;
 
                 let limbs = [
                     u32::from_le_bytes(bytes[0..4].try_into().unwrap()),

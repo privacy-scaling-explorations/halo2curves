@@ -12,6 +12,7 @@ use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
+use std::slice::Iter;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "derive_serde")]
@@ -155,6 +156,7 @@ impl_binops_additive!(Fp, Fp);
 impl_binops_multiplicative!(Fp, Fp);
 field_common_7_limbs!(
     Fp,
+    FpRepr,
     MODULUS,
     INV,
     MODULUS_STR,
@@ -240,8 +242,42 @@ impl ff::Field for Fp {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct FpRepr {
+    pub repr: [u8; 56],
+}
+
+impl FpRepr {
+    fn iter(&self) -> Iter<'_, u8> {
+        self.repr.iter()
+    }
+}
+
+impl Default for FpRepr {
+    fn default() -> Self {
+        FpRepr { repr: [0u8; 56] }
+    }
+}
+
+impl AsRef<[u8]> for FpRepr {
+    fn as_ref(&self) -> &[u8] {
+        self.repr.as_ref()
+    }
+}
+
+impl AsMut<[u8]> for FpRepr {
+    fn as_mut(&mut self) -> &mut [u8] {
+        self.repr.as_mut()
+    }
+}
+impl From<[u8; 56]> for FpRepr {
+    fn from(repr: [u8; 56]) -> Self {
+        Self { repr }
+    }
+}
+
 impl ff::PrimeField for Fp {
-    type Repr = [u8; 56];
+    type Repr = FpRepr;
 
     const NUM_BITS: u32 = 446;
     const CAPACITY: u32 = 446;
@@ -255,6 +291,7 @@ impl ff::PrimeField for Fp {
 
     fn from_repr(repr: Self::Repr) -> CtOption<Self> {
         let mut tmp = Fp([0, 0, 0, 0, 0, 0, 0]);
+        let repr = repr.repr;
 
         tmp.0[0] = u64::from_le_bytes(repr[0..8].try_into().unwrap());
         tmp.0[1] = u64::from_le_bytes(repr[8..16].try_into().unwrap());
@@ -301,11 +338,11 @@ impl ff::PrimeField for Fp {
         res[32..40].copy_from_slice(&tmp.0[3].to_le_bytes());
         res[40..48].copy_from_slice(&tmp.0[3].to_le_bytes());
         res[48..56].copy_from_slice(&tmp.0[3].to_le_bytes());
-        res
+        res.into()
     }
 
     fn is_odd(&self) -> Choice {
-        Choice::from(self.to_repr()[0] & 1)
+        Choice::from(self.to_repr().repr[0] & 1)
     }
 }
 
@@ -467,7 +504,7 @@ mod test {
     }
 
     #[test]
-    fn bench_Fp_From_u16() {
+    fn bench_fp_from_u16() {
         let repeat = 10000000;
         let mut rng = ark_std::test_rng();
         let base = (0..repeat).map(|_| (rng.next_u32() % (1 << 16)) as u64);
