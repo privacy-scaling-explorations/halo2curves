@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 
 /// This represents an element of $\mathbb{F}_r$ where
 ///
-/// `r = 0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd300000001`
+/// `q = 0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd300000001`
 ///
 /// is the scalar field of the Pluto curve.
 /// The internal representation of this type is seven 64-bit unsigned
@@ -31,12 +31,12 @@ use serde::{Deserialize, Serialize};
 pub struct Fq(pub(crate) [u64; 7]);
 
 /// Constant representing the modulus
-/// r = 0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd300000001
+/// q = 0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd300000001
 const MODULUS: Fq = Fq([
-    0x9ffffcd300000001,
-    0xa2a7e8c30006b945,
-    0xe4a7a5fe8fadffd6,
-    0x443f9a5cda8a6c7b,
+    0x1ffffcd300000001,
+    0x9ca7e85d60050af4,
+    0xe4a775fe8e177fd6,
+    0x443f9a5c7a8a6c7b,
     0xa803ca76f439266f,
     0x0130e0000d7f70e4,
     0x2400000000002400,
@@ -45,13 +45,13 @@ const MODULUS: Fq = Fq([
 /// The modulus as u32 limbs.
 #[cfg(not(target_pointer_width = "64"))]
 const MODULUS_LIMBS_32: [u32; 14] = [
-    0x00000001, 0x9ffffcd3, 0x0006b945, 0xa2a7e8c3, 0x8fadffd6, 0xe4a7a5fe, 0xda8a6c7b, 0x443f9a5c,
+    0x00000001, 0x1ffffcd3, 0x60050af4, 0x9ca7e85d, 0x8e177fd6, 0xe4a775fe, 0x7a8a6c7b, 0x443f9a5c,
     0xf439266f, 0xa803ca76, 0x0d7f70e4, 0x0130e000, 0x00002400, 0x24000000,
 ];
 
 const MODULUS_STR: &str = "0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd300000001";
 
-/// INV = -(r^{-1} mod 2^64) mod 2^64
+/// INV = -(q^{-1} mod 2^64) mod 2^64
 /// `0x1ffffcd2ffffffff`
 const INV: u64 = 0x1ffffcd2ffffffff;
 
@@ -77,7 +77,7 @@ const R2: Fq = Fq([
     0x51da4da1c97f7164,
     0x44d51e923f646956,
     0xe436895a5a630ff5,
-    0x50d7c998f46144e,
+    0x050d7c998f46144e,
 ]);
 
 /// `R^3 = 2^1792 mod r`
@@ -92,7 +92,8 @@ const R3: Fq = Fq([
     0x134bf4061fa616fe,
 ]);
 
-/// `GENERATOR = 7 mod r` is a generator of the `r - 1` order multiplicative
+// TODO Why 7? 19 is proposed in the original PR
+/// `GENERATOR = 7 mod q` is a generator of the `q - 1` order multiplicative
 /// subgroup, or in other words a primitive root of the field.
 const GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
 

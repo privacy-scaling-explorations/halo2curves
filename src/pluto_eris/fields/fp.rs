@@ -59,7 +59,7 @@ const INV: u64 = 0x9ffffcd2ffffffff;
 /// `R = 2^448 mod r`
 /// `0x3ffffffffff03fff7a9dfffa183e9bf67e576bf526ff2f52242c7760637089cbf6a760a123e01218d68a2aaffd0ef18a000163afffffff9`
 const R: Fp = Fp([
-    0x000163afffffff9,
+    0xa000163afffffff9,
     0xd68a2aaffd0ef18a,
     0xf6a760a123e01218,
     0x242c7760637089cb,
