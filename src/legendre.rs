@@ -5,7 +5,7 @@ pub trait Legendre: Field {
     type BasePrimeField: PrimeField;
 
     // This is (p-1)/2 where p is the modulus of the base prime field
-    fn legendre_exp() -> &'static Vec<u64>;
+    fn legendre_exp() -> &'static [u64];
 
     fn norm(&self) -> Self::BasePrimeField;
 
@@ -32,7 +32,7 @@ macro_rules! prime_field_legendre {
             type BasePrimeField = Self;
 
             #[inline]
-            fn legendre_exp() -> &'static Vec<u64> {
+            fn legendre_exp() -> &'static [u64] {
                 lazy_static::lazy_static! {
                     // (p-1) / 2
                     static ref LEGENDRE_EXP: Vec<u64> =

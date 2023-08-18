@@ -129,7 +129,7 @@ impl Legendre for Fq2 {
     type BasePrimeField = Fq;
 
     #[inline]
-    fn legendre_exp() -> &'static Vec<u64> {
+    fn legendre_exp() -> &'static [u64] {
         lazy_static::lazy_static! {
             // (p-1) / 2
             static ref LEGENDRE_EXP: Vec<u64> =
