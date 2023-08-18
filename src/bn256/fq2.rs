@@ -138,6 +138,7 @@ impl Legendre for Fq2 {
         &*LEGENDRE_EXP
     }
 
+    /// Norm of Fq2 as extension field in i over Fq
     #[inline]
     fn norm(&self) -> Self::BasePrimeField {
         let mut t0 = self.c0;
@@ -316,8 +317,6 @@ impl Fq2 {
         // (9*x + y)
         self.c1 += &t0;
     }
-
-    /// Norm of Fq2 as extension field in i over Fq
 
     pub fn invert(&self) -> CtOption<Self> {
         let mut t1 = self.c1;
