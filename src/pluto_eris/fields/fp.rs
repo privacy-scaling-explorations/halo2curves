@@ -226,13 +226,13 @@ impl ff::Field for Fp {
     fn sqrt(&self) -> CtOption<Self> {
         /// `(t - 1) // 2` where t * 2^s + 1 = p with t odd.
         const T_MINUS1_OVER2: [u64; 7] = [
-            0x0006b9459ffffcd3,
-            0x8fadffd6a2a7e8c3,
-            0xda8a6c7be4a7a5fe,
-            0xf439266f443f9a5c,
-            0x0d7f70e4a803ca76,
-            0x000024000130e000,
-            0x24000000,
+            0x80035ca2cffffe69,
+            0x47d6ffeb5153f461,
+            0x6d45363df253d2ff,
+            0x7a1c9337a21fcd2e,
+            0x06bfb8725401e53b,
+            0x0000120000987000,
+            0x0000000012000000,
         ];
         ff::helpers::sqrt_tonelli_shanks(self, T_MINUS1_OVER2)
     }

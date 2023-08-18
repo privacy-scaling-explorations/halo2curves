@@ -100,7 +100,7 @@ const GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
 /// Size of the 2-adic sub-group of the field.
 const S: u32 = 32;
 
-/// GENERATOR^t where t * 2^s + 1 = r
+/// GENERATOR^t where t * 2^s + 1 = q
 /// with t odd. In other words, this
 /// is a 2^s root of unity.
 /// `0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd3`
@@ -114,7 +114,7 @@ const ROOT_OF_UNITY: Fq = Fq::from_raw([
     0x24000000,
 ]);
 
-/// 1 / 2 mod r
+/// 1 / 2 mod q
 /// `0x12000000000012000098700006bfb8725401e53b7a1c9337a21fcd2e3d45363df253baff470bbfeb4e53f42eb002857a0ffffe6980000001`
 const TWO_INV: Fq = Fq::from_raw([
     0x0ffffe6980000001,
@@ -126,7 +126,7 @@ const TWO_INV: Fq = Fq::from_raw([
     0x1200000000001200,
 ]);
 
-/// 1 / ROOT_OF_UNITY mod r
+/// 1 / ROOT_OF_UNITY mod q
 /// `0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd200000001`
 const ROOT_OF_UNITY_INV: Fq = Fq::from_raw([
     0x1ffffcd200000001,
@@ -150,7 +150,7 @@ const DELTA: Fq = Fq::from_raw([
     0x657946fe07116ce,
 ]);
 
-/// `ZETA^3 = 1 mod r` where `ZETA^2 != 1 mod r`
+/// `ZETA^3 = 1 mod q` where `ZETA^2 != 1 mod r`
 const ZETA: Fq = Fq::from_raw([3u64, 0, 0, 0, 0, 0, 0]);
 
 impl_binops_additive!(Fq, Fq);
@@ -233,7 +233,7 @@ impl ff::Field for Fq {
             0x7a1c9337a21fcd2e,
             0x06bfb8725401e53b,
             0x0000120000987000,
-            0x12000000,
+            0x0000000012000000,
         ];
         ff::helpers::sqrt_tonelli_shanks(self, T_MINUS1_OVER2)
     }
