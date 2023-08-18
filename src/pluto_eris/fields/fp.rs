@@ -45,8 +45,8 @@ const MODULUS: Fp = Fp([
 /// The modulus as u32 limbs.
 #[cfg(not(target_pointer_width = "64"))]
 const MODULUS_LIMBS_32: [u32; 14] = [
-    0x9ffffcd3, 0x00000001, 0xa2a7e8c3, 0x0006b945, 0xe4a7a5fe, 0x8fadffd6, 0x443f9a5c, 0xda8a6c7b,
-    0xa803ca76, 0xf439266f, 0x0130e000, 0x0d7f70e4, 0x24000000, 0x00002400,
+    0x00000001, 0x9ffffcd3, 0x0006b945, 0xa2a7e8c3, 0x8fadffd6, 0xe4a7a5fe, 0xda8a6c7b, 0x443f9a5c,
+    0xf439266f, 0xa803ca76, 0x0d7f70e4, 0x0130e000, 0x00002400, 0x24000000,
 ];
 
 const MODULUS_STR: &str = "0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5cda8a6c7be4a7a5fe8fadffd6a2a7e8c30006b9459ffffcd300000001";
