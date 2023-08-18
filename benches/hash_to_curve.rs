@@ -1,16 +1,34 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use halo2curves::bn256::G1;
-use halo2curves::secp256k1::Secp256k1;
 use pasta_curves::arithmetic::CurveExt;
 use rand_core::{OsRng, RngCore};
 use std::iter;
 
 fn hash_to_secp256k1(c: &mut Criterion) {
-    hash_to_curve::<Secp256k1>(c, "Secp256k1");
+    hash_to_curve::<halo2curves::secp256k1::Secp256k1>(c, "Secp256k1");
+}
+
+fn hash_to_secq256k1(c: &mut Criterion) {
+    hash_to_curve::<halo2curves::secq256k1::Secq256k1>(c, "Secq256k1");
+}
+
+fn hash_to_secp256r1(c: &mut Criterion) {
+    hash_to_curve::<halo2curves::secp256r1::Secp256r1>(c, "Secp256r1");
+}
+
+fn hash_to_pallas(c: &mut Criterion) {
+    hash_to_curve::<halo2curves::pasta::Ep>(c, "Pallas");
+}
+
+fn hash_to_vesta(c: &mut Criterion) {
+    hash_to_curve::<halo2curves::pasta::Eq>(c, "Vesta");
 }
 
 fn hash_to_bn256(c: &mut Criterion) {
-    hash_to_curve::<G1>(c, "Bn256");
+    hash_to_curve::<halo2curves::bn256::G1>(c, "Bn256");
+}
+
+fn hash_to_grumpkin(c: &mut Criterion) {
+    hash_to_curve::<halo2curves::grumpkin::G1>(c, "Grumpkin");
 }
 
 fn hash_to_curve<G: CurveExt>(c: &mut Criterion, name: &'static str) {
@@ -28,5 +46,14 @@ fn hash_to_curve<G: CurveExt>(c: &mut Criterion, name: &'static str) {
     }
 }
 
-criterion_group!(benches, hash_to_secp256k1, hash_to_bn256);
+criterion_group!(
+    benches,
+    hash_to_secp256k1,
+    hash_to_secq256k1,
+    hash_to_secp256r1,
+    hash_to_pallas,
+    hash_to_vesta,
+    hash_to_bn256,
+    hash_to_grumpkin,
+);
 criterion_main!(benches);
