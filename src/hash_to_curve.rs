@@ -3,7 +3,7 @@
 use ff::{Field, FromUniformBytes, PrimeField};
 use pasta_curves::arithmetic::CurveExt;
 use static_assertions::const_assert;
-use subtle::{ConditionallySelectable, ConstantTimeEq};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// Hashes over a message and writes the output to all of `buf`.
 /// Modified from https://github.com/zcash/pasta_curves/blob/7e3fc6a4919f6462a32b79dd226cb2587b7961eb/src/hashtocurve.rs#L11.
@@ -84,7 +84,6 @@ fn hash_to_field<F: FromUniformBytes<64>>(
 }
 
 // Implementation of <https://datatracker.ietf.org/doc/html/rfc9380#name-simplified-swu-method>
-// TODO Check CMOV instruction and their comments are correct
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn simple_svdw_map_to_curve<C>(u: C::Base, z: C::Base) -> C
 where
@@ -108,8 +107,8 @@ where
     //6.  tv3 = B * tv3
     let tv3 = b * tv3;
     //7.  tv4 = CMOV(Z, -tv2, tv2 != 0) # tv4 = z if tv2 is 0 else tv4 = -tv2
-    let tv2_is_zero = tv2.ct_eq(&zero);
-    let tv4 = C::Base::conditional_select(&z, &tv2, tv2_is_zero);
+    let tv2_is_not_zero = !tv2.ct_eq(&zero);
+    let tv4 = C::Base::conditional_select(&z, &-tv2, tv2_is_not_zero);
     //8.  tv4 = A * tv4
     let tv4 = a * tv4;
     //9.  tv2 = tv3^2
@@ -131,7 +130,7 @@ where
     //17.   x = tv1 * tv3
     let x = tv1 * tv3;
     //18. (is_gx1_square, y1) = sqrt_ratio(tv2, tv6)
-    let (is_gx1_square, y1) = C::Base::sqrt_ratio(&tv2, &tv6);
+    let (is_gx1_square, y1) = sqrt_ratio(&tv2, &tv6, &z);
     //19.   y = tv1 * u
     let y = tv1 * u;
     //20.   y = y * y1
@@ -142,7 +141,7 @@ where
     let y = C::Base::conditional_select(&y, &y1, is_gx1_square);
     //23.  e1 = sgn0(u) == sgn0(y)
     let e1 = u.is_odd().ct_eq(&y.is_odd());
-    //24.   y = CMOV(-y, y, e1)
+    //24.   y = CMOV(-y, y, e1) # Select correct sign of y
     let y = C::Base::conditional_select(&-y, &y, e1);
     //25.   x = x / tv4
     let x = x * tv4.invert().unwrap();
@@ -260,6 +259,43 @@ where
     let y = C::Base::conditional_select(&-y, &y, e3);
     // 36. return (x, y)
     C::new_jacobian(x, y, one).unwrap()
+}
+
+// Implement https://datatracker.ietf.org/doc/html/rfc9380#name-sqrt_ratio-for-any-field
+// Copied from ff sqrt_ratio_generic subsituting F::ROOT_OF_UNITY for input Z
+fn sqrt_ratio<F: PrimeField>(num: &F, div: &F, z: &F) -> (Choice, F) {
+    // General implementation:
+    //
+    // a = num * inv0(div)
+    //   = {    0    if div is zero
+    //     { num/div otherwise
+    //
+    // b = z * a
+    //   = {      0      if div is zero
+    //     { z*num/div otherwise
+
+    // Since z is non-square, a and b are either both zero (and both square), or
+    // only one of them is square. We can therefore choose the square root to return
+    // based on whether a is square, but for the boolean output we need to handle the
+    // num != 0 && div == 0 case specifically.
+
+    let a = div.invert().unwrap_or(F::ZERO) * num;
+    let b = a * z;
+    let sqrt_a = a.sqrt();
+    let sqrt_b = b.sqrt();
+
+    let num_is_zero = num.is_zero();
+    let div_is_zero = div.is_zero();
+    let is_square = sqrt_a.is_some();
+    let is_nonsquare = sqrt_b.is_some();
+    assert!(bool::from(
+        num_is_zero | div_is_zero | (is_square ^ is_nonsquare)
+    ));
+
+    (
+        is_square & (num_is_zero | !div_is_zero),
+        CtOption::conditional_select(&sqrt_b, &sqrt_a, is_square).unwrap(),
+    )
 }
 
 /// Implementation of https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-10.html#section-6.6.1
