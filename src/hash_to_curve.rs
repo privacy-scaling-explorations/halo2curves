@@ -83,6 +83,95 @@ fn hash_to_field<F: FromUniformBytes<64>>(
     }
 }
 
+// Implementation of <https://datatracker.ietf.org/doc/html/rfc9380#name-simplified-swu-method>
+// TODO Check CMOV instruction and their comments are correct
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn simple_svdw_map_to_curve<C>(u: C::Base, z: C::Base) -> C
+where
+    C: CurveExt,
+{
+    let zero = C::Base::ZERO;
+    let one = C::Base::ONE;
+    let a = C::a();
+    let b = C::b();
+
+    //1.  tv1 = u^2
+    let tv1 = u.square();
+    //2.  tv1 = Z * tv1
+    let tv1 = z * tv1;
+    //3.  tv2 = tv1^2
+    let tv2 = tv1.square();
+    //4.  tv2 = tv2 + tv1
+    let tv2 = tv2 + tv1;
+    //5.  tv3 = tv2 + 1
+    let tv3 = tv2 + one;
+    //6.  tv3 = B * tv3
+    let tv3 = b * tv3;
+    //7.  tv4 = CMOV(Z, -tv2, tv2 != 0) # tv4 = z if tv2 is 0 else tv4 = -tv2
+    let tv2_is_zero = tv2.ct_eq(&zero);
+    let tv4 = C::Base::conditional_select(&z, &tv2, tv2_is_zero);
+    //8.  tv4 = A * tv4
+    let tv4 = a * tv4;
+    //9.  tv2 = tv3^2
+    let tv2 = tv3.square();
+    //10. tv6 = tv4^2
+    let tv6 = tv4.square();
+    //11. tv5 = A * tv6
+    let tv5 = a * tv6;
+    //12. tv2 = tv2 + tv5
+    let tv2 = tv2 + tv5;
+    //13. tv2 = tv2 * tv3
+    let tv2 = tv2 * tv3;
+    //14. tv6 = tv6 * tv4
+    let tv6 = tv6 * tv4;
+    //15. tv5 = B * tv6
+    let tv5 = b * tv6;
+    //16. tv2 = tv2 + tv5
+    let tv2 = tv2 + tv5;
+    //17.   x = tv1 * tv3
+    let x = tv1 * tv3;
+    //18. (is_gx1_square, y1) = sqrt_ratio(tv2, tv6)
+    let (is_gx1_square, y1) = C::Base::sqrt_ratio(&tv2, &tv6);
+    //19.   y = tv1 * u
+    let y = tv1 * u;
+    //20.   y = y * y1
+    let y = y * y1;
+    //21.   x = CMOV(x, tv3, is_gx1_square)
+    let x = C::Base::conditional_select(&x, &tv3, is_gx1_square);
+    //22.   y = CMOV(y, y1, is_gx1_square)
+    let y = C::Base::conditional_select(&y, &y1, is_gx1_square);
+    //23.  e1 = sgn0(u) == sgn0(y)
+    let e1 = u.is_odd().ct_eq(&y.is_odd());
+    //24.   y = CMOV(-y, y, e1)
+    let y = C::Base::conditional_select(&-y, &y, e1);
+    //25.   x = x / tv4
+    let x = x * tv4.invert().unwrap();
+    //26. return (x, y)
+    C::new_jacobian(x, y, one).unwrap()
+}
+
+#[allow(clippy::type_complexity)]
+pub(crate) fn simple_svdw_hash_to_curve<'a, C>(
+    curve_id: &'static str,
+    domain_prefix: &'a str,
+    z: C::Base,
+) -> Box<dyn Fn(&[u8]) -> C + 'a>
+where
+    C: CurveExt,
+    C::Base: FromUniformBytes<64>,
+{
+    Box::new(move |message| {
+        let mut us = [C::Base::ZERO; 2];
+        hash_to_field("SVDW", curve_id, domain_prefix, message, &mut us);
+
+        let [q0, q1]: [C; 2] = us.map(|u| simple_svdw_map_to_curve(u, z));
+
+        let r = q0 + &q1;
+        debug_assert!(bool::from(r.is_on_curve()));
+        r
+    })
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn svdw_map_to_curve<C>(
     u: C::Base,
