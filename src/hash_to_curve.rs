@@ -173,7 +173,7 @@ where
     C::new_jacobian(x, y, one).unwrap()
 }
 
-/// Implementation of https://www.ietf.org/id/draft-irtf-cfrg-hash-to-curve-16.html#name-shallue-van-de-woestijne-met
+/// Implementation of https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-10.html#section-6.6.1
 #[allow(clippy::type_complexity)]
 pub(crate) fn svdw_hash_to_curve<'a, C>(
     curve_id: &'static str,
