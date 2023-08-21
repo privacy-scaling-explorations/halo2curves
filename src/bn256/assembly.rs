@@ -608,6 +608,14 @@ macro_rules! field_arithmetic_asm {
                 $field([r0, r1, r2, r3])
             }
         }
+
+        impl From<$field> for [u64; 4] {
+            fn from(elt: $field) -> [u64; 4] {
+                // Turn into canonical form by computing
+                // (a.R) / R = a
+                elt.montgomery_reduce_256().0
+            }
+        }
     };
 }
 

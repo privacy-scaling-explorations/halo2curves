@@ -267,6 +267,12 @@ macro_rules! field_common {
             }
         }
 
+        impl From<[u64; 4]> for $field {
+            fn from(digits: [u64; 4]) -> Self {
+                Self::from_raw(digits)
+            }
+        }
+
         impl From<$field> for [u8; 32] {
             fn from(value: $field) -> [u8; 32] {
                 value.to_repr()
@@ -441,6 +447,49 @@ macro_rules! field_arithmetic {
                     (((self.0[0] | self.0[1] | self.0[2] | self.0[3]) == 0) as u64).wrapping_sub(1);
 
                 $field([d0 & mask, d1 & mask, d2 & mask, d3 & mask])
+            }
+
+            /// Montgomery reduce where last 4 registers are 0
+            #[inline(always)]
+            pub(crate) const fn montgomery_reduce_short(r: &[u64; 4]) -> $field {
+                // The Montgomery reduction here is based on Algorithm 14.32 in
+                // Handbook of Applied Cryptography
+                // <http://cacr.uwaterloo.ca/hac/about/chap14.pdf>.
+
+                let k = r[0].wrapping_mul($inv);
+                let (_, r0) = macx(r[0], k, $modulus.0[0]);
+                let (r1, r0) = mac(r[1], k, $modulus.0[1], r0);
+                let (r2, r0) = mac(r[2], k, $modulus.0[2], r0);
+                let (r3, r0) = mac(r[3], k, $modulus.0[3], r0);
+
+                let k = r1.wrapping_mul($inv);
+                let (_, r1) = macx(r1, k, $modulus.0[0]);
+                let (r2, r1) = mac(r2, k, $modulus.0[1], r1);
+                let (r3, r1) = mac(r3, k, $modulus.0[2], r1);
+                let (r0, r1) = mac(r0, k, $modulus.0[3], r1);
+
+                let k = r2.wrapping_mul($inv);
+                let (_, r2) = macx(r2, k, $modulus.0[0]);
+                let (r3, r2) = mac(r3, k, $modulus.0[1], r2);
+                let (r0, r2) = mac(r0, k, $modulus.0[2], r2);
+                let (r1, r2) = mac(r1, k, $modulus.0[3], r2);
+
+                let k = r3.wrapping_mul($inv);
+                let (_, r3) = macx(r3, k, $modulus.0[0]);
+                let (r0, r3) = mac(r0, k, $modulus.0[1], r3);
+                let (r1, r3) = mac(r1, k, $modulus.0[2], r3);
+                let (r2, r3) = mac(r2, k, $modulus.0[3], r3);
+
+                // Result may be within MODULUS of the correct value
+                (&$field([r0, r1, r2, r3])).sub(&$modulus)
+            }
+        }
+
+        impl From<$field> for [u64; 4] {
+            fn from(elt: $field) -> [u64; 4] {
+                // Turn into canonical form by computing
+                // (a.R) / R = a
+                $field::montgomery_reduce_short(&elt.0).0
             }
         }
     };

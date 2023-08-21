@@ -18,7 +18,7 @@ pub use table::FR_TABLE;
 #[cfg(not(feature = "bn256-table"))]
 use crate::impl_from_u64;
 
-use crate::arithmetic::{adc, mac, sbb};
+use crate::arithmetic::{adc, mac, macx, sbb};
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use crate::{
     field_bits, field_common, impl_add_binop_specify_output, impl_binops_additive,
@@ -300,20 +300,12 @@ impl ff::PrimeField for Fr {
     }
 
     fn to_repr(&self) -> Self::Repr {
-        // Turn into canonical form by computing
-        // (a.R) / R = a
-
-        #[cfg(not(feature = "asm"))]
-        let tmp =
-            Self::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
-        #[cfg(feature = "asm")]
-        let tmp = self.montgomery_reduce_256();
-
+        let tmp: [u64; 4] = (*self).into();
         let mut res = [0; 32];
-        res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
-        res[8..16].copy_from_slice(&tmp.0[1].to_le_bytes());
-        res[16..24].copy_from_slice(&tmp.0[2].to_le_bytes());
-        res[24..32].copy_from_slice(&tmp.0[3].to_le_bytes());
+        res[0..8].copy_from_slice(&tmp[0].to_le_bytes());
+        res[8..16].copy_from_slice(&tmp[1].to_le_bytes());
+        res[16..24].copy_from_slice(&tmp[2].to_le_bytes());
+        res[24..32].copy_from_slice(&tmp[3].to_le_bytes());
 
         res
     }
@@ -404,6 +396,11 @@ mod test {
                 0xaaaaaaaaaaaaaaaa
             ])
         );
+    }
+
+    #[test]
+    fn test_conversion() {
+        crate::tests::field::random_conversion_tests::<Fr>("fr".to_string());
     }
 
     #[test]
