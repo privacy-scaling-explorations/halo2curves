@@ -81,15 +81,15 @@ const R2: Fp = Fp([
 ]);
 
 /// `R^3 = 2^1792 mod r`
-/// `0x221c3e86a584640240042bc82224949166c1c8142127f974996f968ce270894cfb156b998b555c9c93d624bfc721a90e4e024650d0545d61`
+/// `0x1f51e40a048ddc1789010189f4df0ae1f3bc57efac4b3280b25aa8b46a40b225e5446680e4c4ea0449937d6b40e58f05c67afa3fe916dd69`
 const R3: Fp = Fp([
-    0x4e024650d0545d61,
-    0x93d624bfc721a90e,
-    0xfb156b998b555c9c,
-    0x996f968ce270894c,
-    0x66c1c8142127f974,
-    0x40042bc822249491,
-    0x221c3e86a5846402,
+    0xc67afa3fe916dd69,
+    0x49937d6b40e58f05,
+    0xe5446680e4c4ea04,
+    0xb25aa8b46a40b225,
+    0xf3bc57efac4b3280,
+    0x89010189f4df0ae1,
+    0x1f51e40a048ddc17,
 ]);
 
 /// `GENERATOR = 10 mod r` is a generator of the `r - 1` order multiplicative
@@ -110,19 +110,7 @@ const ROOT_OF_UNITY: Fp = Fp::from_raw([
     0x76bdbe3903ec85fc,
     0x1ddd9602a013af52,
     0x35fe3f4222db1745,
-    0x2d39f8c5f9adb3f,
-]);
-
-/// 1 / 2 mod r
-/// `0x12000000000012000098700006bfb8725401e53b7a1c9337a21fcd2e6d45363df253d2ff47d6ffeb5153f46180035ca2cffffe6980000001`
-const TWO_INV: Fp = Fp::from_raw([
-    0xcffffe6980000001,
-    0x5153f46180035ca2,
-    0xf253d2ff47d6ffeb,
-    0xa21fcd2e6d45363d,
-    0x5401e53b7a1c9337,
-    0x0098700006bfb872,
-    0x1200000000001200,
+    0x02d39f8c5f9adb3f,
 ]);
 
 /// 1 / ROOT_OF_UNITY mod r
@@ -137,8 +125,19 @@ const ROOT_OF_UNITY_INV: Fp = Fp::from_raw([
     0x17725d635b00cda4,
 ]);
 
+/// 1 / 2 mod r
+/// `0x12000000000012000098700006bfb8725401e53b7a1c9337a21fcd2e6d45363df253d2ff47d6ffeb5153f46180035ca2cffffe6980000001`
+const TWO_INV: Fp = Fp::from_raw([
+    0xcffffe6980000001,
+    0x5153f46180035ca2,
+    0xf253d2ff47d6ffeb,
+    0xa21fcd2e6d45363d,
+    0x5401e53b7a1c9337,
+    0x0098700006bfb872,
+    0x1200000000001200,
+]);
 /// GENERATOR^{2^s} where t * 2^s + 1 = r with t odd. In other words, this is a t root of unity.
-/// 0xeacefc6504d028d42ed23fc8766d5a5f195b456887e1e0021fb760c53233e9170c23749b459b95cc6cbb5faf3754a1e1916b2007775db04
+/// `0xeacefc6504d028d42ed23fc8766d5a5f195b456887e1e0021fb760c53233e9170c23749b459b95cc6cbb5faf3754a1e1916b2007775db04`
 const DELTA: Fp = Fp::from_raw([
     0x1916b2007775db04,
     0xc6cbb5faf3754a1e,
@@ -146,7 +145,7 @@ const DELTA: Fp = Fp::from_raw([
     0x21fb760c53233e91,
     0xf195b456887e1e00,
     0x42ed23fc8766d5a5,
-    0xeacefc6504d028d,
+    0x0eacefc6504d028d,
 ]);
 
 /// `ZETA^3 = 1 mod r` where `ZETA^2 != 1 mod r`
@@ -212,12 +211,14 @@ impl ff::Field for Fp {
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
     fn invert(&self) -> CtOption<Self> {
-        // TODO: Re-compute this.
         let tmp = self.pow([
-            0x43e1f593efffffff,
-            0x2833e84879b97091,
-            0xb85045b68181585d,
-            0x30644e72e131a029,
+            0x9ffffcd2ffffffff,
+            0xa2a7e8c30006b945,
+            0xe4a7a5fe8fadffd6,
+            0x443f9a5cda8a6c7b,
+            0xa803ca76f439266f,
+            0x0130e0000d7f70e4,
+            0x2400000000002400,
         ]);
 
         CtOption::new(tmp, !self.ct_eq(&Self::zero()))

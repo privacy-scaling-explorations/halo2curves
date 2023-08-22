@@ -81,21 +81,21 @@ const R2: Fq = Fq([
 ]);
 
 /// `R^3 = 2^1792 mod r`
-/// `0x134bf4061fa616fe429d2480f5681584bc6d6a21ad4d314c2dc504c19a9fc4f4b2773f0ce3a202a0351e5ad3c72210cff3694c87d62c95d4`
+/// `0x2f2c41fb476072baa10b8225e69f7de3b2c1031e6d01279e65191fab1f6ce25295c3c8bd6945406c89b51b218477a6f7252704d7495b38a`
 const R3: Fq = Fq([
-    0xf3694c87d62c95d4,
-    0x351e5ad3c72210cf,
-    0xb2773f0ce3a202a0,
-    0x2dc504c19a9fc4f4,
-    0xbc6d6a21ad4d314c,
-    0x429d2480f5681584,
-    0x134bf4061fa616fe,
+    0x7252704d7495b38a,
+    0xc89b51b218477a6f,
+    0x295c3c8bd6945406,
+    0xe65191fab1f6ce25,
+    0x3b2c1031e6d01279,
+    0xaa10b8225e69f7de,
+    0x02f2c41fb476072b,
 ]);
 
-// TODO Why 7? 19 is proposed in the original PR
-/// `GENERATOR = 7 mod q` is a generator of the `q - 1` order multiplicative
+/// TODO: Encode in Mongomery form? -> 19R mod q
+/// `GENERATOR = 19 mod q` is a generator of the `q - 1` order multiplicative
 /// subgroup, or in other words a primitive root of the field.
-const GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+const GENERATOR: Fq = Fq::from_raw([0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
 
 /// Size of the 2-adic sub-group of the field.
 const S: u32 = 32;
@@ -114,18 +114,6 @@ const ROOT_OF_UNITY: Fq = Fq::from_raw([
     0x24000000,
 ]);
 
-/// 1 / 2 mod q
-/// `0x12000000000012000098700006bfb8725401e53b7a1c9337a21fcd2e3d45363df253baff470bbfeb4e53f42eb002857a0ffffe6980000001`
-const TWO_INV: Fq = Fq::from_raw([
-    0x0ffffe6980000001,
-    0x4e53f42eb002857a,
-    0xf253baff470bbfeb,
-    0xa21fcd2e3d45363d,
-    0x5401e53b7a1c9337,
-    0x0098700006bfb872,
-    0x1200000000001200,
-]);
-
 /// 1 / ROOT_OF_UNITY mod q
 /// `0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd200000001`
 const ROOT_OF_UNITY_INV: Fq = Fq::from_raw([
@@ -136,6 +124,18 @@ const ROOT_OF_UNITY_INV: Fq = Fq::from_raw([
     0xa803ca76f439266f,
     0x0130e0000d7f70e4,
     0x2400000000002400,
+]);
+
+/// 1 / 2 mod q
+/// `0x12000000000012000098700006bfb8725401e53b7a1c9337a21fcd2e3d45363df253baff470bbfeb4e53f42eb002857a0ffffe6980000001`
+const TWO_INV: Fq = Fq::from_raw([
+    0x0ffffe6980000001,
+    0x4e53f42eb002857a,
+    0xf253baff470bbfeb,
+    0xa21fcd2e3d45363d,
+    0x5401e53b7a1c9337,
+    0x0098700006bfb872,
+    0x1200000000001200,
 ]);
 
 /// GENERATOR^{2^s} where t * 2^s + 1 = r with t odd. In other words, this is a t root of unity.
