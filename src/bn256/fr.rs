@@ -1,7 +1,7 @@
 #[cfg(feature = "asm")]
 use crate::bn256::assembly::field_arithmetic_asm;
 #[cfg(not(feature = "asm"))]
-use crate::{field_arithmetic, field_specific};
+use crate::{arithmetic::macx, field_arithmetic, field_specific};
 
 #[cfg(feature = "bn256-table")]
 #[rustfmt::skip]
@@ -18,7 +18,7 @@ pub use table::FR_TABLE;
 #[cfg(not(feature = "bn256-table"))]
 use crate::impl_from_u64;
 
-use crate::arithmetic::{adc, mac, macx, sbb};
+use crate::arithmetic::{adc, mac, sbb};
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use crate::{
     field_bits, field_common, impl_add_binop_specify_output, impl_binops_additive,
@@ -166,6 +166,7 @@ field_common!(
     R3
 );
 impl_sum_prod!(Fr);
+prime_field_legendre!(Fr);
 
 #[cfg(not(feature = "bn256-table"))]
 impl_from_u64!(Fr, R2);
@@ -469,5 +470,10 @@ mod test {
         let _res: Vec<_> = base.map(Fr::from).collect();
 
         end_timer!(timer);
+    }
+
+    #[test]
+    fn test_quadratic_residue() {
+        crate::tests::field::random_quadratic_residue_test::<Fr>();
     }
 }

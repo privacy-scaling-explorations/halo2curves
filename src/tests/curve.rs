@@ -2,6 +2,7 @@
 
 use crate::ff::Field;
 use crate::group::prime::PrimeCurveAffine;
+use crate::legendre::Legendre;
 use crate::tests::fe_from_str;
 use crate::{group::GroupEncoding, serde::SerdeObject};
 use crate::{hash_to_curve, CurveAffine, CurveExt};
@@ -343,7 +344,9 @@ pub fn svdw_map_to_curve_test<G: CurveExt>(
     z: G::Base,
     precomputed_constants: [&'static str; 4],
     test_vector: impl IntoIterator<Item = (&'static str, (&'static str, &'static str))>,
-) {
+) where
+    <G as CurveExt>::Base: Legendre,
+{
     let [c1, c2, c3, c4] = hash_to_curve::svdw_precomputed_constants::<G>(z);
     assert_eq!([c1, c2, c3, c4], precomputed_constants.map(fe_from_str));
     for (u, (x, y)) in test_vector.into_iter() {

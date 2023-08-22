@@ -5,6 +5,8 @@ use pasta_curves::arithmetic::CurveExt;
 use static_assertions::const_assert;
 use subtle::{ConditionallySelectable, ConstantTimeEq};
 
+use crate::legendre::Legendre;
+
 /// Hashes over a message and writes the output to all of `buf`.
 /// Modified from https://github.com/zcash/pasta_curves/blob/7e3fc6a4919f6462a32b79dd226cb2587b7961eb/src/hashtocurve.rs#L11.
 fn hash_to_field<F: FromUniformBytes<64>>(
@@ -94,6 +96,7 @@ pub(crate) fn svdw_map_to_curve<C>(
 ) -> C
 where
     C: CurveExt,
+    C::Base: Legendre,
 {
     let one = C::Base::ONE;
     let a = C::a();
@@ -128,7 +131,7 @@ where
     // 14. gx1 = gx1 + B
     let gx1 = gx1 + b;
     // 15. e1 = is_square(gx1)
-    let e1 = gx1.sqrt().is_some();
+    let e1 = !gx1.ct_quadratic_non_residue();
     // 16. x2 = c2 + tv4
     let x2 = c2 + tv4;
     // 17. gx2 = x2^2
@@ -140,7 +143,7 @@ where
     // 20. gx2 = gx2 + B
     let gx2 = gx2 + b;
     // 21. e2 = is_square(gx2) AND NOT e1    # Avoid short-circuit logic ops
-    let e2 = gx2.sqrt().is_some() & (!e1);
+    let e2 = !gx2.ct_quadratic_non_residue() & (!e1);
     // 22. x3 = tv2^2
     let x3 = tv2.square();
     // 23. x3 = x3 * tv3
@@ -182,7 +185,7 @@ pub(crate) fn svdw_hash_to_curve<'a, C>(
 ) -> Box<dyn Fn(&[u8]) -> C + 'a>
 where
     C: CurveExt,
-    C::Base: FromUniformBytes<64>,
+    C::Base: FromUniformBytes<64> + Legendre,
 {
     let [c1, c2, c3, c4] = svdw_precomputed_constants::<C>(z);
 

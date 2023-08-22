@@ -63,3 +63,7 @@ required-features = ["reexport"]
 [[bench]]
 name = "group"
 harness = false
+
+[[bench]]
+name = "hash_to_curve"
+harness = false

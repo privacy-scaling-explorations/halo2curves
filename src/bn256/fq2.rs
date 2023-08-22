@@ -1,6 +1,6 @@
 use super::fq::{Fq, NEGATIVE_ONE};
-use super::LegendreSymbol;
 use crate::ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
+use crate::legendre::Legendre;
 use core::convert::TryInto;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
@@ -125,6 +125,30 @@ impl_binops_additive!(Fq2, Fq2);
 impl_binops_multiplicative!(Fq2, Fq2);
 impl_sum_prod!(Fq2);
 
+impl Legendre for Fq2 {
+    type BasePrimeField = Fq;
+
+    #[inline]
+    fn legendre_exp() -> &'static [u64] {
+        lazy_static::lazy_static! {
+            // (p-1) / 2
+            static ref LEGENDRE_EXP: Vec<u64> =
+                (num_bigint::BigUint::from_bytes_le((-<Fq as ff::Field>::ONE).to_repr().as_ref())/2usize).to_u64_digits();
+        }
+        &*LEGENDRE_EXP
+    }
+
+    /// Norm of Fq2 as extension field in i over Fq
+    #[inline]
+    fn norm(&self) -> Self::BasePrimeField {
+        let mut t0 = self.c0;
+        let mut t1 = self.c1;
+        t0 = t0.square();
+        t1 = t1.square();
+        t1 + t0
+    }
+}
+
 impl Fq2 {
     #[inline]
     pub const fn zero() -> Fq2 {
@@ -172,10 +196,6 @@ impl Fq2 {
         res[0..32].copy_from_slice(&c0_bytes[..]);
         res[32..64].copy_from_slice(&c1_bytes[..]);
         res
-    }
-
-    pub fn legendre(&self) -> LegendreSymbol {
-        self.norm().legendre()
     }
 
     pub fn mul_assign(&mut self, other: &Self) {
@@ -296,15 +316,6 @@ impl Fq2 {
         self.c1 += &t1;
         // (9*x + y)
         self.c1 += &t0;
-    }
-
-    /// Norm of Fq2 as extension field in i over Fq
-    pub fn norm(&self) -> Fq {
-        let mut t0 = self.c0;
-        let mut t1 = self.c1;
-        t0 = t0.square();
-        t1 = t1.square();
-        t1 + t0
     }
 
     pub fn invert(&self) -> CtOption<Self> {
@@ -697,17 +708,6 @@ fn test_fq2_mul_nonresidue() {
 }
 
 #[test]
-fn test_fq2_legendre() {
-    assert_eq!(LegendreSymbol::Zero, Fq2::ZERO.legendre());
-    // i^2 = -1
-    let mut m1 = Fq2::ONE;
-    m1 = m1.neg();
-    assert_eq!(LegendreSymbol::QuadraticResidue, m1.legendre());
-    m1.mul_by_nonresidue();
-    assert_eq!(LegendreSymbol::QuadraticNonResidue, m1.legendre());
-}
-
-#[test]
 pub fn test_sqrt() {
     let mut rng = XorShiftRng::from_seed([
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
@@ -716,7 +716,7 @@ pub fn test_sqrt() {
 
     for _ in 0..10000 {
         let a = Fq2::random(&mut rng);
-        if a.legendre() == LegendreSymbol::QuadraticNonResidue {
+        if a.legendre() == -Fq::ONE {
             assert!(bool::from(a.sqrt().is_none()));
         }
     }
@@ -725,7 +725,7 @@ pub fn test_sqrt() {
         let a = Fq2::random(&mut rng);
         let mut b = a;
         b.square_assign();
-        assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
+        assert_eq!(b.legendre(), Fq::ONE);
 
         let b = b.sqrt().unwrap();
         let mut negb = b;
@@ -738,7 +738,7 @@ pub fn test_sqrt() {
     for _ in 0..10000 {
         let mut b = c;
         b.square_assign();
-        assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
+        assert_eq!(b.legendre(), Fq::ONE);
 
         b = b.sqrt().unwrap();
 

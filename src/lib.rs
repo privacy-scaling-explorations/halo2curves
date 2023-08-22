@@ -1,5 +1,7 @@
 mod arithmetic;
 pub mod hash_to_curve;
+#[macro_use]
+pub mod legendre;
 pub mod serde;
 
 pub mod bn256;
