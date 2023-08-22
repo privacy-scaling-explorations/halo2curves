@@ -1,4 +1,4 @@
-use crate::arithmetic::{adc, mac, sbb};
+use crate::arithmetic::{adc, mac, macx, sbb};
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use core::convert::TryInto;
 use core::fmt;
@@ -262,15 +262,12 @@ impl ff::PrimeField for Fq {
     }
 
     fn to_repr(&self) -> Self::Repr {
-        // Turn into canonical form by computing
-        // (a.R) / R = a
-        let tmp = Fq::montgomery_reduce(&[self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0]);
-
+        let tmp: [u64; 4] = (*self).into();
         let mut res = [0; 32];
-        res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
-        res[8..16].copy_from_slice(&tmp.0[1].to_le_bytes());
-        res[16..24].copy_from_slice(&tmp.0[2].to_le_bytes());
-        res[24..32].copy_from_slice(&tmp.0[3].to_le_bytes());
+        res[0..8].copy_from_slice(&tmp[0].to_le_bytes());
+        res[8..16].copy_from_slice(&tmp[1].to_le_bytes());
+        res[16..24].copy_from_slice(&tmp[2].to_le_bytes());
+        res[24..32].copy_from_slice(&tmp[3].to_le_bytes());
 
         res
     }
@@ -360,6 +357,11 @@ mod test {
     #[test]
     fn test_field() {
         crate::tests::field::random_field_tests::<Fq>("secp256r1 scalar".to_string());
+    }
+
+    #[test]
+    fn test_conversion() {
+        crate::tests::field::random_conversion_tests::<Fq>("secp256r1 scalar".to_string());
     }
 
     #[test]
