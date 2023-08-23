@@ -149,7 +149,17 @@ const DELTA: Fp = Fp::from_raw([
 ]);
 
 /// `ZETA^3 = 1 mod r` where `ZETA^2 != 1 mod r`
-const ZETA: Fp = Fp::from_raw([3u64, 0, 0, 0, 0, 0, 0]);
+/// `0x480000000000360001c950000d7ee0e4a803c956d01c903d720dc8ad8b38dffaf50c100004c37ffffffe`
+
+const ZETA: Fp = Fp::from_raw([
+    0x100004c37ffffffe,
+    0xc8ad8b38dffaf50c,
+    0xc956d01c903d720d,
+    0x50000d7ee0e4a803,
+    0x00000000360001c9,
+    0x0000000000004800,
+    0x0000000000000000,
+]);
 
 impl_binops_additive!(Fp, Fp);
 impl_binops_multiplicative!(Fp, Fp);
