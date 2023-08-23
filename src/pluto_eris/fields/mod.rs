@@ -125,7 +125,6 @@ macro_rules! field_common_7_limbs {
                     let (r12, r13) = mac(r12, val[6], $r2.0[6], carry);
 
                     // Montgomery reduction
-                    // TODO Why not call montgomery reduction directly? Looks like an exact copy
                     let k = r0.wrapping_mul($inv);
                     let (_, carry) = mac(r0, k, $modulus.0[0], 0);
                     let (r1, carry) = mac(r1, k, $modulus.0[1], carry);
