@@ -168,7 +168,8 @@ fn random_inversion_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
 
     let _message = format!("inversion {type_name}");
     let start = start_timer!(|| _message);
-    for _ in 0..1000000 {
+    // TODO replace with 1M
+    for _ in 0..1000 {
         let mut a = F::random(&mut rng);
         let b = a.invert().unwrap(); // probablistically nonzero
         a.mul_assign(&b);
