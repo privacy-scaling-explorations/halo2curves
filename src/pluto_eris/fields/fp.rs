@@ -60,12 +60,12 @@ const INV: u64 = 0x9ffffcd2ffffffff;
 /// `0x3ffffffffff03fff7a9dfffa183e9bf67e576bf526ff2f52242c7760637089cbf6a760a123e01218d68a2aaffd0ef18a000163afffffff9`
 const R: Fp = Fp([
     0xa000163afffffff9,
-    0xd68a2aaffd0ef18a,
-    0xf6a760a123e01218,
-    0x242c7760637089cb,
-    0x7e576bf526ff2f52,
-    0x7a9dfffa183e9bf6,
-    0x3ffffffffff03fff,
+    0x8d68a2aaffd0ef18,
+    0xbf6a760a123e0121,
+    0x2242c7760637089c,
+    0x67e576bf526ff2f5,
+    0xf7a9dfffa183e9bf,
+    0x03ffffffffff03ff,
 ]);
 
 /// `R^2 = 2^896 mod r`
@@ -149,7 +149,7 @@ const DELTA: Fp = Fp::from_raw([
 ]);
 
 /// `ZETA^3 = 1 mod r` where `ZETA^2 != 1 mod r`
-const ZETA: Fp = Fp::from_raw([0u64, 0, 0, 0, 0, 0, 0]);
+const ZETA: Fp = Fp::from_raw([3u64, 0, 0, 0, 0, 0, 0]);
 
 impl_binops_additive!(Fp, Fp);
 impl_binops_multiplicative!(Fp, Fp);
@@ -399,7 +399,7 @@ mod test {
 
     #[test]
     fn test_field() {
-        crate::tests::field::random_field_tests::<Fp>("bn256 scalar".to_string());
+        crate::tests::field::random_field_tests::<Fp>("Eris scalar".to_string());
     }
 
     #[test]
