@@ -79,26 +79,26 @@ macro_rules! field_common_7_limbs {
                     let (r1, carry) = mac(r1, val[1], $r2.0[0], 0);
                     let (r2, carry) = mac(r2, val[1], $r2.0[1], carry);
                     let (r3, carry) = mac(r3, val[1], $r2.0[2], carry);
-                    let (r4, carry) = mac(r3, val[1], $r2.0[3], carry);
-                    let (r5, carry) = mac(r3, val[1], $r2.0[4], carry);
-                    let (r6, carry) = mac(r3, val[1], $r2.0[5], carry);
-                    let (r7, r8) = mac(r4, val[1], $r2.0[6], carry);
+                    let (r4, carry) = mac(r4, val[1], $r2.0[3], carry);
+                    let (r5, carry) = mac(r5, val[1], $r2.0[4], carry);
+                    let (r6, carry) = mac(r6, val[1], $r2.0[5], carry);
+                    let (r7, r8) = mac(r7, val[1], $r2.0[6], carry);
 
                     let (r2, carry) = mac(r2, val[2], $r2.0[0], 0);
                     let (r3, carry) = mac(r3, val[2], $r2.0[1], carry);
                     let (r4, carry) = mac(r4, val[2], $r2.0[2], carry);
-                    let (r5, carry) = mac(r4, val[2], $r2.0[3], carry);
-                    let (r6, carry) = mac(r4, val[2], $r2.0[4], carry);
-                    let (r7, carry) = mac(r4, val[2], $r2.0[5], carry);
-                    let (r8, r9) = mac(r5, val[2], $r2.0[6], carry);
+                    let (r5, carry) = mac(r5, val[2], $r2.0[3], carry);
+                    let (r6, carry) = mac(r6, val[2], $r2.0[4], carry);
+                    let (r7, carry) = mac(r7, val[2], $r2.0[5], carry);
+                    let (r8, r9) = mac(r8, val[2], $r2.0[6], carry);
 
                     let (r3, carry) = mac(r3, val[3], $r2.0[0], 0);
                     let (r4, carry) = mac(r4, val[3], $r2.0[1], carry);
                     let (r5, carry) = mac(r5, val[3], $r2.0[2], carry);
-                    let (r6, carry) = mac(r5, val[3], $r2.0[3], carry);
-                    let (r7, carry) = mac(r5, val[3], $r2.0[4], carry);
-                    let (r8, carry) = mac(r5, val[3], $r2.0[5], carry);
-                    let (r9, r10) = mac(r6, val[3], $r2.0[6], carry);
+                    let (r6, carry) = mac(r6, val[3], $r2.0[3], carry);
+                    let (r7, carry) = mac(r7, val[3], $r2.0[4], carry);
+                    let (r8, carry) = mac(r8, val[3], $r2.0[5], carry);
+                    let (r9, r10) = mac(r9, val[3], $r2.0[6], carry);
 
                     let (r4, carry) = mac(r4, val[4], $r2.0[0], 0);
                     let (r5, carry) = mac(r5, val[4], $r2.0[1], carry);
@@ -125,6 +125,7 @@ macro_rules! field_common_7_limbs {
                     let (r12, r13) = mac(r12, val[6], $r2.0[6], carry);
 
                     // Montgomery reduction
+                    // TODO Why not call montgomery reduction directly? Looks like an exact copy
                     let k = r0.wrapping_mul($inv);
                     let (_, carry) = mac(r0, k, $modulus.0[0], 0);
                     let (r1, carry) = mac(r1, k, $modulus.0[1], carry);
