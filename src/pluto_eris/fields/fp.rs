@@ -51,7 +51,7 @@ const MODULUS_LIMBS_32: [u32; 14] = [
 
 const MODULUS_STR: &str = "0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5cda8a6c7be4a7a5fe8fadffd6a2a7e8c30006b9459ffffcd300000001";
 
-/// INV = -(r^{-1} mod 2^64) mod 2^64
+/// INV = -r^{-1} mod 2^64
 /// `0x9ffffcd2ffffffff`
 const INV: u64 = 0x9ffffcd2ffffffff;
 
@@ -281,7 +281,7 @@ impl ff::PrimeField for Fp {
     type Repr = FpRepr;
 
     const NUM_BITS: u32 = 446;
-    const CAPACITY: u32 = 446;
+    const CAPACITY: u32 = 445;
     const MODULUS: &'static str = MODULUS_STR;
     const MULTIPLICATIVE_GENERATOR: Self = GENERATOR;
     const ROOT_OF_UNITY: Self = ROOT_OF_UNITY;

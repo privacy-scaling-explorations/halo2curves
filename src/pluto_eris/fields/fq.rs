@@ -281,7 +281,7 @@ impl ff::PrimeField for Fq {
     type Repr = FqRepr;
 
     const NUM_BITS: u32 = 446;
-    const CAPACITY: u32 = 446;
+    const CAPACITY: u32 = 445;
     const MODULUS: &'static str = MODULUS_STR;
     const MULTIPLICATIVE_GENERATOR: Self = GENERATOR;
     const ROOT_OF_UNITY: Self = ROOT_OF_UNITY;
