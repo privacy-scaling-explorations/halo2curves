@@ -92,10 +92,9 @@ const R3: Fq = Fq([
     0x02f2c41fb476072b,
 ]);
 
-/// TODO: Encode in Mongomery form? -> 19R mod q
-/// `GENERATOR = 19 mod q` is a generator of the `q - 1` order multiplicative
+/// `GENERATOR = 7 mod q` is a generator of the `q - 1` order multiplicative
 /// subgroup, or in other words a primitive root of the field.
-const GENERATOR: Fq = Fq::from_raw([0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+const GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
 
 /// Size of the 2-adic sub-group of the field.
 const S: u32 = 32;
@@ -104,26 +103,30 @@ const S: u32 = 32;
 /// with t odd. In other words, this
 /// is a 2^s root of unity.
 /// `0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd3`
+/// `0xa5e6f78289fd24b1c64c90821c44cdce9ba1b3e90f2e88957f869667f6dfdbdbce6bb9ed38a8c2382fa11e3d3810fcc3c7bb406ec7bce04`
+
 const ROOT_OF_UNITY: Fq = Fq::from_raw([
-    0x60050af41ffffcd3,
-    0x8e177fd69ca7e85d,
-    0x7a8a6c7be4a775fe,
-    0xf439266f443f9a5c,
-    0x0d7f70e4a803ca76,
-    0x000024000130e000,
-    0x24000000,
+    0x3c7bb406ec7bce04,
+    0x82fa11e3d3810fcc,
+    0xbce6bb9ed38a8c23,
+    0x57f869667f6dfdbd,
+    0xe9ba1b3e90f2e889,
+    0x1c64c90821c44cdc,
+    0x0a5e6f78289fd24b,
 ]);
 
 /// 1 / ROOT_OF_UNITY mod q
 /// `0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd200000001`
+/// `0x1a8c636e293fe9928f85aa6ec68f950ebb57e3f0502dd05667c990c1c2f57128c77768be1824fd3f60869f410287a1879ec16a35ca69b6fb`
+
 const ROOT_OF_UNITY_INV: Fq = Fq::from_raw([
-    0x1ffffcd200000001,
-    0x9ca7e85d60050af4,
-    0xe4a775fe8e177fd6,
-    0x443f9a5c7a8a6c7b,
-    0xa803ca76f439266f,
-    0x0130e0000d7f70e4,
-    0x2400000000002400,
+    0x9ec16a35ca69b6fb,
+    0x60869f410287a187,
+    0xc77768be1824fd3f,
+    0x67c990c1c2f57128,
+    0xbb57e3f0502dd056,
+    0x8f85aa6ec68f950e,
+    0x1a8c636e293fe992,
 ]);
 
 /// 1 / 2 mod q
