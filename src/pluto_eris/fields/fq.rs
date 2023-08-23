@@ -336,9 +336,9 @@ impl ff::PrimeField for Fq {
         res[8..16].copy_from_slice(&tmp.0[1].to_le_bytes());
         res[16..24].copy_from_slice(&tmp.0[2].to_le_bytes());
         res[24..32].copy_from_slice(&tmp.0[3].to_le_bytes());
-        res[32..40].copy_from_slice(&tmp.0[3].to_le_bytes());
-        res[40..48].copy_from_slice(&tmp.0[3].to_le_bytes());
-        res[48..56].copy_from_slice(&tmp.0[3].to_le_bytes());
+        res[32..40].copy_from_slice(&tmp.0[4].to_le_bytes());
+        res[40..48].copy_from_slice(&tmp.0[5].to_le_bytes());
+        res[48..56].copy_from_slice(&tmp.0[6].to_le_bytes());
         res.into()
     }
 
