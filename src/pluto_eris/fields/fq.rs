@@ -116,7 +116,6 @@ const ROOT_OF_UNITY: Fq = Fq::from_raw([
 ]);
 
 /// 1 / ROOT_OF_UNITY mod q
-/// `0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd200000001`
 /// `0x1a8c636e293fe9928f85aa6ec68f950ebb57e3f0502dd05667c990c1c2f57128c77768be1824fd3f60869f410287a1879ec16a35ca69b6fb`
 
 const ROOT_OF_UNITY_INV: Fq = Fq::from_raw([
@@ -216,12 +215,14 @@ impl ff::Field for Fq {
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
     fn invert(&self) -> CtOption<Self> {
-        // TODO: Compute this constant.
         let tmp = self.pow([
-            0x43e1f593efffffff,
-            0x2833e84879b97091,
-            0xb85045b68181585d,
-            0x30644e72e131a029,
+            0x1ffffcd2ffffffff,
+            0x9ca7e85d60050af4,
+            0xe4a775fe8e177fd6,
+            0x443f9a5c7a8a6c7b,
+            0xa803ca76f439266f,
+            0x0130e0000d7f70e4,
+            0x2400000000002400,
         ]);
 
         CtOption::new(tmp, !self.ct_eq(&Self::zero()))
@@ -402,7 +403,7 @@ mod test {
 
     #[test]
     fn test_field() {
-        crate::tests::field::random_field_tests::<Fq>("bn256 scalar".to_string());
+        crate::tests::field::random_field_tests::<Fq>("Pluto scalar".to_string());
     }
 
     #[test]
