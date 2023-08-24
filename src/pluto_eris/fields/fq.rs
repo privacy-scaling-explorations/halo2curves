@@ -417,6 +417,12 @@ mod test {
     }
 
     #[test]
+    fn test_zeta() {
+        assert_eq!(Fq::ZETA * Fq::ZETA * Fq::ZETA, Fq::ONE);
+        assert_ne!(Fq::ZETA * Fq::ZETA, Fq::ONE);
+    }
+
+    #[test]
     fn test_delta() {
         assert_eq!(Fq::DELTA, GENERATOR.pow([1u64 << Fq::S]));
         assert_eq!(Fq::DELTA, Fq::MULTIPLICATIVE_GENERATOR.pow([1u64 << Fq::S]));

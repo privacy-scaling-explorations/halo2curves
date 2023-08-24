@@ -418,6 +418,12 @@ mod test {
         assert_eq!(Fp::DELTA, Fp::MULTIPLICATIVE_GENERATOR.pow([1u64 << Fp::S]));
     }
 
+    #[test]
+    fn test_zeta() {
+        assert_eq!(Fp::ZETA * Fp::ZETA * Fp::ZETA, Fp::ONE);
+        assert_ne!(Fp::ZETA * Fp::ZETA, Fp::ONE);
+    }
+
     // TODO Compute valid test cases
     // #[test]
     // fn test_from_u512() {
