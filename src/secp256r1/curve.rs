@@ -82,6 +82,7 @@ new_curve_impl!(
 impl Secp256r1 {
     // Optimal Z with: <https://datatracker.ietf.org/doc/html/rfc9380#sswu-z-code>
     // 0xffffffff00000001000000000000000000000000fffffffffffffffffffffff5
+    // Z = -10 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#section-8.2>)
     const SSVDW_Z: Fp = Fp::from_raw([
         0xfffffffffffffff5,
         0x00000000ffffffff,
