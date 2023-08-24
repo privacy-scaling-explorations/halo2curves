@@ -161,7 +161,7 @@ where
 {
     Box::new(move |message| {
         let mut us = [C::Base::ZERO; 2];
-        hash_to_field("SVDW", curve_id, domain_prefix, message, &mut us);
+        hash_to_field("SSWU", curve_id, domain_prefix, message, &mut us);
 
         let [q0, q1]: [C; 2] = us.map(|u| simple_svdw_map_to_curve(u, z));
 
