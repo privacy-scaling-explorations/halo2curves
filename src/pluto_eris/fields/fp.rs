@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// `r = 0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5cda8a6c7be4a7a5fe8fadffd6a2a7e8c30006b9459ffffcd300000001`
 ///
-/// is the scalar field of the Pluto curve.
+/// is the base field of the Pluto curve.
 /// The internal representation of this type is seven 64-bit unsigned
 /// integers in little-endian order which account for the 446 bits required to be represented.
 ///`Fp` values are always in Montgomery form; i.e., Fp(a) = aR mod r, with R = 2^448.
