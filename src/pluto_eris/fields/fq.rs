@@ -263,7 +263,7 @@ pub struct FqRepr {
 }
 
 impl FqRepr {
-    fn iter(&self) -> Iter<'_, u8> {
+    pub fn iter(&self) -> Iter<'_, u8> {
         self.repr.iter()
     }
 }
