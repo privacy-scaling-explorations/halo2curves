@@ -192,6 +192,8 @@ impl Fp {
     }
 }
 
+prime_field_legendre!(Fp);
+
 impl ff::Field for Fp {
     const ZERO: Self = Self::zero();
     const ONE: Self = Self::one();

@@ -195,6 +195,7 @@ impl Fq {
         56
     }
 }
+prime_field_legendre!(Fq);
 
 impl ff::Field for Fq {
     const ZERO: Self = Self::zero();

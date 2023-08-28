@@ -1,8 +1,8 @@
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
+use crate::hash_to_curve::svdw_hash_to_curve;
 use crate::pluto_eris::fields::{fp::Fp, fq::Fq};
-// use crate::hash_to_curve::svdw_hash_to_curve;
 use crate::{Coordinates, CurveAffine, CurveExt};
 use core::cmp;
 use core::fmt::Debug;
@@ -69,13 +69,12 @@ new_curve_impl!(
     PLUTO_A,
     PLUTO_B,
     "pluto",
-    // TODO Implement hash to curve for Pluto. SWU method should work
-    |curve_id, domain_prefix| unimplemented!(),
+    |curve_id, domain_prefix| svdw_hash_to_curve(curve_id, domain_prefix, Pluto::SVDW_Z),
 );
 
-// impl Pluto {
-//     const SVDW_Z: Fp = Fp::ONE;
-// }
+impl Pluto {
+    const SVDW_Z: Fp = Fp::ONE;
+}
 
 #[test]
 fn test_curve() {
