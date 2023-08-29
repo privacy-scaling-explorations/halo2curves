@@ -1,4 +1,5 @@
 mod arithmetic;
+mod bernsteinyang;
 pub mod fft;
 pub mod hash_to_curve;
 pub mod msm;

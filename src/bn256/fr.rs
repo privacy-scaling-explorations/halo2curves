@@ -231,17 +231,10 @@ impl ff::Field for Fr {
         self.square()
     }
 
-    /// Computes the multiplicative inverse of this element,
-    /// failing if the element is zero.
+    /// Returns the multiplicative inverse of the
+    /// element. If it is zero, the method fails.
     fn invert(&self) -> CtOption<Self> {
-        let tmp = self.pow([
-            0x43e1f593efffffff,
-            0x2833e84879b97091,
-            0xb85045b68181585d,
-            0x30644e72e131a029,
-        ]);
-
-        CtOption::new(tmp, !self.ct_eq(&Self::zero()))
+        self.invert()
     }
 
     fn sqrt(&self) -> CtOption<Self> {

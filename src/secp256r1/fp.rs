@@ -196,17 +196,10 @@ impl ff::Field for Fp {
         CtOption::new(tmp, tmp.square().ct_eq(self))
     }
 
-    /// Computes the multiplicative inverse of this element,
-    /// failing if the element is zero.
+    /// Returns the multiplicative inverse of the
+    /// element. If it is zero, the method fails.
     fn invert(&self) -> CtOption<Self> {
-        let tmp = self.pow_vartime([
-            0xfffffffffffffffd,
-            0x00000000ffffffff,
-            0x0000000000000000,
-            0xffffffff00000001,
-        ]);
-
-        CtOption::new(tmp, !self.ct_eq(&Self::zero()))
+        self.invert()
     }
 
     fn pow_vartime<S: AsRef<[u64]>>(&self, exp: S) -> Self {

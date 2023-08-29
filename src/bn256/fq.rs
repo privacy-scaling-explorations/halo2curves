@@ -198,17 +198,10 @@ impl ff::Field for Fq {
         ff::helpers::sqrt_ratio_generic(num, div)
     }
 
-    /// Computes the multiplicative inverse of this element,
-    /// failing if the element is zero.
+    /// Returns the multiplicative inverse of the
+    /// element. If it is zero, the method fails.
     fn invert(&self) -> CtOption<Self> {
-        let tmp = self.pow([
-            0x3c208c16d87cfd45,
-            0x97816a916871ca8d,
-            0xb85045b68181585d,
-            0x30644e72e131a029,
-        ]);
-
-        CtOption::new(tmp, !self.ct_eq(&Self::zero()))
+        self.invert()
     }
 }
 

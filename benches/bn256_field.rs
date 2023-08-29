@@ -40,6 +40,9 @@ pub fn bench_bn256_field(c: &mut Criterion) {
     group.bench_function("bn256_fq_square", |bencher| {
         bencher.iter(|| black_box(&a).square())
     });
+    group.bench_function("bn256_fq_invert", |bencher| {
+        bencher.iter(|| black_box(&a).invert())
+    });
 }
 
 criterion_group!(benches, bench_bn256_field);
