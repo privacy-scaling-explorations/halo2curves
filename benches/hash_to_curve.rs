@@ -40,7 +40,7 @@ fn hash_to_curve<G: CurveExt>(c: &mut Criterion, name: &'static str) {
             .flatten()
             .collect::<Vec<_>>();
 
-        c.bench_function(&format!("Hash to {}", name), move |b| {
+        c.bench_function(&format!("Hash to {name}"), move |b| {
             b.iter(|| hasher(black_box(&message)))
         });
     }
