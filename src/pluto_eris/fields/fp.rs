@@ -18,25 +18,25 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
 
-/// This represents an element of $\mathbb{F}_r$ where
+/// This represents an element of $\mathbb{F}_p$ where
 ///
-/// `r = 0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5cda8a6c7be4a7a5fe8fadffd6a2a7e8c30006b9459ffffcd300000001`
+/// `p = 0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd300000001`
 ///
-/// is the base field of the Pluto curve.
+/// is the scalar field of the Pluto curve.
 /// The internal representation of this type is seven 64-bit unsigned
 /// integers in little-endian order which account for the 446 bits required to be represented.
-///`Fp` values are always in Montgomery form; i.e., Fp(a) = aR mod r, with R = 2^448.
+///`Fp` values are always in Montgomery form; i.e., Fp(a) = aR mod p, with R = 2^448.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
 pub struct Fp(pub(crate) [u64; 7]);
 
 /// Constant representing the modulus
-/// r = 0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5cda8a6c7be4a7a5fe8fadffd6a2a7e8c30006b9459ffffcd300000001
+/// q = 0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd300000001
 const MODULUS: Fp = Fp([
-    0x9ffffcd300000001,
-    0xa2a7e8c30006b945,
-    0xe4a7a5fe8fadffd6,
-    0x443f9a5cda8a6c7b,
+    0x1ffffcd300000001,
+    0x9ca7e85d60050af4,
+    0xe4a775fe8e177fd6,
+    0x443f9a5c7a8a6c7b,
     0xa803ca76f439266f,
     0x0130e0000d7f70e4,
     0x2400000000002400,
@@ -45,119 +45,123 @@ const MODULUS: Fp = Fp([
 /// The modulus as u32 limbs.
 #[cfg(not(target_pointer_width = "64"))]
 const MODULUS_LIMBS_32: [u32; 14] = [
-    0x00000001, 0x9ffffcd3, 0x0006b945, 0xa2a7e8c3, 0x8fadffd6, 0xe4a7a5fe, 0xda8a6c7b, 0x443f9a5c,
+    0x00000001, 0x1ffffcd3, 0x60050af4, 0x9ca7e85d, 0x8e177fd6, 0xe4a775fe, 0x7a8a6c7b, 0x443f9a5c,
     0xf439266f, 0xa803ca76, 0x0d7f70e4, 0x0130e000, 0x00002400, 0x24000000,
 ];
 
-const MODULUS_STR: &str = "0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5cda8a6c7be4a7a5fe8fadffd6a2a7e8c30006b9459ffffcd300000001";
+const MODULUS_STR: &str = "0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd300000001";
 
-/// INV = -r^{-1} mod 2^64
-/// `0x9ffffcd2ffffffff`
-const INV: u64 = 0x9ffffcd2ffffffff;
+/// INV = -(p^{-1} mod 2^64) mod 2^64
+/// `0x1ffffcd2ffffffff`
+const INV: u64 = 0x1ffffcd2ffffffff;
 
 /// Let M be the power of `2^64` nearest to `Self::MODULUS_BITS`. Then `R = M % Self::MODULUS`.
-/// `R = 2^448 mod r`
-/// `0x3ffffffffff03fff7a9dfffa183e9bf67e576bf526ff2f52242c7760637089cbf6a760a123e01218d68a2aaffd0ef18a000163afffffff9`
+/// `R = 2^448 mod p`
+/// `0x3ffffffffff03fff7a9dfffa183e9bf67e576bf526ff2f52242c778a637089cbf6bc60a1d5b8121b768a5725fdcb3532000163afffffff9`
 const R: Fp = Fp([
-    0xa000163afffffff9,
-    0x8d68a2aaffd0ef18,
-    0xbf6a760a123e0121,
-    0x2242c7760637089c,
+    0x2000163afffffff9,
+    0xb768a5725fdcb353,
+    0xbf6bc60a1d5b8121,
+    0x2242c778a637089c,
     0x67e576bf526ff2f5,
     0xf7a9dfffa183e9bf,
-    0x03ffffffffff03ff,
+    0x3ffffffffff03ff,
 ]);
 
-/// `R^2 = 2^896 mod r`
-/// `0x1a4b16581f66e3cc8bcb0f20758aec8520b6db3d7481a84c734fd363b575c23e7a42067a8ccd154b4b20c07277ae01f1d9702c6d54dc0598`
+/// `R^2 = 2^896 mod p`
+/// `0x50d7c998f46144ee436895a5a630ff544d51e923f64695651da4da1c97f716419bd905e6e4ff6c2bc64e865fe4552ad740808c831022522`
 const R2: Fp = Fp([
-    0xd9702c6d54dc0598,
-    0x4b20c07277ae01f1,
-    0x7a42067a8ccd154b,
-    0x734fd363b575c23e,
-    0x20b6db3d7481a84c,
-    0x8bcb0f20758aec85,
-    0x1a4b16581f66e3cc,
+    0x740808c831022522,
+    0xbc64e865fe4552ad,
+    0x19bd905e6e4ff6c2,
+    0x51da4da1c97f7164,
+    0x44d51e923f646956,
+    0xe436895a5a630ff5,
+    0x050d7c998f46144e,
 ]);
 
-/// `R^3 = 2^1792 mod r`
-/// `0x1f51e40a048ddc1789010189f4df0ae1f3bc57efac4b3280b25aa8b46a40b225e5446680e4c4ea0449937d6b40e58f05c67afa3fe916dd69`
+/// `R^3 = 2^1792 mod p`
+/// `0x2f2c41fb476072baa10b8225e69f7de3b2c1031e6d01279e65191fab1f6ce25295c3c8bd6945406c89b51b218477a6f7252704d7495b38a`
 const R3: Fp = Fp([
-    0xc67afa3fe916dd69,
-    0x49937d6b40e58f05,
-    0xe5446680e4c4ea04,
-    0xb25aa8b46a40b225,
-    0xf3bc57efac4b3280,
-    0x89010189f4df0ae1,
-    0x1f51e40a048ddc17,
+    0x7252704d7495b38a,
+    0xc89b51b218477a6f,
+    0x295c3c8bd6945406,
+    0xe65191fab1f6ce25,
+    0x3b2c1031e6d01279,
+    0xaa10b8225e69f7de,
+    0x02f2c41fb476072b,
 ]);
 
-/// `GENERATOR = 10 mod r` is a generator of the `r - 1` order multiplicative
+/// `GENERATOR = 7 mod p` is a generator of the `p - 1` order multiplicative
 /// subgroup, or in other words a primitive root of the field.
-const GENERATOR: Fp = Fp::from_raw([0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+const GENERATOR: Fp = Fp::from_raw([0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
 
 /// Size of the 2-adic sub-group of the field.
 const S: u32 = 32;
 
-/// GENERATOR^t where t * 2^s + 1 = r
+/// GENERATOR^t where t * 2^s + 1 = p
 /// with t odd. In other words, this
 /// is a 2^s root of unity.
-/// `0x2d39f8c5f9adb3f35fe3f4222db17451ddd9602a013af5276bdbe3903ec85fc889232f5c8bc6857060c75e6f399661d6c7b82d31d563091`
+/// `0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5c7a8a6c7be4a775fe8e177fd69ca7e85d60050af41ffffcd3`
+/// `0xa5e6f78289fd24b1c64c90821c44cdce9ba1b3e90f2e88957f869667f6dfdbdbce6bb9ed38a8c2382fa11e3d3810fcc3c7bb406ec7bce04`
+
 const ROOT_OF_UNITY: Fp = Fp::from_raw([
-    0x6c7b82d31d563091,
-    0x060c75e6f399661d,
-    0x889232f5c8bc6857,
-    0x76bdbe3903ec85fc,
-    0x1ddd9602a013af52,
-    0x35fe3f4222db1745,
-    0x02d39f8c5f9adb3f,
+    0x3c7bb406ec7bce04,
+    0x82fa11e3d3810fcc,
+    0xbce6bb9ed38a8c23,
+    0x57f869667f6dfdbd,
+    0xe9ba1b3e90f2e889,
+    0x1c64c90821c44cdc,
+    0x0a5e6f78289fd24b,
 ]);
 
-/// 1 / ROOT_OF_UNITY mod r
-/// `0x17725d635b00cda4153eb10c7105919d012822bd86c08691803272fbc5c9f8378055eb56ae2d55f9272bf208aad57f666deaead2c693ff66`
+/// 1 / ROOT_OF_UNITY mod p
+/// `0x1a8c636e293fe9928f85aa6ec68f950ebb57e3f0502dd05667c990c1c2f57128c77768be1824fd3f60869f410287a1879ec16a35ca69b6fb`
+
 const ROOT_OF_UNITY_INV: Fp = Fp::from_raw([
-    0x6deaead2c693ff66,
-    0x272bf208aad57f66,
-    0x8055eb56ae2d55f9,
-    0x803272fbc5c9f837,
-    0x012822bd86c08691,
-    0x153eb10c7105919d,
-    0x17725d635b00cda4,
+    0x9ec16a35ca69b6fb,
+    0x60869f410287a187,
+    0xc77768be1824fd3f,
+    0x67c990c1c2f57128,
+    0xbb57e3f0502dd056,
+    0x8f85aa6ec68f950e,
+    0x1a8c636e293fe992,
 ]);
 
-/// 1 / 2 mod r
-/// `0x12000000000012000098700006bfb8725401e53b7a1c9337a21fcd2e6d45363df253d2ff47d6ffeb5153f46180035ca2cffffe6980000001`
+/// 1 / 2 mod p
+/// `0x12000000000012000098700006bfb8725401e53b7a1c9337a21fcd2e3d45363df253baff470bbfeb4e53f42eb002857a0ffffe6980000001`
 const TWO_INV: Fp = Fp::from_raw([
-    0xcffffe6980000001,
-    0x5153f46180035ca2,
-    0xf253d2ff47d6ffeb,
-    0xa21fcd2e6d45363d,
+    0x0ffffe6980000001,
+    0x4e53f42eb002857a,
+    0xf253baff470bbfeb,
+    0xa21fcd2e3d45363d,
     0x5401e53b7a1c9337,
     0x0098700006bfb872,
     0x1200000000001200,
 ]);
-/// GENERATOR^{2^s} where t * 2^s + 1 = r with t odd. In other words, this is a t root of unity.
-/// `0xeacefc6504d028d42ed23fc8766d5a5f195b456887e1e0021fb760c53233e9170c23749b459b95cc6cbb5faf3754a1e1916b2007775db04`
+
+/// GENERATOR^{2^s} where t * 2^s + 1 = p with t odd. In other words, this is a t root of unity.
+/// 0x657946fe07116ceca983fe28713a2b257ab7a7866c95121e727f3776c3e84cb0a14f6a7f83f8cdaeadb479c657bdf2de4589640faf72e67
 const DELTA: Fp = Fp::from_raw([
-    0x1916b2007775db04,
-    0xc6cbb5faf3754a1e,
-    0x70c23749b459b95c,
-    0x21fb760c53233e91,
-    0xf195b456887e1e00,
-    0x42ed23fc8766d5a5,
-    0x0eacefc6504d028d,
+    0xe4589640faf72e67,
+    0xeadb479c657bdf2d,
+    0x0a14f6a7f83f8cda,
+    0xe727f3776c3e84cb,
+    0x57ab7a7866c95121,
+    0xca983fe28713a2b2,
+    0x657946fe07116ce,
 ]);
 
-/// `ZETA^3 = 1 mod r` where `ZETA^2 != 1 mod r`
-/// `0x480000000000360001c950000d7ee0e4a803c956d01c903d720dc8ad8b38dffaf50c100004c37ffffffe`
+/// `ZETA^3 = 1 mod p` where `ZETA^2 != 1 mod p`
+/// `0x9000000000006c000392a0001afee1c9500792ae3039253e641ba35817a29ffaf50be000032cfffffffe`
 
 const ZETA: Fp = Fp::from_raw([
-    0x100004c37ffffffe,
-    0xc8ad8b38dffaf50c,
-    0xc956d01c903d720d,
-    0x50000d7ee0e4a803,
-    0x00000000360001c9,
-    0x0000000000004800,
+    0xe000032cfffffffe,
+    0xa35817a29ffaf50b,
+    0x92ae3039253e641b,
+    0xa0001afee1c95007,
+    0x000000006c000392,
+    0x0000000000009000,
     0x0000000000000000,
 ]);
 
@@ -191,7 +195,6 @@ impl Fp {
         56
     }
 }
-
 prime_field_legendre!(Fp);
 
 impl ff::Field for Fp {
@@ -224,10 +227,10 @@ impl ff::Field for Fp {
     /// failing if the element is zero.
     fn invert(&self) -> CtOption<Self> {
         let tmp = self.pow([
-            0x9ffffcd2ffffffff,
-            0xa2a7e8c30006b945,
-            0xe4a7a5fe8fadffd6,
-            0x443f9a5cda8a6c7b,
+            0x1ffffcd2ffffffff,
+            0x9ca7e85d60050af4,
+            0xe4a775fe8e177fd6,
+            0x443f9a5c7a8a6c7b,
             0xa803ca76f439266f,
             0x0130e0000d7f70e4,
             0x2400000000002400,
@@ -239,9 +242,9 @@ impl ff::Field for Fp {
     fn sqrt(&self) -> CtOption<Self> {
         /// `(t - 1) // 2` where t * 2^s + 1 = p with t odd.
         const T_MINUS1_OVER2: [u64; 7] = [
-            0x80035ca2cffffe69,
-            0x47d6ffeb5153f461,
-            0x6d45363df253d2ff,
+            0xb002857a0ffffe69,
+            0x470bbfeb4e53f42e,
+            0x3d45363df253baff,
             0x7a1c9337a21fcd2e,
             0x06bfb8725401e53b,
             0x0000120000987000,
@@ -303,7 +306,7 @@ impl ff::PrimeField for Fp {
     const S: u32 = S;
 
     fn from_repr(repr: Self::Repr) -> CtOption<Self> {
-        let mut tmp = Fp([0, 0, 0, 0, 0, 0, 0]);
+        let mut tmp = Self([0, 0, 0, 0, 0, 0, 0]);
         let repr = repr.repr;
 
         tmp.0[0] = u64::from_le_bytes(repr[0..8].try_into().unwrap());
@@ -338,7 +341,7 @@ impl ff::PrimeField for Fp {
     fn to_repr(&self) -> Self::Repr {
         // Turn into canonical form by computing
         // (a.R) / R = a
-        let tmp = Fp::montgomery_reduce(&[
+        let tmp = Self::montgomery_reduce(&[
             self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5], self.0[6], 0, 0, 0,
             0, 0, 0, 0,
         ]);
@@ -411,19 +414,19 @@ mod test {
 
     #[test]
     fn test_field() {
-        crate::tests::field::random_field_tests::<Fp>("Eris scalar".to_string());
-    }
-
-    #[test]
-    fn test_delta() {
-        assert_eq!(Fp::DELTA, GENERATOR.pow([1u64 << Fp::S]));
-        assert_eq!(Fp::DELTA, Fp::MULTIPLICATIVE_GENERATOR.pow([1u64 << Fp::S]));
+        crate::tests::field::random_field_tests::<Fp>("Pluto scalar".to_string());
     }
 
     #[test]
     fn test_zeta() {
         assert_eq!(Fp::ZETA * Fp::ZETA * Fp::ZETA, Fp::ONE);
         assert_ne!(Fp::ZETA * Fp::ZETA, Fp::ONE);
+    }
+
+    #[test]
+    fn test_delta() {
+        assert_eq!(Fp::DELTA, GENERATOR.pow([1u64 << Fp::S]));
+        assert_eq!(Fp::DELTA, Fp::MULTIPLICATIVE_GENERATOR.pow([1u64 << Fp::S]));
     }
 
     // TODO Compute valid test cases
@@ -524,7 +527,7 @@ mod test {
     }
 
     #[test]
-    fn bench_fp_from_u16() {
+    fn bench_fq_from_u16() {
         let repeat = 10000000;
         let mut rng = ark_std::test_rng();
         let base = (0..repeat).map(|_| (rng.next_u32() % (1 << 16)) as u64);

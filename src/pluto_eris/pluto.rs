@@ -14,7 +14,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
 
-const PLUTO_GENERATOR_X: Fp = Fp::from_raw([
+const PLUTO_GENERATOR_X: Fq = Fq::from_raw([
     0x9ffffcd2ffffffff,
     0xa2a7e8c30006b945,
     0xe4a7a5fe8fadffd6,
@@ -23,7 +23,7 @@ const PLUTO_GENERATOR_X: Fp = Fp::from_raw([
     0x0130e0000d7f70e4,
     0x2400000000002400,
 ]);
-const PLUTO_GENERATOR_Y: Fp = Fp::from_raw([
+const PLUTO_GENERATOR_Y: Fq = Fq::from_raw([
     0x0000000000000007,
     0x0000000000000000,
     0x0000000000000000,
@@ -33,8 +33,8 @@ const PLUTO_GENERATOR_Y: Fp = Fp::from_raw([
     0x0000000000000000,
 ]);
 
-const PLUTO_A: Fp = Fp::from_raw([0, 0, 0, 0, 0, 0, 0]);
-const PLUTO_B: Fp = Fp::from_raw([0x39, 0, 0, 0, 0, 0, 0]);
+const PLUTO_A: Fq = Fq::from_raw([0, 0, 0, 0, 0, 0, 0]);
+const PLUTO_B: Fq = Fq::from_raw([0x39, 0, 0, 0, 0, 0, 0]);
 
 use crate::{
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
@@ -63,8 +63,8 @@ new_curve_impl!(
     Pluto,
     PlutoAffine,
     false,
-    Fp,
     Fq,
+    Fp,
     (PLUTO_GENERATOR_X,PLUTO_GENERATOR_Y),
     PLUTO_A,
     PLUTO_B,
@@ -73,7 +73,7 @@ new_curve_impl!(
 );
 
 impl Pluto {
-    const SVDW_Z: Fp = Fp::ONE;
+    const SVDW_Z: Fq = Fq::ONE;
 }
 
 #[test]
@@ -96,5 +96,5 @@ fn test_serialization() {
 #[test]
 fn test_endo_consistency() {
     let g = Pluto::generator();
-    assert_eq!(g * Fq::ZETA, g.endo());
+    assert_eq!(g * Fp::ZETA, g.endo());
 }

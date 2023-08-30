@@ -14,7 +14,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
 
-const ERIS_GENERATOR_X: Fq = Fq::from_raw([
+const ERIS_GENERATOR_X: Fp = Fp::from_raw([
     0x1ffffcd2ffffffff,
     0x9ca7e85d60050af4,
     0xe4a775fe8e177fd6,
@@ -23,7 +23,7 @@ const ERIS_GENERATOR_X: Fq = Fq::from_raw([
     0x0130e0000d7f70e4,
     0x2400000000002400,
 ]);
-const ERIS_GENERATOR_Y: Fq = Fq::from_raw([
+const ERIS_GENERATOR_Y: Fp = Fp::from_raw([
     0x0000000000000007,
     0x0000000000000000,
     0x0000000000000000,
@@ -33,8 +33,8 @@ const ERIS_GENERATOR_Y: Fq = Fq::from_raw([
     0x0000000000000000,
 ]);
 
-const ERIS_A: Fq = Fq::from_raw([0, 0, 0, 0, 0, 0, 0]);
-const ERIS_B: Fq = Fq::from_raw([0x39, 0, 0, 0, 0, 0, 0]);
+const ERIS_A: Fp = Fp::from_raw([0, 0, 0, 0, 0, 0, 0]);
+const ERIS_B: Fp = Fp::from_raw([0x39, 0, 0, 0, 0, 0, 0]);
 
 use crate::{
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
@@ -63,8 +63,8 @@ new_curve_impl!(
     Eris,
     ErisAffine,
     false,
-    Fq,
     Fp,
+    Fq,
     (ERIS_GENERATOR_X,ERIS_GENERATOR_Y),
     ERIS_A,
     ERIS_B,
@@ -73,7 +73,7 @@ new_curve_impl!(
 );
 
 impl Eris {
-    const SVDW_Z: Fq = Fq::from_raw([0x04, 0, 0, 0, 0, 0, 0]);
+    const SVDW_Z: Fp = Fp::from_raw([0x04, 0, 0, 0, 0, 0, 0]);
 }
 
 #[test]
@@ -96,5 +96,5 @@ fn test_serialization() {
 #[test]
 fn test_endo_consistency() {
     let g = Eris::generator();
-    assert_eq!(g * Fp::ZETA, g.endo());
+    assert_eq!(g * Fq::ZETA, g.endo());
 }
