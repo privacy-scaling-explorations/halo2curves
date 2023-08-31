@@ -280,10 +280,17 @@ where
     let _message = format!("serialization with serde {type_name}");
     let start = start_timer!(|| _message);
     for _ in 0..1000000 {
+        // byte serialization
         let a = F::random(&mut rng);
         let bytes = bincode::serialize(&a).unwrap();
         let reader = std::io::Cursor::new(bytes);
         let b: F = bincode::deserialize_from(reader).unwrap();
+        assert_eq!(a, b);
+
+        // json serialization
+        let json = serde_json::to_string(&a).unwrap();
+        let reader = std::io::Cursor::new(json);
+        let b: F = serde_json::from_reader(reader).unwrap();
         assert_eq!(a, b);
     }
     end_timer!(start);

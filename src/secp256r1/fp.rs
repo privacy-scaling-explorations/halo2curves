@@ -11,9 +11,6 @@ use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-#[cfg(feature = "derive_serde")]
-use serde::{Deserialize, Serialize};
-
 /// This represents an element of $\mathbb{F}_p$ where
 ///
 /// `p = 0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff
@@ -23,8 +20,10 @@ use serde::{Deserialize, Serialize};
 // integers in little-endian order. `Fp` values are always in
 // Montgomery form; i.e., Fp(a) = aR mod p, with R = 2^256.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
 pub struct Fp(pub(crate) [u64; 4]);
+
+#[cfg(feature = "derive_serde")]
+crate::serialize_deserialize_32_byte_primefield!(Fp);
 
 /// Constant representing the modulus
 /// p = 0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff
