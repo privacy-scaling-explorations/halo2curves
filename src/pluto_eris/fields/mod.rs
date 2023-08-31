@@ -831,7 +831,7 @@ macro_rules! field_bits_7_limbs {
                     u32::from_le_bytes(bytes[40..44].try_into().unwrap()),
                     u32::from_le_bytes(bytes[44..48].try_into().unwrap()),
                     u32::from_le_bytes(bytes[48..52].try_into().unwrap()),
-                    u32::from_le_bytes(bytes[..56].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[52..56].try_into().unwrap()),
                 ];
 
                 ::ff::FieldBits::new(limbs)
