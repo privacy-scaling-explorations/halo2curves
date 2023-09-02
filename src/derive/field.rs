@@ -714,12 +714,9 @@ macro_rules! serialize_deserialize_32_byte_primefield {
                 } else {
                     <[u8; 32]>::deserialize(deserializer)?
                 };
-                match Self::from_repr(bytes).into() {
-                    Some(fq) => Ok(fq),
-                    None => Err(D::Error::custom(
-                        "deserialized bytes don't encode a valid field element",
-                    )),
-                }
+                Option::from(Self::from_repr(bytes)).ok_or_else(|| {
+                    D::Error::custom("deserialized bytes don't encode a valid field element")
+                })
             }
         }
     };
