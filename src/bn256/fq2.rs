@@ -135,7 +135,7 @@ impl Legendre for Fq2 {
             static ref LEGENDRE_EXP: Vec<u64> =
                 (num_bigint::BigUint::from_bytes_le((-<Fq as ff::Field>::ONE).to_repr().as_ref())/2usize).to_u64_digits();
         }
-        &*LEGENDRE_EXP
+        &LEGENDRE_EXP
     }
 
     /// Norm of Fq2 as extension field in i over Fq
