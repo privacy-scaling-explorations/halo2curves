@@ -40,7 +40,7 @@ const RANGE: [u8; 6] = [3, 8, 10, 12 /*(Ethereum KZG / EIP 4844)*/, 14, 16];
 #[cfg(feature = "multicore")]
 const RANGE: [u8; 9] = [
     3, 8, 10, 12, /*(Ethereum KZG / EIP 4844)*/
-    14, 16, 18, 20, 21,
+    14, 16, 18, 20, 22,
 ];
 
 fn criterion_benchmark(c: &mut Criterion) {
