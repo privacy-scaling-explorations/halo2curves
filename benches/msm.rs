@@ -1,7 +1,13 @@
-//! This benchmark allows testing msm without depending on the `halo2_proofs`
-//! crate.  This code originates in an older version of `halo2_proofs` from
-//! before the `hash_to_curve` method was implemented.  It currently only uses
-//! curve `Secp256k1Affine`
+//! This benchmarks Multi Scalar Multiplication (MSM).
+//! It measures `G1` from the BN256 curve.
+//!
+//! Benchmark with default feature `multicore` enabled:
+//!
+//!     cargo bench -- msm
+//!
+//! To run with as singlecore:
+//!
+//!     cargo bench --no-default-features -- msm
 
 #[macro_use]
 extern crate criterion;
