@@ -4,6 +4,7 @@ pub mod hash_to_curve;
 pub mod legendre;
 pub mod serde;
 
+pub mod bls12_381;
 pub mod bn256;
 pub mod grumpkin;
 pub mod pasta;
