@@ -28,7 +28,7 @@ pub trait Legendre: Field {
 #[macro_export]
 macro_rules! prime_field_legendre {
     ($field:ident ) => {
-        impl crate::legendre::Legendre for $field {
+        impl $crate::legendre::Legendre for $field {
             type BasePrimeField = Self;
 
             #[inline]
