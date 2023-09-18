@@ -75,9 +75,21 @@ where
             assert_eq!(affine_point, affine_point_rec);
         }
         {
+            let affine_json = serde_json::to_string(&affine_point).unwrap();
+            let reader = std::io::Cursor::new(affine_json);
+            let affine_point_rec: G::AffineExt = serde_json::from_reader(reader).unwrap();
+            assert_eq!(affine_point, affine_point_rec);
+        }
+        {
             let projective_bytes = bincode::serialize(&projective_point).unwrap();
             let reader = std::io::Cursor::new(projective_bytes);
             let projective_point_rec: G = bincode::deserialize_from(reader).unwrap();
+            assert_eq!(projective_point, projective_point_rec);
+        }
+        {
+            let projective_json = serde_json::to_string(&projective_point).unwrap();
+            let reader = std::io::Cursor::new(projective_json);
+            let projective_point_rec: G = serde_json::from_reader(reader).unwrap();
             assert_eq!(projective_point, projective_point_rec);
         }
     }

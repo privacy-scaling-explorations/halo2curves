@@ -288,8 +288,72 @@ macro_rules! new_curve_impl {
 
         }
 
+        /// A macro to help define point serialization using the [`group::GroupEncoding`] trait
+        /// This assumes both point types ($name, $nameaffine) implement [`group::GroupEncoding`].
+        #[cfg(feature = "derive_serde")]
+        macro_rules! serialize_deserialize_to_from_bytes {
+            () => {
+                impl ::serde::Serialize for $name {
+                    fn serialize<S: ::serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+                        let bytes = &self.to_bytes();
+                        if serializer.is_human_readable() {
+                            ::hex::serde::serialize(&bytes.0, serializer)
+                        } else {
+                            ::serde_arrays::serialize(&bytes.0, serializer)
+                        }
+                    }
+                }
+
+                paste::paste! {
+                    use ::serde::de::Error as _;
+                    impl<'de> ::serde::Deserialize<'de> for $name {
+                        fn deserialize<D: ::serde::Deserializer<'de>>(
+                            deserializer: D,
+                        ) -> Result<Self, D::Error> {
+                            let bytes = if deserializer.is_human_readable() {
+                                ::hex::serde::deserialize(deserializer)?
+                            } else {
+                                ::serde_arrays::deserialize::<_, u8, [< $name _COMPRESSED_SIZE >]>(deserializer)?
+                            };
+                            Option::from(Self::from_bytes(&[< $name Compressed >](bytes))).ok_or_else(|| {
+                                D::Error::custom("deserialized bytes don't encode a valid field element")
+                            })
+                        }
+                    }
+                }
+
+                impl ::serde::Serialize for $name_affine {
+                    fn serialize<S: ::serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+                        let bytes = &self.to_bytes();
+                        if serializer.is_human_readable() {
+                            ::hex::serde::serialize(&bytes.0, serializer)
+                        } else {
+                            ::serde_arrays::serialize(&bytes.0, serializer)
+                        }
+                    }
+                }
+
+                paste::paste! {
+                    use ::serde::de::Error as _;
+                    impl<'de> ::serde::Deserialize<'de> for $name_affine {
+                        fn deserialize<D: ::serde::Deserializer<'de>>(
+                            deserializer: D,
+                        ) -> Result<Self, D::Error> {
+                            let bytes = if deserializer.is_human_readable() {
+                                ::hex::serde::deserialize(deserializer)?
+                            } else {
+                                ::serde_arrays::deserialize::<_, u8, [< $name _COMPRESSED_SIZE >]>(deserializer)?
+                            };
+                            Option::from(Self::from_bytes(&[< $name Compressed >](bytes))).ok_or_else(|| {
+                                D::Error::custom("deserialized bytes don't encode a valid field element")
+                            })
+                        }
+                    }
+                }
+            };
+        }
+
         #[derive(Copy, Clone, Debug)]
-        #[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
         $($privacy)* struct $name {
             pub x: $base,
             pub y: $base,
@@ -297,13 +361,13 @@ macro_rules! new_curve_impl {
         }
 
         #[derive(Copy, Clone, PartialEq)]
-        #[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
         $($privacy)* struct $name_affine {
             pub x: $base,
             pub y: $base,
         }
 
-
+        #[cfg(feature = "derive_serde")]
+        serialize_deserialize_to_from_bytes!();
 
         impl_compressed!();
         impl_uncompressed!();
