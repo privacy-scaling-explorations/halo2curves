@@ -686,3 +686,38 @@ macro_rules! field_bits {
         }
     };
 }
+
+/// A macro to help define serialization and deserialization for prime field implementations
+/// that use 32-byte representations. This assumes the concerned type implements PrimeField
+/// (for from_repr, to_repr).
+#[macro_export]
+macro_rules! serialize_deserialize_32_byte_primefield {
+    ($type:ty) => {
+        impl ::serde::Serialize for $type {
+            fn serialize<S: ::serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+                let bytes = &self.to_repr();
+                if serializer.is_human_readable() {
+                    hex::serde::serialize(bytes, serializer)
+                } else {
+                    bytes.serialize(serializer)
+                }
+            }
+        }
+
+        use ::serde::de::Error as _;
+        impl<'de> ::serde::Deserialize<'de> for $type {
+            fn deserialize<D: ::serde::Deserializer<'de>>(
+                deserializer: D,
+            ) -> Result<Self, D::Error> {
+                let bytes = if deserializer.is_human_readable() {
+                    ::hex::serde::deserialize(deserializer)?
+                } else {
+                    <[u8; 32]>::deserialize(deserializer)?
+                };
+                Option::from(Self::from_repr(bytes)).ok_or_else(|| {
+                    D::Error::custom("deserialized bytes don't encode a valid field element")
+                })
+            }
+        }
+    };
+}

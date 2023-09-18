@@ -11,9 +11,6 @@ use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-#[cfg(feature = "derive_serde")]
-use serde::{Deserialize, Serialize};
-
 /// This represents an element of $\mathbb{F}_q$ where
 ///
 /// `q = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141`
@@ -23,8 +20,10 @@ use serde::{Deserialize, Serialize};
 // integers in little-endian order. `Fq` values are always in
 // Montgomery form; i.e., Fq(a) = aR mod q, with R = 2^256.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
 pub struct Fq(pub(crate) [u64; 4]);
+
+#[cfg(feature = "derive_serde")]
+crate::serialize_deserialize_32_byte_primefield!(Fq);
 
 /// Constant representing the modulus
 /// q = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141

@@ -31,9 +31,6 @@ use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-#[cfg(feature = "derive_serde")]
-use serde::{Deserialize, Serialize};
-
 /// This represents an element of $\mathbb{F}_r$ where
 ///
 /// `r = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001`
@@ -43,8 +40,10 @@ use serde::{Deserialize, Serialize};
 // integers in little-endian order. `Fr` values are always in
 // Montgomery form; i.e., Fr(a) = aR mod r, with R = 2^256.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
 pub struct Fr(pub(crate) [u64; 4]);
+
+#[cfg(feature = "derive_serde")]
+crate::serialize_deserialize_32_byte_primefield!(Fr);
 
 /// Constant representing the modulus
 /// r = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001
