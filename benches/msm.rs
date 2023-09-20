@@ -5,9 +5,9 @@
 //!
 //!     cargo bench -- msm
 //!
-//! Caveat:  `multicore` should be read as _allowing_ for multicore computation --
-//! not enforcing it.
-//!
+//! Caveat:  The multicore benchmark assumes:
+//!     1. a multi-core system
+//!     2. that the `multicore` feature is enabled.  It is by default.
 
 #[macro_use]
 extern crate criterion;

@@ -1,3 +1,15 @@
+//! This benchmarks Fast-Fourier Transform (FFT).
+//! Since it is over a finite field, it is actually the Number Theoretical
+//! Transform (NNT).  It uses the `Fr` scalar field from the BN256 curve.
+//!
+//! To run this benchmark:
+//!
+//!     cargo bench -- fft
+//!
+//! Caveat:  The multicore benchmark assumes:
+//!     1. a multi-core system
+//!     2. that the `multicore` feature is enabled.  It is by default.
+
 #[macro_use]
 extern crate criterion;
 
