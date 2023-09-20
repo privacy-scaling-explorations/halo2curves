@@ -71,7 +71,8 @@ fn generate_coefficients_and_curvepoints(k: u8) -> (Vec<Scalar>, Vec<Point>) {
         )
         .collect();
     let end = timer.elapsed().unwrap();
-    println!("Generating 2^{k} = {n} coefficients and curve points took: {} sec.\n\n",
+    println!(
+        "Generating 2^{k} = {n} coefficients and curve points took: {} sec.\n\n",
         end.as_secs()
     );
 
