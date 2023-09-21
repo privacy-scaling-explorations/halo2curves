@@ -77,3 +77,4 @@ harness = false
 [[bench]]
 name = "msm"
 harness = false
+required-features = ["multicore"]
