@@ -33,9 +33,11 @@ serde = { version = "1.0", default-features = false, optional = true }
 serde_arrays = { version = "0.1.0", optional = true }
 hex = { version = "0.4", optional = true, default-features = false, features = ["alloc", "serde"] }
 blake2b_simd = "1"
+maybe-rayon = { version = "0.1.0", default-features = false }
 
 [features]
-default = ["reexport", "bits"]
+default = ["reexport", "bits", "multicore"]
+multicore = ["maybe-rayon/threads"]
 asm = []
 bits = ["ff/bits"]
 bn256-table = []
@@ -69,3 +71,12 @@ harness = false
 [[bench]]
 name = "hash_to_curve"
 harness = false
+
+[[bench]]
+name = "fft"
+harness = false
+
+[[bench]]
+name = "msm"
+harness = false
+required-features = ["multicore"]

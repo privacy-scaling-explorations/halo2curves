@@ -1,5 +1,8 @@
 mod arithmetic;
+pub mod fft;
 pub mod hash_to_curve;
+pub mod msm;
+pub mod multicore;
 #[macro_use]
 pub mod legendre;
 pub mod serde;
