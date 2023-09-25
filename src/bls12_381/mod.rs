@@ -12,16 +12,16 @@ use std::convert::TryInto;
 // Obtained from https://github.com/ConsenSys/gnark-crypto/blob/master/ecc/utils.go
 // See https://github.com/demining/Endomorphism-Secp256k1/blob/main/README.md
 // to have more details about the endomorphism.
-const ENDO_PARAMS_EP: EndoParameters = EndoParameters {
+const ENDO_PARAMS_BLS: EndoParameters = EndoParameters {
     // round(b2/n)
-    gamma1: [0x63f6e522f6cfee30u64, 0x7c6becf1e01faadd, 0x01, 0x0],
+    gamma2: [0x63f6e522f6cfee30u64, 0x7c6becf1e01faadd, 0x01, 0x0],
     // round(-b1/n)
-    gamma2: [0x02u64, 0x0, 0x0, 0x0],
-    b2: [0x01u64, 0x0, 0x0, 0x0],
-    b1: [0x00000000ffffffffu64, 0xac45a4010001a402, 0x0, 0x0],
+    gamma1: [0x02u64, 0x0, 0x0, 0x0],
+    b1: [0x01u64, 0x0, 0x0, 0x0],
+    b2: [0x0000000100000000, 0xac45a4010001a402, 0x0, 0x0],
 };
 
-endo!(G1Projective, Scalar, ENDO_PARAMS_EP);
+endo!(G1Projective, Scalar, ENDO_PARAMS_BLS);
 
 #[test]
 fn test_endo() {
