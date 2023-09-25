@@ -4,8 +4,6 @@
 //! This module is temporary, and the extension traits defined here are expected to be
 //! upstreamed into the `ff` and `group` crates after some refactoring.
 
-use crate::CurveExt;
-
 pub(crate) struct EndoParameters {
     pub(crate) gamma1: [u64; 4],
     pub(crate) gamma2: [u64; 4],
@@ -13,8 +11,8 @@ pub(crate) struct EndoParameters {
     pub(crate) b2: [u64; 4],
 }
 
-pub trait CurveEndo: CurveExt {
-    fn decompose_scalar(e: &Self::ScalarExt) -> (u128, bool, u128, bool);
+pub trait CurveEndo: ff::WithSmallOrderMulGroup<3> {
+    fn decompose_scalar(e: &Self) -> (u128, bool, u128, bool);
 }
 
 /// Compute a + b + carry, returning the result and the new carry over.

@@ -125,7 +125,7 @@ const ENDO_PARAMS_BN: EndoParameters = EndoParameters {
     b2: [0x0be4e1541221250b, 0x6f4d8248eeb859fd, 0, 0],
 };
 
-endo!(G1, Fr, ENDO_PARAMS_BN);
+endo!(Fr, ENDO_PARAMS_BN);
 
 impl group::cofactor::CofactorGroup for G1 {
     type Subgroup = G1;
@@ -288,7 +288,7 @@ mod tests {
         assert_eq!(g * Fr::ZETA, g.endo());
         for _ in 0..100000 {
             let k = Fr::random(OsRng);
-            let (k1, k1_neg, k2, k2_neg) = G1::decompose_scalar(&k);
+            let (k1, k1_neg, k2, k2_neg) = Fr::decompose_scalar(&k);
             if k1_neg & k2_neg {
                 assert_eq!(k, -Fr::from_u128(k1) + Fr::ZETA * Fr::from_u128(k2))
             } else if k1_neg {

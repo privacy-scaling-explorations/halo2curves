@@ -35,8 +35,8 @@ const ENDO_PARAMS_EP: EndoParameters = EndoParameters {
     b2: [0x0c7c095a00000001, 0x93cd3a2c8198e269, 0x0, 0x0],
 };
 
-endo!(Eq, Fp, ENDO_PARAMS_EQ);
-endo!(Ep, Fq, ENDO_PARAMS_EP);
+endo!(Fp, ENDO_PARAMS_EQ);
+endo!(Fq, ENDO_PARAMS_EP);
 
 prime_field_legendre!(Fp);
 prime_field_legendre!(Fq);
@@ -48,7 +48,7 @@ fn test_endo() {
 
     for _ in 0..100000 {
         let k = Fp::random(OsRng);
-        let (k1, k1_neg, k2, k2_neg) = Eq::decompose_scalar(&k);
+        let (k1, k1_neg, k2, k2_neg) = Fp::decompose_scalar(&k);
         if k1_neg & k2_neg {
             assert_eq!(k, -Fp::from_u128(k1) + Fp::ZETA * Fp::from_u128(k2))
         } else if k1_neg {
@@ -61,16 +61,16 @@ fn test_endo() {
     }
 
     for _ in 0..100000 {
-        let k = Fp::random(OsRng);
-        let (k1, k1_neg, k2, k2_neg) = Eq::decompose_scalar(&k);
+        let k = Fq::random(OsRng);
+        let (k1, k1_neg, k2, k2_neg) = Fq::decompose_scalar(&k);
         if k1_neg & k2_neg {
-            assert_eq!(k, -Fp::from_u128(k1) + Fp::ZETA * Fp::from_u128(k2))
+            assert_eq!(k, -Fq::from_u128(k1) + Fq::ZETA * Fq::from_u128(k2))
         } else if k1_neg {
-            assert_eq!(k, -Fp::from_u128(k1) - Fp::ZETA * Fp::from_u128(k2))
+            assert_eq!(k, -Fq::from_u128(k1) - Fq::ZETA * Fq::from_u128(k2))
         } else if k2_neg {
-            assert_eq!(k, Fp::from_u128(k1) + Fp::ZETA * Fp::from_u128(k2))
+            assert_eq!(k, Fq::from_u128(k1) + Fq::ZETA * Fq::from_u128(k2))
         } else {
-            assert_eq!(k, Fp::from_u128(k1) - Fp::ZETA * Fp::from_u128(k2))
+            assert_eq!(k, Fq::from_u128(k1) - Fq::ZETA * Fq::from_u128(k2))
         }
     }
 }

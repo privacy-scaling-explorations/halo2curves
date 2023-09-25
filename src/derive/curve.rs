@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! endo {
-    ($name:ident, $field:ident, $params:expr) => {
-        impl CurveEndo for $name {
+    ($field:ident, $params:expr) => {
+        impl CurveEndo for $field {
             fn decompose_scalar(k: &$field) -> (u128, bool, u128, bool) {
                 let to_limbs = |e: &$field| {
                     let repr = e.to_repr();
