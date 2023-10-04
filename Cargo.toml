@@ -36,7 +36,7 @@ blake2b_simd = "1"
 maybe-rayon = { version = "0.1.0", default-features = false }
 
 [features]
-default = ["reexport", "bits", "multicore"]
+default = ["bits", "multicore"]
 multicore = ["maybe-rayon/threads"]
 asm = []
 bits = ["ff/bits"]
@@ -44,7 +44,6 @@ bn256-table = []
 derive_serde = ["serde/derive", "serde_arrays", "hex"]
 prefetch = []
 print-trace = ["ark-std/print-trace"]
-reexport = []
 
 [profile.bench]
 opt-level = 3
