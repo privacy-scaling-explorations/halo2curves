@@ -16,17 +16,12 @@ pub mod secq256k1;
 
 #[macro_use]
 mod derive;
-pub use pasta_curves::arithmetic::{Coordinates, CurveAffine, CurveExt};
 
-// Re-export ff and group to simplify down stream dependencies
-#[cfg(feature = "reexport")]
+// Re-export to simplify down stream dependencies
 pub use ff;
-#[cfg(not(feature = "reexport"))]
-use ff;
-#[cfg(feature = "reexport")]
 pub use group;
-#[cfg(not(feature = "reexport"))]
-use group;
+pub use pairing;
+pub use pasta_curves::arithmetic::{Coordinates, CurveAffine, CurveExt};
 
 #[cfg(test)]
 pub mod tests;
