@@ -4,7 +4,7 @@ pub mod fft;
 pub mod hash_to_curve;
 pub mod msm;
 pub mod multicore;
-mod pornin;
+mod ff_jacobi;
 #[macro_use]
 pub mod legendre;
 pub mod serde;

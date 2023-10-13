@@ -55,7 +55,7 @@ macro_rules! field_common {
             // Returns the Legendre symbol, where the numerator and denominator
             // are the element and the characteristic of the field, respectively.
             pub fn jacobi(&self) -> i64 {
-                $crate::pornin::jacobi::<5>(&self.0, &$modulus.0)
+                $crate::ff_jacobi::jacobi::<5>(&self.0, &$modulus.0)
             }
 
             fn from_u512(limbs: [u64; 8]) -> $field {
