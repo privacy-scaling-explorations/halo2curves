@@ -26,8 +26,8 @@ macro_rules! field_common {
     ) => {
         /// Bernstein-Yang modular multiplicative inverter created for the modulus equal to
         /// the characteristic of the field to invert positive integers in the Montgomery form.
-        const BYINVERTOR: $crate::bernsteinyang::BYInverter<6> =
-            $crate::bernsteinyang::BYInverter::<6>::new(&$modulus.0, &$r2.0);
+        const BYINVERTOR: $crate::ff_inverse::BYInverter<6> =
+            $crate::ff_inverse::BYInverter::<6>::new(&$modulus.0, &$r2.0);
 
         impl $field {
             /// Returns zero, the additive identity.
