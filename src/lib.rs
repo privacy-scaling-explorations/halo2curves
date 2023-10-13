@@ -1,10 +1,10 @@
 mod arithmetic;
 mod ff_inverse;
+mod ff_jacobi;
 pub mod fft;
 pub mod hash_to_curve;
 pub mod msm;
 pub mod multicore;
-mod ff_jacobi;
 #[macro_use]
 pub mod legendre;
 pub mod serde;
