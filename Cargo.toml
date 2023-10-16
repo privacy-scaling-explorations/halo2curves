@@ -61,7 +61,6 @@ harness = false
 [[bench]]
 name = "bn256_field"
 harness = false
-required-features = ["reexport"]
 
 [[bench]]
 name = "group"
