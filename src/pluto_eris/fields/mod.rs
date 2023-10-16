@@ -1,4 +1,7 @@
 pub mod fp;
+pub mod fp12;
+pub mod fp2;
+pub mod fp6;
 pub mod fq;
 
 #[macro_export]
@@ -437,7 +440,7 @@ macro_rules! field_common_7_limbs {
 #[macro_export]
 macro_rules! field_arithmetic_7_limbs {
     ($field:ident, $modulus:ident, $inv:ident, $field_type:ident) => {
-        crate::field_specific_7_limbs!($field, $modulus, $inv, $field_type);
+        $crate::field_specific_7_limbs!($field, $modulus, $inv, $field_type);
         impl $field {
             /// Doubles this field element.
             #[inline]

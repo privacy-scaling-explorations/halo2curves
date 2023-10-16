@@ -8,6 +8,8 @@ pub mod pasta;
 pub mod pluto_eris;
 pub mod secp256k1;
 pub mod serde;
+#[macro_use]
+pub mod legendre;
 
 #[macro_use]
 mod derive;

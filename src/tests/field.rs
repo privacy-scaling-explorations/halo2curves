@@ -7,6 +7,8 @@ use rand_xorshift::XorShiftRng;
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
 
+const N_REPS: usize = 100_000;
+
 pub fn random_field_tests<F: Field>(type_name: String) {
     let mut rng = XorShiftRng::from_seed([
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
@@ -50,7 +52,7 @@ pub fn random_field_tests<F: Field>(type_name: String) {
 fn random_multiplication_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
     let _message = format!("multiplication {}", type_name);
     let start = start_timer!(|| _message);
-    for _ in 0..1000000 {
+    for _ in 0..N_REPS {
         let a = F::random(&mut rng);
         let b = F::random(&mut rng);
         let c = F::random(&mut rng);
@@ -76,7 +78,7 @@ fn random_multiplication_tests<F: Field, R: RngCore>(mut rng: R, type_name: Stri
 fn random_addition_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
     let _message = format!("addition {}", type_name);
     let start = start_timer!(|| _message);
-    for _ in 0..1000000 {
+    for _ in 0..N_REPS {
         let a = F::random(&mut rng);
         let b = F::random(&mut rng);
         let c = F::random(&mut rng);
@@ -102,7 +104,7 @@ fn random_addition_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
 fn random_subtraction_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
     let _message = format!("subtraction {}", type_name);
     let start = start_timer!(|| _message);
-    for _ in 0..1000000 {
+    for _ in 0..N_REPS {
         let a = F::random(&mut rng);
         let b = F::random(&mut rng);
 
@@ -123,7 +125,7 @@ fn random_subtraction_tests<F: Field, R: RngCore>(mut rng: R, type_name: String)
 fn random_negation_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
     let _message = format!("negation {}", type_name);
     let start = start_timer!(|| _message);
-    for _ in 0..1000000 {
+    for _ in 0..N_REPS {
         let a = F::random(&mut rng);
         let mut b = a;
         b = b.neg();
@@ -137,7 +139,7 @@ fn random_negation_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
 fn random_doubling_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
     let _message = format!("doubling {}", type_name);
     let start = start_timer!(|| _message);
-    for _ in 0..1000000 {
+    for _ in 0..N_REPS {
         let mut a = F::random(&mut rng);
         let mut b = a;
         a.add_assign(&b);
@@ -151,7 +153,7 @@ fn random_doubling_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
 fn random_squaring_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
     let _message = format!("squaring {}", type_name);
     let start = start_timer!(|| _message);
-    for _ in 0..1000000 {
+    for _ in 0..N_REPS {
         let mut a = F::random(&mut rng);
         let mut b = a;
         a.mul_assign(&b);
@@ -167,7 +169,7 @@ fn random_inversion_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
 
     let _message = format!("inversion {}", type_name);
     let start = start_timer!(|| _message);
-    for _ in 0..1000000 {
+    for _ in 0..N_REPS {
         let mut a = F::random(&mut rng);
         let b = a.invert().unwrap(); // probablistically nonzero
         a.mul_assign(&b);
@@ -180,7 +182,7 @@ fn random_inversion_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
 fn random_expansion_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
     let _message = format!("expansion {}", type_name);
     let start = start_timer!(|| _message);
-    for _ in 0..1000000 {
+    for _ in 0..N_REPS {
         // Compare (a + b)(c + d) and (a*c + b*c + a*d + b*d)
 
         let a = F::random(&mut rng);
@@ -219,7 +221,7 @@ pub fn random_serialization_test<F: Field + SerdeObject>(type_name: String) {
     ]);
     let _message = format!("serialization with SerdeObject {}", type_name);
     let start = start_timer!(|| _message);
-    for _ in 0..1000000 {
+    for _ in 0..N_REPS {
         let a = F::random(&mut rng);
         let bytes = a.to_raw_bytes();
         let b = F::from_raw_bytes(&bytes).unwrap();
@@ -243,7 +245,7 @@ where
     ]);
     let _message = format!("serialization with serde {}", type_name);
     let start = start_timer!(|| _message);
-    for _ in 0..1000000 {
+    for _ in 0..N_REPS {
         let a = F::random(&mut rng);
         let bytes = bincode::serialize(&a).unwrap();
         let reader = std::io::Cursor::new(bytes);
