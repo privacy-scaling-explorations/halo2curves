@@ -2,6 +2,7 @@ use super::fields::{fp::Fp, fp2::Fp2, fq::Fq};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
+use crate::hash_to_curve::svdw_hash_to_curve;
 use crate::{Coordinates, CurveAffine, CurveExt};
 use core::cmp;
 use core::fmt::Debug;
@@ -141,6 +142,7 @@ new_curve_impl!(
     (G1_GENERATOR_X,G1_GENERATOR_Y),
     PLUTO_B,
     "pluto",
+    |curve_id, domain_prefix| svdw_hash_to_curve(curve_id, domain_prefix, G1::SVDW_Z),
 );
 
 impl group::cofactor::CofactorGroup for Eris {
@@ -159,6 +161,10 @@ impl group::cofactor::CofactorGroup for Eris {
     }
 }
 
+impl G1 {
+    const SVDW_Z: Fp = Fp::ONE;
+}
+
 new_curve_impl!(
     (pub),
     Eris,
@@ -169,6 +175,7 @@ new_curve_impl!(
     (ERIS_GENERATOR_X,ERIS_GENERATOR_Y),
     ERIS_B,
     "eris",
+    |curve_id, domain_prefix| svdw_hash_to_curve(curve_id, domain_prefix, Eris::SVDW_Z),
 );
 
 impl CofactorGroup for G2 {
@@ -223,6 +230,10 @@ impl CofactorGroup for G2 {
     }
 }
 
+impl Eris {
+    const SVDW_Z: Fq = Fq::ONE;
+}
+
 new_curve_impl!(
     (pub),
     G2,
@@ -233,6 +244,7 @@ new_curve_impl!(
     (G2_GENERATOR_X,G2_GENERATOR_Y),
     TRITON_B,
     "triton",
+    |_, _| unimplemented!(),
 );
 
 #[test]
@@ -254,11 +266,17 @@ fn test_serialization() {
     crate::tests::curve::random_serialization_test::<Eris>();
     crate::tests::curve::random_serialization_test::<G2>();
     #[cfg(feature = "derive_serde")]
-    crate::tests::curve::random_serde_test::<Pluto>();
+    crate::tests::curve::random_serde_test::<G1>();
     #[cfg(feature = "derive_serde")]
     crate::tests::curve::random_serde_test::<Eris>();
     #[cfg(feature = "derive_serde")]
-    crate::tests::curve::random_serde_test::<Triton>();
+    crate::tests::curve::random_serde_test::<G2>();
+}
+
+#[test]
+fn test_hash_to_curve() {
+    crate::tests::curve::hash_to_curve_test::<G1>();
+    crate::tests::curve::hash_to_curve_test::<Eris>();
 }
 
 #[test]

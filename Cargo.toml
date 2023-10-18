@@ -40,6 +40,7 @@ num-bigint = "0.4.3"
 num-traits = "0.2"
 paste = "1.0.11"
 serde = { version = "1.0", default-features = false, optional = true }
+blake2b_simd = "1"
 
 [features]
 default = [ "reexport" ]

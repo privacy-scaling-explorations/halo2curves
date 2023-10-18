@@ -32,6 +32,7 @@ new_curve_impl!(
     (G1_GENERATOR_X,G1_GENERATOR_Y),
     G1_B,
     "bn256_g1",
+    |_, _| unimplemented!(),
 );
 
 new_curve_impl!(
@@ -44,6 +45,7 @@ new_curve_impl!(
     (G2_GENERATOR_X, G2_GENERATOR_Y),
     G2_B,
     "bn256_g2",
+    |_, _| unimplemented!(),
 );
 
 impl CurveAffineExt for G1Affine {
