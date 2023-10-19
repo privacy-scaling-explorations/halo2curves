@@ -345,11 +345,10 @@ pub fn jacobi<const L: usize>(n: &[u64], d: &[u64]) -> i64 {
         // bits instead of 31 in that method. These modifications allow the values of the
         // "approximation" variables to be equal modulo 8 to the corresponding "precise"
         // variables' values, which would have been computed, if the "precise" variables
-        // had been updated in the inner loop along with the "approximations".
-        // This equality modulo 8 is used to update the second-lowest bit of "t"
-        // in accordance with the properties of the modified Jacobi symbol (x / |y|).
-        // The admissibility of these modifications
-        // was proven using the appropriately modified Pornin's theorems
+        // had been updated in the inner loop along with the "approximations". This equality
+        // modulo 8 is used to update the second-lowest bit of "t" in accordance with the
+        // properties of the modified Jacobi symbol (x / |y|). The admissibility of these
+        // modifications has been proven using the appropriately modified Pornin's theorems
         let (mut u, mut v, mut i) = ((1i64, 0i64), (0i64, 1i64), 30);
         let (mut a, mut b, precise) = approximate(&n, &d);
         // When each "approximation" variable has the same value as the corresponding "precise"
