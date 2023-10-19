@@ -24,6 +24,11 @@ macro_rules! field_common {
         $r2:ident,
         $r3:ident
     ) => {
+        /// Bernstein-Yang modular multiplicative inverter created for the modulus equal to
+        /// the characteristic of the field to invert positive integers in the Montgomery form.
+        const BYINVERTOR: $crate::ff_inverse::BYInverter<6> =
+            $crate::ff_inverse::BYInverter::<6>::new(&$modulus.0, &$r2.0);
+
         impl $field {
             /// Returns zero, the additive identity.
             #[inline]
@@ -35,6 +40,16 @@ macro_rules! field_common {
             #[inline]
             pub const fn one() -> $field {
                 $r
+            }
+
+            /// Returns the multiplicative inverse of the
+            /// element. If it is zero, the method fails.
+            pub fn invert(&self) -> CtOption<Self> {
+                if let Some(inverse) = BYINVERTOR.invert(&self.0) {
+                    CtOption::new(Self(inverse), Choice::from(1))
+                } else {
+                    CtOption::new(Self::zero(), Choice::from(0))
+                }
             }
 
             fn from_u512(limbs: [u64; 8]) -> $field {
@@ -345,6 +360,7 @@ macro_rules! field_common {
 macro_rules! field_arithmetic {
     ($field:ident, $modulus:ident, $inv:ident, $field_type:ident) => {
         field_specific!($field, $modulus, $inv, $field_type);
+
         impl $field {
             /// Doubles this field element.
             #[inline]
