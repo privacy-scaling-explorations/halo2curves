@@ -1,4 +1,5 @@
 #![allow(clippy::op_ref)]
+#![allow(dead_code)]
 
 use ff::{Field, FromUniformBytes, PrimeField};
 use pasta_curves::arithmetic::CurveExt;

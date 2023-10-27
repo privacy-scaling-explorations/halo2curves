@@ -28,7 +28,7 @@ pub struct Fr(pub(crate) [u64; 4]);
 
 /// Constant representing the modulus
 /// r = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001
-pub const MODULUS: Fr = Fr([
+const MODULUS: Fr = Fr([
     0x43e1f593f0000001,
     0x2833e84879b97091,
     0xb85045b68181585d,
