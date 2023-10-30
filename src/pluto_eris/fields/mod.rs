@@ -451,67 +451,66 @@ macro_rules! field_arithmetic_7_limbs {
             /// Squares this element.
             #[inline]
             pub const fn square(&self) -> $field {
-                self.mul(self)
-                // let (r1, carry) = mac(0, self.0[0], self.0[1], 0);
-                // let (r2, carry) = mac(0, self.0[0], self.0[2], carry);
-                // let (r3, carry) = mac(0, self.0[0], self.0[3], carry);
-                // let (r4, carry) = mac(0, self.0[0], self.0[4], carry);
-                // let (r5, carry) = mac(0, self.0[0], self.0[5], carry);
-                // let (r6, r7) = mac(0, self.0[0], self.0[6], carry);
+                // self.mul(self)
+                let (r1, carry) = mac(0, self.0[0], self.0[1], 0);
+                let (r2, carry) = mac(0, self.0[0], self.0[2], carry);
+                let (r3, carry) = mac(0, self.0[0], self.0[3], carry);
+                let (r4, carry) = mac(0, self.0[0], self.0[4], carry);
+                let (r5, carry) = mac(0, self.0[0], self.0[5], carry);
+                let (r6, r7) = mac(0, self.0[0], self.0[6], carry);
 
-                // let (r6, carry) = mac(r6, self.0[1], self.0[2], 0);
-                // let (r7, r8) = mac(r7, self.0[1], self.0[3], carry);
-                // let (r8, r9) = mac(r8, self.0[1], self.0[4], carry);
-                // let (r9, r10) = mac(r9, self.0[1], self.0[5], carry);
-                // let (r10, r11) = mac(r10, self.0[1], self.0[6], carry);
+                let (r3, carry) = mac(r3, self.0[1], self.0[2], 0);
+                let (r4, carry) = mac(r4, self.0[1], self.0[3], carry);
+                let (r5, carry) = mac(r5, self.0[1], self.0[4], carry);
+                let (r6, carry) = mac(r6, self.0[1], self.0[5], carry);
+                let (r7, r8) = mac(r7, self.0[1], self.0[6], carry);
 
-                // let (r10, r11) = mac(r10, self.0[2], self.0[3], carry);
-                // let (r11, r12) = mac(r11, self.0[2], self.0[4], carry);
-                // let (r12, r13) = mac(r12, self.0[2], self.0[5], carry);
-                // let (r13, r14) = mac(r13, self.0[2], self.0[6], carry);
+                let (r5, carry) = mac(r5, self.0[2], self.0[3], 0);
+                let (r6, carry) = mac(r6, self.0[2], self.0[4], carry);
+                let (r7, carry) = mac(r7, self.0[2], self.0[5], carry);
+                let (r8, r9) = mac(r8, self.0[2], self.0[6], carry);
 
-                // let (r13, r14) = mac(r13, self.0[3], self.0[4], carry);
-                // let (r14, r15) = mac(r14, self.0[3], self.0[5], carry);
-                // let (r15, r16) = mac(r15, self.0[3], self.0[6], carry);
+                let (r7, carry) = mac(r7, self.0[3], self.0[4], 0);
+                let (r8, carry) = mac(r8, self.0[3], self.0[5], carry);
+                let (r9, r10) = mac(r9, self.0[3], self.0[6], carry);
 
-                // let (r15, r16) = mac(r15, self.0[4], self.0[5], carry);
-                // let (r16, r17) = mac(r16, self.0[4], self.0[6], carry);
+                let (r9, carry) = mac(r9, self.0[4], self.0[5], 0);
+                let (r10, r11) = mac(r10, self.0[4], self.0[6], carry);
 
-                // let (r16, r17) = mac(r16, self.0[5], self.0[6], carry);
+                let (r11, r12) = mac(r11, self.0[5], self.0[6], 0);
 
-                // let r14 = r13 >> 63;
-                // let r13 = (r13 << 1) | (r5 >> 63);
-                // let r12 = (r12 << 1) | (r5 >> 63);
-                // let r11 = (r11 << 1) | (r5 >> 63);
-                // let r10 = (r10 << 1) | (r5 >> 63);
-                // let r9 = (r9 << 1) | (r5 >> 63);
-                // let r8 = (r8 << 1) | (r5 >> 63);
-                // let r7 = (r7 << 1) | (r5 >> 63);
-                // let r6 = (r6 << 1) | (r5 >> 63);
-                // let r5 = (r5 << 1) | (r4 >> 63);
-                // let r4 = (r4 << 1) | (r3 >> 63);
-                // let r3 = (r3 << 1) | (r2 >> 63);
-                // let r2 = (r2 << 1) | (r1 >> 63);
-                // let r1 = r1 << 1;
+                let r13 = r12 >> 63;
+                let r12 = (r12 << 1) | (r11 >> 63);
+                let r11 = (r11 << 1) | (r10 >> 63);
+                let r10 = (r10 << 1) | (r9 >> 63);
+                let r9 = (r9 << 1) | (r8 >> 63);
+                let r8 = (r8 << 1) | (r7 >> 63);
+                let r7 = (r7 << 1) | (r6 >> 63);
+                let r6 = (r6 << 1) | (r5 >> 63);
+                let r5 = (r5 << 1) | (r4 >> 63);
+                let r4 = (r4 << 1) | (r3 >> 63);
+                let r3 = (r3 << 1) | (r2 >> 63);
+                let r2 = (r2 << 1) | (r1 >> 63);
+                let r1 = r1 << 1;
 
-                // let (r0, carry) = mac(0, self.0[0], self.0[0], 0);
-                // let (r1, carry) = adc(0, r1, carry);
-                // let (r2, carry) = mac(r2, self.0[1], self.0[1], carry);
-                // let (r3, carry) = adc(0, r3, carry);
-                // let (r4, carry) = mac(r4, self.0[2], self.0[2], carry);
-                // let (r5, carry) = adc(0, r5, carry);
-                // let (r6, carry) = mac(r6, self.0[3], self.0[3], carry);
-                // let (r7, carry) = adc(0, r7, carry);
-                // let (r8, carry) = mac(r8, self.0[4], self.0[4], carry);
-                // let (r9, carry) = adc(0, r9, carry);
-                // let (r10, carry) = mac(r10, self.0[5], self.0[5], carry);
-                // let (r11, carry) = adc(0, r11, carry);
-                // let (r12, carry) = mac(r12, self.0[6], self.0[6], carry);
-                // let (r13, carry) = adc(0, r13, carry);
+                let (r0, carry) = mac(0, self.0[0], self.0[0], 0);
+                let (r1, carry) = adc(0, r1, carry);
+                let (r2, carry) = mac(r2, self.0[1], self.0[1], carry);
+                let (r3, carry) = adc(0, r3, carry);
+                let (r4, carry) = mac(r4, self.0[2], self.0[2], carry);
+                let (r5, carry) = adc(0, r5, carry);
+                let (r6, carry) = mac(r6, self.0[3], self.0[3], carry);
+                let (r7, carry) = adc(0, r7, carry);
+                let (r8, carry) = mac(r8, self.0[4], self.0[4], carry);
+                let (r9, carry) = adc(0, r9, carry);
+                let (r10, carry) = mac(r10, self.0[5], self.0[5], carry);
+                let (r11, carry) = adc(0, r11, carry);
+                let (r12, carry) = mac(r12, self.0[6], self.0[6], carry);
+                let (r13, _) = adc(0, r13, carry);
 
-                // $field::montgomery_reduce(&[
-                //     r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13,
-                // ])
+                $field::montgomery_reduce(&[
+                    r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13,
+                ])
             }
 
             /// Multiplies `rhs` by `self`, returning the result.
@@ -835,7 +834,7 @@ macro_rules! field_bits_7_limbs {
                     u32::from_le_bytes(bytes[40..44].try_into().unwrap()),
                     u32::from_le_bytes(bytes[44..48].try_into().unwrap()),
                     u32::from_le_bytes(bytes[48..52].try_into().unwrap()),
-                    u32::from_le_bytes(bytes[..56].try_into().unwrap()),
+                    u32::from_le_bytes(bytes[52..56].try_into().unwrap()),
                 ];
 
                 ::ff::FieldBits::new(limbs)

@@ -1,9 +1,6 @@
-// mod eris;
 mod curve;
-mod fields;
-// mod pluto;
-// mod triton;
 mod engine;
+mod fields;
 
 pub use curve::*;
 pub use engine::*;

@@ -3,6 +3,7 @@
 mod arithmetic;
 
 pub mod bn256;
+pub mod hash_to_curve;
 pub mod pairing;
 pub mod pasta;
 pub mod pluto_eris;

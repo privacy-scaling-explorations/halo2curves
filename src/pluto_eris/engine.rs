@@ -15,7 +15,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 // based on page 107, Algorithm 7.2 https://static1.squarespace.com/static/5fdbb09f31d71c1227082339/t/5ff394720493bd28278889c6/1609798774687/PairingsForBeginners.pdf
 
 // T = 6 * u^2 where u is the parameter of the curve Pluto
-// as in BN256, we use NAF form to accelerate the miller loop 
+// as in BN256, we use NAF form to accelerate the miller loop
 pub const T_NAF: [i8; 224] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -29,7 +29,6 @@ pub const T_NAF: [i8; 224] = [
 
 // u = -0x4000000000001000008780000000
 pub const NEG_PLUTO_U: u128 = 0x4000000000001000008780000000;
-
 
 impl PairingCurveAffine for G1Affine {
     type Pair = G2Affine;
@@ -433,9 +432,8 @@ impl From<G2Affine> for G2Prepared {
 
 impl MillerLoopResult for Gt {
     type Gt = Self;
-    
+
     fn final_exponentiation(&self) -> Gt {
-        
         fn exp_by_x(f: &mut Fp12) {
             let x = NEG_PLUTO_U;
             let mut res = Fp12::ONE;
@@ -585,7 +583,6 @@ pub fn multi_miller_loop(terms: &[(&G1Affine, &G2Prepared)]) -> Gt {
             _ => continue,
         }
     }
-
 
     for &mut (_p, ref mut coeffs) in &mut pairs {
         assert_eq!(coeffs.next(), None);
