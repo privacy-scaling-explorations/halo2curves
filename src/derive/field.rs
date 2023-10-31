@@ -52,6 +52,12 @@ macro_rules! field_common {
                 }
             }
 
+            // Returns the Legendre symbol, where the numerator and denominator
+            // are the element and the characteristic of the field, respectively.
+            pub fn jacobi(&self) -> i64 {
+                $crate::ff_jacobi::jacobi::<5>(&self.0, &$modulus.0)
+            }
+
             fn from_u512(limbs: [u64; 8]) -> $field {
                 // We reduce an arbitrary 512-bit number by decomposing it into two 256-bit digits
                 // with the higher bits multiplied by 2^256. Thus, we perform two reductions
@@ -351,6 +357,28 @@ macro_rules! field_common {
                     writer.write_all(&limb.to_le_bytes())?;
                 }
                 Ok(())
+            }
+        }
+
+        #[test]
+        fn test_jacobi() {
+            use rand::SeedableRng;
+            use $crate::ff::Field;
+            use $crate::legendre::Legendre;
+            let mut rng = rand_xorshift::XorShiftRng::from_seed([
+                0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+                0xbc, 0xe5,
+            ]);
+            for _ in 0..100000 {
+                let e = $field::random(&mut rng);
+                assert_eq!(
+                    e.legendre(),
+                    match e.jacobi() {
+                        1 => $field::ONE,
+                        -1 => -$field::ONE,
+                        _ => $field::ZERO,
+                    }
+                );
             }
         }
     };
