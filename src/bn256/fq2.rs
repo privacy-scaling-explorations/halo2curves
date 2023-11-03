@@ -10,7 +10,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
 
-/// An element of Fq2, represented by c0 + c1 * u.
+/// An element of Fq2, represented by c0 + c1 * u; where u^2 = -1.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
 pub struct Fq2 {

@@ -5,6 +5,11 @@ use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
+/// -BETA is a cubic non-residue in Fp2. Fp6 = Fp2[X]/(X^3 + BETA)
+/// We introduce the variable v such that v^3 = -BETA
+// BETA = - (u + 9)
+
+/// An element of Fq6, represented by c0 + c1 * v + c2 * v^2.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
 pub struct Fq6 {
     pub c0: Fq2,
