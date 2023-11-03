@@ -190,7 +190,6 @@ impl Fq6 {
         // new c1 = (c^2).mul_by_xi + 2ab
         self.c1 = s4;
         self.c1.mul_by_nonresidue();
-        // self.c1.mul_by_xi();
         self.c1 += &s1;
 
         // new c2 = 2ab + (a - b + c)^2 + 2bc - a^2 - c^2 = b^2 + 2ac
@@ -267,15 +266,6 @@ impl Fq6 {
         swap(&mut self.c0, &mut self.c2);
         // c0, c1, c2 -> c2, c0, c1
         self.c0.mul_by_nonresidue();
-    }
-
-    /// Multiply by cubic nonresidue v.
-    pub fn mul_by_v(&mut self) {
-        use std::mem::swap;
-        swap(&mut self.c0, &mut self.c1);
-        swap(&mut self.c0, &mut self.c2);
-
-        self.c0.mul_by_xi();
     }
 
     pub fn mul_by_1(&mut self, c1: &Fq2) {

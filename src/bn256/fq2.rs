@@ -271,12 +271,14 @@ impl Fq2 {
     }
 
     pub fn frobenius_map(&mut self, power: usize) {
-        self.c1 *= &FROBENIUS_COEFF_FQ2_C1[power % 2];
+        if power % 2 != 0 {
+            self.conjugate()
+        }
     }
 
     /// Multiply this element by quadratic nonresidue 9 + u.
     pub fn mul_by_nonresidue(&mut self) {
-        // (xi+y)(i+9) = (9x+y)i+(9y-x)
+        // (xu+y)(u+9) = (9x+y)u+(9y-x)
         let t0 = self.c0;
         let t1 = self.c1;
 
@@ -290,29 +292,7 @@ impl Fq2 {
         // (9*y - x)
         self.c0 -= &t1;
 
-        // (9*x)i
-        self.c1 += &t1;
-        // (9*x + y)
-        self.c1 += &t0;
-    }
-
-    // Multiply this element by ξ where ξ=i+9
-    pub fn mul_by_xi(&mut self) {
-        // (xi+y)(i+9) = (9x+y)i+(9y-x)
-        let t0 = self.c0;
-        let t1 = self.c1;
-
-        // 8*x*i + 8*y
-        self.double_assign();
-        self.double_assign();
-        self.double_assign();
-
-        // 9*y
-        self.c0 += &t0;
-        // (9*y - x)
-        self.c0 -= &t1;
-
-        // (9*x)i
+        // (9*x)u
         self.c1 += &t1;
         // (9*x + y)
         self.c1 += &t0;
@@ -566,24 +546,6 @@ impl WithSmallOrderMulGroup<3> for Fq2 {
         c1: Fq::zero(),
     };
 }
-
-pub const FROBENIUS_COEFF_FQ2_C1: [Fq; 2] = [
-    // Fq(-1)**(((q^0) - 1) / 2)
-    // it's 1 in Montgommery form
-    Fq([
-        0xd35d438dc58f0d9d,
-        0x0a78eb28f5c70b3d,
-        0x666ea36f7879462c,
-        0x0e0a77c19a07df2f,
-    ]),
-    // Fq(-1)**(((q^1) - 1) / 2)
-    Fq([
-        0x68c3488912edefaa,
-        0x8d087f6872aabf4f,
-        0x51e1a24709081231,
-        0x2259d6b14729c0fa,
-    ]),
-];
 
 #[cfg(test)]
 use rand::SeedableRng;
