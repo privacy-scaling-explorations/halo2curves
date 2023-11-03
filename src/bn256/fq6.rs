@@ -508,7 +508,7 @@ pub const FROBENIUS_COEFF_FQ6_C1: [Fq2; 6] = [
 ];
 
 pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
-    // Fq2(u + 1)**(((2q^0) - 2) / 3)
+    // Fq2(u + 9)**(((2q^0) - 2) / 3)
     Fq2 {
         c0: Fq([
             0xd35d438dc58f0d9d,
@@ -518,7 +518,7 @@ pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
         ]),
         c1: Fq([0x0, 0x0, 0x0, 0x0]),
     },
-    // Fq2(u + 1)**(((2q^1) - 2) / 3)
+    // Fq2(u + 9)**(((2q^1) - 2) / 3)
     Fq2 {
         c0: Fq([
             0x7361d77f843abe92,
@@ -533,7 +533,7 @@ pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
             0x24830a9d3171f0fd,
         ]),
     },
-    // Fq2(u + 1)**(((2q^2) - 2) / 3)
+    // Fq2(u + 9)**(((2q^2) - 2) / 3)
     Fq2 {
         c0: Fq([
             0x71930c11d782e155,
@@ -543,7 +543,7 @@ pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
         ]),
         c1: Fq([0x0, 0x0, 0x0, 0x0]),
     },
-    // Fq2(u + 1)**(((2q^3) - 2) / 3)
+    // Fq2(u + 9)**(((2q^3) - 2) / 3)
     Fq2 {
         c0: Fq([
             0x448a93a57b6762df,
@@ -558,7 +558,7 @@ pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
             0x170c812b84dda0b2,
         ]),
     },
-    // Fq2(u + 1)**(((2q^4) - 2) / 3)
+    // Fq2(u + 9)**(((2q^4) - 2) / 3)
     Fq2 {
         c0: Fq([
             0x3350c88e13e80b9c,
@@ -568,7 +568,7 @@ pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
         ]),
         c1: Fq([0x0, 0x0, 0x0, 0x0]),
     },
-    // Fq2(u + 1)**(((2q^5) - 2) / 3)
+    // Fq2(u + 9)**(((2q^5) - 2) / 3)
     Fq2 {
         c0: Fq([
             0x843420f1d8dadbd6,

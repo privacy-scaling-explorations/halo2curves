@@ -199,11 +199,12 @@ impl Fq2 {
     }
 
     pub fn mul_assign(&mut self, other: &Self) {
-        let mut t1 = self.c0 * other.c0;
         let mut t0 = self.c0 + self.c1;
+        let mut t1 = self.c0 * other.c0;
         let t2 = self.c1 * other.c1;
-        self.c1 = other.c0 + other.c1;
+
         self.c0 = t1 - t2;
+        self.c1 = other.c0 + other.c1;
         t1 += t2;
         t0 *= self.c1;
         self.c1 = t0 - t1;
