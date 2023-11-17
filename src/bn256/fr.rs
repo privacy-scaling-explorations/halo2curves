@@ -19,6 +19,7 @@ pub use table::FR_TABLE;
 use crate::impl_from_u64;
 
 use crate::arithmetic::{adc, mac, sbb};
+use crate::extend_field_legendre;
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use crate::{
     field_bits, field_common, impl_add_binop_specify_output, impl_binops_additive,
@@ -165,7 +166,7 @@ field_common!(
     R3
 );
 impl_sum_prod!(Fr);
-prime_field_legendre!(Fr);
+extend_field_legendre!(Fr);
 
 #[cfg(not(feature = "bn256-table"))]
 impl_from_u64!(Fr, R2);

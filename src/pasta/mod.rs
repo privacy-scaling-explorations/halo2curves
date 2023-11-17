@@ -38,9 +38,6 @@ const ENDO_PARAMS_EP: EndoParameters = EndoParameters {
 endo!(Eq, Fp, ENDO_PARAMS_EQ);
 endo!(Ep, Fq, ENDO_PARAMS_EP);
 
-prime_field_legendre!(Fp);
-prime_field_legendre!(Fq);
-
 #[test]
 fn test_endo() {
     use ff::Field;
@@ -73,10 +70,4 @@ fn test_endo() {
             assert_eq!(k, Fp::from_u128(k1) - Fp::ZETA * Fp::from_u128(k2))
         }
     }
-}
-
-#[test]
-fn test_quadratic_residue() {
-    crate::tests::field::random_quadratic_residue_test::<Fp>();
-    crate::tests::field::random_quadratic_residue_test::<Fq>();
 }

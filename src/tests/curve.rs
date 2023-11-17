@@ -1,8 +1,8 @@
 #![allow(clippy::eq_op)]
 
 use crate::ff::Field;
+use crate::ff_ext::Legendre;
 use crate::group::prime::PrimeCurveAffine;
-use crate::legendre::Legendre;
 use crate::tests::fe_from_str;
 use crate::{group::GroupEncoding, serde::SerdeObject};
 use crate::{hash_to_curve, CurveAffine, CurveExt};
