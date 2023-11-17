@@ -393,7 +393,7 @@ macro_rules! new_curve_impl {
             }
 
             fn mul_by_3b(input: &$base) -> $base {
-                if $name::CURVE_ID == "bn256"{
+                if $name::CURVE_ID == "bn256_g1"{
                     input.double().double().double() + input
                 } else {
                     input * $name::curve_constant_3b()
