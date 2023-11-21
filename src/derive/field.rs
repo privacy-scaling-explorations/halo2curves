@@ -72,10 +72,146 @@ macro_rules! field_common {
                 // that (2^256 - 1)*c is an acceptable product for the reduction. Therefore, the
                 // reduction always works so long as `c` is in the field; in this case it is either the
                 // constant `R2` or `R3`.
-                let d0 = $field([limbs[0], limbs[1], limbs[2], limbs[3]]);
-                let d1 = $field([limbs[4], limbs[5], limbs[6], limbs[7]]);
-                // Convert to Montgomery form
-                d0 * $r2 + d1 * $r3
+
+                #[cfg(not(feature = "asm"))]
+                {
+                    let d0 = $field([limbs[0], limbs[1], limbs[2], limbs[3]]);
+                    let d1 = $field([limbs[4], limbs[5], limbs[6], limbs[7]]);
+                    // Convert to Montgomery form
+                    d0 * $r2 + d1 * $r3
+                }
+
+                #[cfg(feature = "asm")]
+                {
+                    let v0 = {
+                        let (r0, carry) = mac(0, limbs[0], $r2.0[0], 0);
+                        let (r1, carry) = mac(0, limbs[0], $r2.0[1], carry);
+                        let (r2, carry) = mac(0, limbs[0], $r2.0[2], carry);
+                        let (r3, r4) = mac(0, limbs[0], $r2.0[3], carry);
+
+                        let (r1, carry) = mac(r1, limbs[1], $r2.0[0], 0);
+                        let (r2, carry) = mac(r2, limbs[1], $r2.0[1], carry);
+                        let (r3, carry) = mac(r3, limbs[1], $r2.0[2], carry);
+                        let (r4, r5) = mac(r4, limbs[1], $r2.0[3], carry);
+
+                        let (r2, carry) = mac(r2, limbs[2], $r2.0[0], 0);
+                        let (r3, carry) = mac(r3, limbs[2], $r2.0[1], carry);
+                        let (r4, carry) = mac(r4, limbs[2], $r2.0[2], carry);
+                        let (r5, r6) = mac(r5, limbs[2], $r2.0[3], carry);
+
+                        let (r3, carry) = mac(r3, limbs[3], $r2.0[0], 0);
+                        let (r4, carry) = mac(r4, limbs[3], $r2.0[1], carry);
+                        let (r5, carry) = mac(r5, limbs[3], $r2.0[2], carry);
+                        let (r6, r7) = mac(r6, limbs[3], $r2.0[3], carry);
+
+                        // Montgomery reduction
+                        let k = r0.wrapping_mul($inv);
+                        let (_, carry) = mac(r0, k, $modulus.0[0], 0);
+                        let (r1, carry) = mac(r1, k, $modulus.0[1], carry);
+                        let (r2, carry) = mac(r2, k, $modulus.0[2], carry);
+                        let (r3, carry) = mac(r3, k, $modulus.0[3], carry);
+                        let (r4, carry2) = adc(r4, 0, carry);
+
+                        let k = r1.wrapping_mul($inv);
+                        let (_, carry) = mac(r1, k, $modulus.0[0], 0);
+                        let (r2, carry) = mac(r2, k, $modulus.0[1], carry);
+                        let (r3, carry) = mac(r3, k, $modulus.0[2], carry);
+                        let (r4, carry) = mac(r4, k, $modulus.0[3], carry);
+                        let (r5, carry2) = adc(r5, carry2, carry);
+
+                        let k = r2.wrapping_mul($inv);
+                        let (_, carry) = mac(r2, k, $modulus.0[0], 0);
+                        let (r3, carry) = mac(r3, k, $modulus.0[1], carry);
+                        let (r4, carry) = mac(r4, k, $modulus.0[2], carry);
+                        let (r5, carry) = mac(r5, k, $modulus.0[3], carry);
+                        let (r6, carry2) = adc(r6, carry2, carry);
+
+                        let k = r3.wrapping_mul($inv);
+                        let (_, carry) = mac(r3, k, $modulus.0[0], 0);
+                        let (r4, carry) = mac(r4, k, $modulus.0[1], carry);
+                        let (r5, carry) = mac(r5, k, $modulus.0[2], carry);
+                        let (r6, carry) = mac(r6, k, $modulus.0[3], carry);
+                        let (r7, carry2) = adc(r7, carry2, carry);
+
+                        // Result may be within MODULUS of the correct limbsue
+                        let (d0, borrow) = sbb(r4, $modulus.0[0], 0);
+                        let (d1, borrow) = sbb(r5, $modulus.0[1], borrow);
+                        let (d2, borrow) = sbb(r6, $modulus.0[2], borrow);
+                        let (d3, borrow) = sbb(r7, $modulus.0[3], borrow);
+                        let (_, borrow) = sbb(carry2, 0, borrow);
+                        let (d0, carry) = adc(d0, $modulus.0[0] & borrow, 0);
+                        let (d1, carry) = adc(d1, $modulus.0[1] & borrow, carry);
+                        let (d2, carry) = adc(d2, $modulus.0[2] & borrow, carry);
+                        let (d3, _) = adc(d3, $modulus.0[3] & borrow, carry);
+
+                        $field([d0, d1, d2, d3])
+                    };
+
+                    let v1 = {
+                        let (r0, carry) = mac(0, limbs[4], $r3.0[0], 0);
+                        let (r1, carry) = mac(0, limbs[4], $r3.0[1], carry);
+                        let (r2, carry) = mac(0, limbs[4], $r3.0[2], carry);
+                        let (r3, r4) = mac(0, limbs[4], $r3.0[3], carry);
+
+                        let (r1, carry) = mac(r1, limbs[5], $r3.0[0], 0);
+                        let (r2, carry) = mac(r2, limbs[5], $r3.0[1], carry);
+                        let (r3, carry) = mac(r3, limbs[5], $r3.0[2], carry);
+                        let (r4, r5) = mac(r4, limbs[5], $r3.0[3], carry);
+
+                        let (r2, carry) = mac(r2, limbs[6], $r3.0[0], 0);
+                        let (r3, carry) = mac(r3, limbs[6], $r3.0[1], carry);
+                        let (r4, carry) = mac(r4, limbs[6], $r3.0[2], carry);
+                        let (r5, r6) = mac(r5, limbs[6], $r3.0[3], carry);
+
+                        let (r3, carry) = mac(r3, limbs[7], $r3.0[0], 0);
+                        let (r4, carry) = mac(r4, limbs[7], $r3.0[1], carry);
+                        let (r5, carry) = mac(r5, limbs[7], $r3.0[2], carry);
+                        let (r6, r7) = mac(r6, limbs[7], $r3.0[3], carry);
+
+                        // Montgomery reduction
+                        let k = r0.wrapping_mul($inv);
+                        let (_, carry) = mac(r0, k, $modulus.0[0], 0);
+                        let (r1, carry) = mac(r1, k, $modulus.0[1], carry);
+                        let (r2, carry) = mac(r2, k, $modulus.0[2], carry);
+                        let (r3, carry) = mac(r3, k, $modulus.0[3], carry);
+                        let (r4, carry2) = adc(r4, 0, carry);
+
+                        let k = r1.wrapping_mul($inv);
+                        let (_, carry) = mac(r1, k, $modulus.0[0], 0);
+                        let (r2, carry) = mac(r2, k, $modulus.0[1], carry);
+                        let (r3, carry) = mac(r3, k, $modulus.0[2], carry);
+                        let (r4, carry) = mac(r4, k, $modulus.0[3], carry);
+                        let (r5, carry2) = adc(r5, carry2, carry);
+
+                        let k = r2.wrapping_mul($inv);
+                        let (_, carry) = mac(r2, k, $modulus.0[0], 0);
+                        let (r3, carry) = mac(r3, k, $modulus.0[1], carry);
+                        let (r4, carry) = mac(r4, k, $modulus.0[2], carry);
+                        let (r5, carry) = mac(r5, k, $modulus.0[3], carry);
+                        let (r6, carry2) = adc(r6, carry2, carry);
+
+                        let k = r3.wrapping_mul($inv);
+                        let (_, carry) = mac(r3, k, $modulus.0[0], 0);
+                        let (r4, carry) = mac(r4, k, $modulus.0[1], carry);
+                        let (r5, carry) = mac(r5, k, $modulus.0[2], carry);
+                        let (r6, carry) = mac(r6, k, $modulus.0[3], carry);
+                        let (r7, carry2) = adc(r7, carry2, carry);
+
+                        // Result may be within MODULUS of the correct limbsue
+                        let (d0, borrow) = sbb(r4, $modulus.0[0], 0);
+                        let (d1, borrow) = sbb(r5, $modulus.0[1], borrow);
+                        let (d2, borrow) = sbb(r6, $modulus.0[2], borrow);
+                        let (d3, borrow) = sbb(r7, $modulus.0[3], borrow);
+                        let (_, borrow) = sbb(carry2, 0, borrow);
+                        let (d0, carry) = adc(d0, $modulus.0[0] & borrow, 0);
+                        let (d1, carry) = adc(d1, $modulus.0[1] & borrow, carry);
+                        let (d2, carry) = adc(d2, $modulus.0[2] & borrow, carry);
+                        let (d3, _) = adc(d3, $modulus.0[3] & borrow, carry);
+
+                        $field([d0, d1, d2, d3])
+                    };
+                    v0 + v1
+                }
             }
 
             /// Converts from an integer represented in little endian
