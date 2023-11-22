@@ -34,8 +34,12 @@ const SECQ_GENERATOR_Y: Fq = Fq::from_raw([
     0x3FFC646C7B2918B5,
 ]);
 
+// The equation for secp256r1, also known as NIST P-256, is y^2=x^3 +ax +b, where 
+// b is 41058363725152142129326129780047268409114441015993725554835256314039467401291; here a = −3 = p−3(modp)
+// where p=2^256−2^224+2^192+2^96−1 is the characteristic of the field underlying secp256r1.
+
 const SECQ_A: Fq = Fq::from_raw([0, 0, 0, 0]);
-const SECQ_B: Fq = Fq::from_raw([7, 0, 0, 0]);
+const SECQ_B: Fq = Fq::from_raw([0, 0, 0, 0]);
 
 new_curve_impl!(
     (pub),
