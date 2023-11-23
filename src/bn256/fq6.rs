@@ -5,6 +5,11 @@ use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
+/// -BETA is a cubic non-residue in Fp2. Fp6 = Fp2[X]/(X^3 + BETA)
+/// We introduce the variable v such that v^3 = -BETA
+// BETA = - (u + 9)
+
+/// An element of Fq6, represented by c0 + c1 * v + c2 * v^2.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
 pub struct Fq6 {
     pub c0: Fq2,
@@ -185,7 +190,6 @@ impl Fq6 {
         // new c1 = (c^2).mul_by_xi + 2ab
         self.c1 = s4;
         self.c1.mul_by_nonresidue();
-        // self.c1.mul_by_xi();
         self.c1 += &s1;
 
         // new c2 = 2ab + (a - b + c)^2 + 2bc - a^2 - c^2 = b^2 + 2ac
@@ -262,15 +266,6 @@ impl Fq6 {
         swap(&mut self.c0, &mut self.c2);
         // c0, c1, c2 -> c2, c0, c1
         self.c0.mul_by_nonresidue();
-    }
-
-    /// Multiply by cubic nonresidue v.
-    pub fn mul_by_v(&mut self) {
-        use std::mem::swap;
-        swap(&mut self.c0, &mut self.c1);
-        swap(&mut self.c0, &mut self.c2);
-
-        self.c0.mul_by_xi();
     }
 
     pub fn mul_by_1(&mut self, c1: &Fq2) {
@@ -513,7 +508,7 @@ pub const FROBENIUS_COEFF_FQ6_C1: [Fq2; 6] = [
 ];
 
 pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
-    // Fq2(u + 1)**(((2q^0) - 2) / 3)
+    // Fq2(u + 9)**(((2q^0) - 2) / 3)
     Fq2 {
         c0: Fq([
             0xd35d438dc58f0d9d,
@@ -523,7 +518,7 @@ pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
         ]),
         c1: Fq([0x0, 0x0, 0x0, 0x0]),
     },
-    // Fq2(u + 1)**(((2q^1) - 2) / 3)
+    // Fq2(u + 9)**(((2q^1) - 2) / 3)
     Fq2 {
         c0: Fq([
             0x7361d77f843abe92,
@@ -538,7 +533,7 @@ pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
             0x24830a9d3171f0fd,
         ]),
     },
-    // Fq2(u + 1)**(((2q^2) - 2) / 3)
+    // Fq2(u + 9)**(((2q^2) - 2) / 3)
     Fq2 {
         c0: Fq([
             0x71930c11d782e155,
@@ -548,7 +543,7 @@ pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
         ]),
         c1: Fq([0x0, 0x0, 0x0, 0x0]),
     },
-    // Fq2(u + 1)**(((2q^3) - 2) / 3)
+    // Fq2(u + 9)**(((2q^3) - 2) / 3)
     Fq2 {
         c0: Fq([
             0x448a93a57b6762df,
@@ -563,7 +558,7 @@ pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
             0x170c812b84dda0b2,
         ]),
     },
-    // Fq2(u + 1)**(((2q^4) - 2) / 3)
+    // Fq2(u + 9)**(((2q^4) - 2) / 3)
     Fq2 {
         c0: Fq([
             0x3350c88e13e80b9c,
@@ -573,7 +568,7 @@ pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
         ]),
         c1: Fq([0x0, 0x0, 0x0, 0x0]),
     },
-    // Fq2(u + 1)**(((2q^5) - 2) / 3)
+    // Fq2(u + 9)**(((2q^5) - 2) / 3)
     Fq2 {
         c0: Fq([
             0x843420f1d8dadbd6,
