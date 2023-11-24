@@ -26,8 +26,8 @@ macro_rules! field_common {
     ) => {
         /// Bernstein-Yang modular multiplicative inverter created for the modulus equal to
         /// the characteristic of the field to invert positive integers in the Montgomery form.
-        const BYINVERTOR: $crate::ff_inverse::BYInverter<6> =
-            $crate::ff_inverse::BYInverter::<6>::new(&$modulus.0, &$r2.0);
+        const BYINVERTOR: $crate::ff_ext::inverse::BYInverter<6> =
+            $crate::ff_ext::inverse::BYInverter::<6>::new(&$modulus.0, &$r2.0);
 
         impl $field {
             /// Returns zero, the additive identity.
@@ -44,6 +44,7 @@ macro_rules! field_common {
 
             /// Returns the multiplicative inverse of the
             /// element. If it is zero, the method fails.
+            #[inline(always)]
             pub fn invert(&self) -> CtOption<Self> {
                 if let Some(inverse) = BYINVERTOR.invert(&self.0) {
                     CtOption::new(Self(inverse), Choice::from(1))
@@ -52,10 +53,14 @@ macro_rules! field_common {
                 }
             }
 
-            // Returns the Legendre symbol, where the numerator and denominator
+            // Returns the Jacobi symbol, where the numerator and denominator
             // are the element and the characteristic of the field, respectively.
+            // The Jacobi symbol is applicable to odd moduli
+            // while the Legendre symbol is applicable to prime moduli.
+            // They are equivalent for prime moduli.
+            #[inline(always)]
             pub fn jacobi(&self) -> i64 {
-                $crate::ff_jacobi::jacobi::<5>(&self.0, &$modulus.0)
+                $crate::ff_ext::jacobi::jacobi::<5>(&self.0, &$modulus.0)
             }
 
             fn from_u512(limbs: [u64; 8]) -> $field {
@@ -357,28 +362,6 @@ macro_rules! field_common {
                     writer.write_all(&limb.to_le_bytes())?;
                 }
                 Ok(())
-            }
-        }
-
-        #[test]
-        fn test_jacobi() {
-            use rand::SeedableRng;
-            use $crate::ff::Field;
-            use $crate::legendre::Legendre;
-            let mut rng = rand_xorshift::XorShiftRng::from_seed([
-                0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
-                0xbc, 0xe5,
-            ]);
-            for _ in 0..100000 {
-                let e = $field::random(&mut rng);
-                assert_eq!(
-                    e.legendre(),
-                    match e.jacobi() {
-                        1 => $field::ONE,
-                        -1 => -$field::ONE,
-                        _ => $field::ZERO,
-                    }
-                );
             }
         }
     };

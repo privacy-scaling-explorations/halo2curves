@@ -4,6 +4,7 @@ use crate::bn256::assembly::field_arithmetic_asm;
 use crate::{arithmetic::macx, field_arithmetic, field_specific};
 
 use crate::arithmetic::{adc, mac, sbb};
+use crate::extend_field_legendre;
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use crate::{
     field_bits, field_common, impl_add_binop_specify_output, impl_binops_additive,
@@ -160,7 +161,7 @@ impl Fq {
     }
 }
 
-prime_field_legendre!(Fq);
+extend_field_legendre!(Fq);
 
 impl ff::Field for Fq {
     const ZERO: Self = Self::zero();
@@ -284,7 +285,7 @@ impl WithSmallOrderMulGroup<3> for Fq {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::legendre::Legendre;
+    use crate::ff_ext::Legendre;
     use ff::Field;
     use rand_core::OsRng;
 
@@ -297,7 +298,7 @@ mod test {
             let a = Fq::random(OsRng);
             let mut b = a;
             b = b.square();
-            assert_eq!(b.legendre(), Fq::ONE);
+            assert_eq!(b.legendre(), 1);
 
             let b = b.sqrt().unwrap();
             let mut negb = b;
@@ -310,7 +311,7 @@ mod test {
         for _ in 0..10000 {
             let mut b = c;
             b = b.square();
-            assert_eq!(b.legendre(), Fq::ONE);
+            assert_eq!(b.legendre(), 1);
 
             b = b.sqrt().unwrap();
 

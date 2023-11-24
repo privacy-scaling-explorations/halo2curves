@@ -1,7 +1,6 @@
 use crate::serde::SerdeObject;
-use crate::{ff::Field, legendre::Legendre};
+use crate::{ff::Field, ff_ext::Legendre};
 use ark_std::{end_timer, start_timer};
-use ff::PrimeField;
 use rand::{RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
 
@@ -296,7 +295,7 @@ where
     end_timer!(start);
 }
 
-pub fn random_quadratic_residue_test<F: PrimeField + Legendre>() {
+pub fn random_quadratic_residue_test<F: Field + Legendre>() {
     let mut rng = XorShiftRng::from_seed([
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
         0xe5,

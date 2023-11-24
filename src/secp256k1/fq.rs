@@ -1,4 +1,5 @@
 use crate::arithmetic::{adc, mac, macx, sbb};
+use crate::extend_field_legendre;
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use crate::{
     field_arithmetic, field_bits, field_common, field_specific, impl_add_binop_specify_output,
@@ -294,7 +295,7 @@ impl WithSmallOrderMulGroup<3> for Fq {
     const ZETA: Self = ZETA;
 }
 
-prime_field_legendre!(Fq);
+extend_field_legendre!(Fq);
 
 #[cfg(test)]
 mod test {

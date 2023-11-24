@@ -1,6 +1,6 @@
 use super::fq::{Fq, NEGATIVE_ONE};
 use crate::ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
-use crate::legendre::Legendre;
+use crate::ff_ext::Legendre;
 use core::convert::TryInto;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
@@ -124,30 +124,6 @@ use crate::{
 impl_binops_additive!(Fq2, Fq2);
 impl_binops_multiplicative!(Fq2, Fq2);
 impl_sum_prod!(Fq2);
-
-impl Legendre for Fq2 {
-    type BasePrimeField = Fq;
-
-    #[inline]
-    fn legendre_exp() -> &'static [u64] {
-        lazy_static::lazy_static! {
-            // (p-1) / 2
-            static ref LEGENDRE_EXP: Vec<u64> =
-                (num_bigint::BigUint::from_bytes_le((-<Fq as ff::Field>::ONE).to_repr().as_ref())/2usize).to_u64_digits();
-        }
-        &LEGENDRE_EXP
-    }
-
-    /// Norm of Fq2 as extension field in i over Fq
-    #[inline]
-    fn norm(&self) -> Self::BasePrimeField {
-        let mut t0 = self.c0;
-        let mut t1 = self.c1;
-        t0 = t0.square();
-        t1 = t1.square();
-        t1 + t0
-    }
-}
 
 impl Fq2 {
     #[inline]
@@ -316,6 +292,22 @@ impl Fq2 {
 
             tmp
         })
+    }
+
+    /// Norm of Fq2 as extension field in i over Fq
+    #[inline]
+    fn norm(&self) -> Fq {
+        let mut t0 = self.c0;
+        let mut t1 = self.c1;
+        t0 = t0.square();
+        t1 = t1.square();
+        t1 + t0
+    }
+}
+
+impl Legendre for Fq2 {
+    fn legendre(&self) -> i64 {
+        self.norm().legendre()
     }
 }
 
@@ -679,7 +671,7 @@ pub fn test_sqrt() {
 
     for _ in 0..10000 {
         let a = Fq2::random(&mut rng);
-        if a.legendre() == -Fq::ONE {
+        if a.legendre() == -1 {
             assert!(bool::from(a.sqrt().is_none()));
         }
     }
@@ -688,7 +680,7 @@ pub fn test_sqrt() {
         let a = Fq2::random(&mut rng);
         let mut b = a;
         b.square_assign();
-        assert_eq!(b.legendre(), Fq::ONE);
+        assert_eq!(b.legendre(), 1);
 
         let b = b.sqrt().unwrap();
         let mut negb = b;
@@ -701,7 +693,7 @@ pub fn test_sqrt() {
     for _ in 0..10000 {
         let mut b = c;
         b.square_assign();
-        assert_eq!(b.legendre(), Fq::ONE);
+        assert_eq!(b.legendre(), 1);
 
         b = b.sqrt().unwrap();
 
