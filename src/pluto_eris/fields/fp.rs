@@ -1,8 +1,8 @@
 use crate::arithmetic::{adc, mac, sbb};
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use crate::{
-    field_arithmetic_7_limbs, field_bits_7_limbs, field_common_7_limbs, impl_from_u64_7_limbs,
-    prime_field_legendre,
+    extend_field_legendre, field_arithmetic_7_limbs, field_bits_7_limbs, field_common_7_limbs,
+    impl_from_u64_7_limbs,
 };
 use crate::{
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
@@ -202,7 +202,7 @@ field_bits_7_limbs!(Fp, MODULUS);
 #[cfg(not(target_pointer_width = "64"))]
 field_bits_7_limbs!(Fp, MODULUS, MODULUS_LIMBS_32);
 
-prime_field_legendre!(Fp);
+extend_field_legendre!(Fp);
 
 impl Fp {
     pub const fn size() -> usize {

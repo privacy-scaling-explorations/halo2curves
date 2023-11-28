@@ -44,6 +44,16 @@ macro_rules! field_common_7_limbs {
                 $r
             }
 
+            // Returns the Jacobi symbol, where the numerator and denominator
+            // are the element and the characteristic of the field, respectively.
+            // The Jacobi symbol is applicable to odd moduli
+            // while the Legendre symbol is applicable to prime moduli.
+            // They are equivalent for prime moduli.
+            #[inline(always)]
+            pub fn jacobi(&self) -> i64 {
+                $crate::ff_ext::jacobi::jacobi::<8>(&self.0, &$modulus.0)
+            }
+
             fn from_u512(limbs: [u64; 8]) -> $field {
                 // We reduce an arbitrary 512-bit number by decomposing it into two 256-bit digits
                 // with the higher bits multiplied by 2^256. Thus, we perform two reductions

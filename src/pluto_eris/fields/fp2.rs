@@ -1,6 +1,6 @@
 use super::fp::{Fp, MODULUS_STR};
 use crate::ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
-use crate::legendre::Legendre;
+use crate::ff_ext::Legendre;
 use core::convert::TryInto;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
@@ -315,20 +315,19 @@ impl Fp2 {
             tmp
         })
     }
-}
-
-impl Legendre for Fp2 {
-    type BasePrimeField = Fp;
-    fn legendre_exp() -> &'static [u64] {
-        Self::BasePrimeField::legendre_exp()
-    }
 
     /// Norm of Fp2 as extension field in u over Fp
-    fn norm(&self) -> Self::BasePrimeField {
+    fn norm(&self) -> Fp {
         // norm = self * self.cojungate()
         let t0 = self.c0.square();
         let t1 = self.c1.square() * U_SQUARE;
         t1 - t0
+    }
+}
+
+impl Legendre for Fp2 {
+    fn legendre(&self) -> i64 {
+        self.norm().legendre()
     }
 }
 
@@ -699,7 +698,7 @@ pub fn test_sqrt() {
     const N_ITER: usize = 1000;
     for _ in 0..N_ITER {
         let a = Fp2::random(&mut rng);
-        if a.legendre() == -Fp::ONE {
+        if a.legendre() == -1 {
             assert!(bool::from(a.sqrt().is_none()));
         }
     }
@@ -708,7 +707,7 @@ pub fn test_sqrt() {
         let a = Fp2::random(&mut rng);
         let mut b = a;
         b.square_assign();
-        assert_eq!(b.legendre(), Fp::ONE);
+        assert_eq!(b.legendre(), 1);
 
         let b = b.sqrt().unwrap();
         let mut negb = b;
@@ -721,7 +720,7 @@ pub fn test_sqrt() {
     for _ in 0..N_ITER {
         let mut b = c;
         b.square_assign();
-        assert_eq!(b.legendre(), Fp::ONE);
+        assert_eq!(b.legendre(), 1);
 
         b = b.sqrt().unwrap();
 

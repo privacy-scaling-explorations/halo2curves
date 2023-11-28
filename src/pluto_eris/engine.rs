@@ -26,7 +26,7 @@ const NEG_SIX_U_PLUS_2_NAF: [i8; 114] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 1,
 ];
 
-///  Value of (57/(u + 3))^((p - 1)/2) where u^2 + 5 = 0 in Fp2
+/// Value of (57/(u + 3))^((p - 1)/2) where u^2 + 5 = 0 in Fp2.
 const XI_TO_P_MINUS_1_OVER_2: Fp2 = Fp2 {
     c0: Fp::from_raw([
         0x54cf5ad1c0926216,
@@ -212,6 +212,8 @@ impl Group for Gt {
     }
 }
 
+/// Points of G2 in Jacobian coordinates.
+/// These are points lie in the twisted curve E'(Fp2).
 #[derive(Clone, Debug)]
 pub struct G2Prepared {
     pub(crate) coeffs: Vec<(Fp2, Fp2, Fp2)>,
@@ -219,12 +221,12 @@ pub struct G2Prepared {
 }
 
 impl G2Prepared {
-    /// Returns true if `self` is the infinity point
+    /// Returns true if `self` is the infinity point.
     pub fn is_zero(&self) -> bool {
         self.infinity
     }
 
-    /// Prepares a G2 point in affine coordinates
+    /// Prepares a G2 point in affine coordinates.
     pub fn from_affine(q: G2Affine) -> Self {
         if bool::from(q.is_identity()) {
             return G2Prepared {
@@ -661,13 +663,7 @@ impl MultiMillerLoop for Pluto {
     }
 }
 
-// pub fn pairing(g1: &G1Affine, g2: &G2Affine) -> Gt {
-// let g2 = G2Prepared::from_affine(*g2);
-// let terms: &[(&G1Affine, &G2Prepared)] = &[(g1, &g2)];
-// let u = multi_miller_loop(terms);
-// u.final_exponentiation()
-// }
-
+/// Pluto pairing-friendly curve. See: https://github.com/daira/pluto-eris
 #[derive(Clone, Debug)]
 pub struct Pluto;
 
@@ -684,18 +680,8 @@ impl Engine for Pluto {
         let terms: &[(&G1Affine, &G2Prepared)] = &[(p, &q)];
         let u = Self::multi_miller_loop(terms);
         u.final_exponentiation()
-        // pairing(p, q)
     }
 }
-
-// impl MultiMillerLoop for Pluto {
-//     type G2Prepared = G2Prepared;
-//     type Result = Gt;
-
-//     fn multi_miller_loop(terms: &[(&Self::G1Affine, &Self::G2Prepared)]) -> Self::Result {
-//         multi_miller_loop(terms)
-//     }
-// }
 
 #[cfg(test)]
 use rand::SeedableRng;
