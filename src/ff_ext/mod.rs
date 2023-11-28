@@ -15,7 +15,8 @@ pub trait Legendre {
         // The legendre symbol returns 0 for 0
         // and 1 for quadratic residues,
         // we consider 0 a square hence quadratic residue.
-        self.legendre().ct_ne(&-1)
+        unimplemented!()
+        // self.legendre().ct_ne(&-1)
     }
 }
 

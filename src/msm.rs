@@ -1,8 +1,9 @@
-use ff::PrimeField;
+use ff::{Field, PrimeField};
 use group::Group;
 use pasta_curves::arithmetic::CurveAffine;
+use rand_core::OsRng;
 
-use crate::multicore;
+use crate::{bn256::Fr, multicore};
 
 pub fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C::Curve) {
     let coeffs: Vec<_> = coeffs.iter().map(|a| a.to_repr()).collect();
@@ -149,5 +150,87 @@ pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Cu
         let mut acc = C::Curve::identity();
         multiexp_serial(coeffs, bases, &mut acc);
         acc
+    }
+}
+
+fn div_ceil(a: u32, b: u32) -> u32 {
+    a.checked_sub(1).map_or(0, |a| a / b + 1)
+}
+
+pub(crate) fn get_booth_index(segment: usize, window: usize, el: &[u8]) -> i32 {
+    let (skip_bits, pad) = match (segment * window).checked_sub(1) {
+        Some(skip_bits) => (skip_bits, false),
+        None => (0, true),
+    };
+
+    let skip_bytes = skip_bits / 8;
+    if skip_bytes >= 32 {
+        return 0;
+    }
+
+    let mut v = [0; 4];
+    for (v, o) in v.iter_mut().zip(el.iter().skip(skip_bytes)) {
+        *v = *o;
+    }
+    let mut tmp = u32::from_le_bytes(v);
+    if pad {
+        tmp <<= 1; // pad left with one 0
+    }
+    tmp >>= skip_bits - (skip_bytes * 8);
+    tmp %= 1 << (window + 1);
+    // let bits = format!("T {:0>width$b}", tmp, width = window + 1);
+    // println!("{}", bits);
+    // tmp
+
+    let sign = tmp & (1 << window) == 0;
+
+    let mask = (1 << window) - 1;
+
+    if sign {
+        let idx = div_ceil(tmp, 2u32);
+        idx as i32
+    } else {
+        let idx = !div_ceil(tmp, 2u32).saturating_sub(1) & mask;
+        -(idx as i32)
+    }
+}
+
+#[test]
+fn get_bucket_index() {
+    let window = 5;
+
+    fn mul(a: Fr, b: Fr, window: usize) -> Fr {
+        let u = b.to_repr();
+        let n = div_ceil(Fr::NUM_BITS, window as u32) + 1;
+        // let n = 10;
+
+        let mut acc = Fr::ZERO;
+        for i in (0..n).rev() {
+            let idx = get_booth_index(i as usize, window, u.as_ref());
+
+            let tmp = a * Fr::from(idx.abs() as u64);
+            // println!("{:?}", idx);
+            if idx.is_negative() {
+                acc -= tmp;
+            }
+            if idx.is_positive() {
+                acc += tmp;
+            }
+            if i != 0 {
+                for _ in 0..window {
+                    acc = acc.double();
+                }
+            }
+        }
+
+        acc
+    }
+
+    for b in 0..10000 {
+        let a = Fr::random(OsRng);
+        let b = Fr::random(OsRng);
+        let c0 = mul(a, b, window);
+        let c1 = a * b;
+        assert_eq!(c0, c1);
     }
 }
