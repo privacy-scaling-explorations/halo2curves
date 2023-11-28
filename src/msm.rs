@@ -1,9 +1,13 @@
+use ark_std::{end_timer, start_timer};
 use ff::{Field, PrimeField};
-use group::Group;
+use group::{Curve, Group};
 use pasta_curves::arithmetic::CurveAffine;
 use rand_core::OsRng;
 
-use crate::{bn256::Fr, multicore};
+use crate::{
+    bn256::{Fr, G1Affine, G1},
+    multicore,
+};
 
 pub fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C::Curve) {
     let coeffs: Vec<_> = coeffs.iter().map(|a| a.to_repr()).collect();
@@ -95,6 +99,80 @@ pub fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &
     }
 }
 
+pub fn multiexp_serial_2<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C::Curve) {
+    let coeffs: Vec<_> = coeffs.iter().map(|a| a.to_repr()).collect();
+
+    let c = if bases.len() < 4 {
+        1
+    } else if bases.len() < 32 {
+        3
+    } else {
+        (f64::from(bases.len() as u32)).ln().ceil() as usize
+    };
+
+    let segments = (256 / c) + 1;
+
+    for current_segment in (0..segments).rev() {
+        for _ in 0..c {
+            *acc = acc.double();
+        }
+
+        #[derive(Clone, Copy)]
+        enum Bucket<C: CurveAffine> {
+            None,
+            Affine(C),
+            Projective(C::Curve),
+        }
+
+        impl<C: CurveAffine> Bucket<C> {
+            fn add_assign(&mut self, other: &C) {
+                *self = match *self {
+                    Bucket::None => Bucket::Affine(*other),
+                    Bucket::Affine(a) => Bucket::Projective(a + *other),
+                    Bucket::Projective(mut a) => {
+                        a += *other;
+                        Bucket::Projective(a)
+                    }
+                }
+            }
+
+            fn add(self, mut other: C::Curve) -> C::Curve {
+                match self {
+                    Bucket::None => other,
+                    Bucket::Affine(a) => {
+                        other += a;
+                        other
+                    }
+                    Bucket::Projective(a) => other + a,
+                }
+            }
+        }
+
+        let mut buckets: Vec<Bucket<C>> = vec![Bucket::None; 1 << (c - 1)];
+
+        for (coeff, base) in coeffs.iter().zip(bases.iter()) {
+            let coeff = get_booth_index(current_segment, c, coeff.as_ref());
+            if coeff.is_positive() {
+                buckets[coeff as usize - 1].add_assign(base);
+            }
+            if coeff.is_negative() {
+                let coeff = coeff.abs();
+                buckets[coeff as usize - 1].add_assign(&base.neg());
+            }
+        }
+
+        // Summation by parts
+        // e.g. 3a + 2b + 1c = a +
+        //                    (a) + b +
+        //                    ((a) + b) + c
+        let mut running_sum = C::Curve::identity();
+        for exp in buckets.into_iter().rev() {
+            running_sum = exp.add(running_sum);
+            *acc += &running_sum;
+        }
+    }
+}
+
 /// Performs a small multi-exponentiation operation.
 /// Uses the double-and-add algorithm with doublings shared across points.
 pub fn small_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
@@ -149,6 +227,35 @@ pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Cu
     } else {
         let mut acc = C::Curve::identity();
         multiexp_serial(coeffs, bases, &mut acc);
+        acc
+    }
+}
+
+pub fn best_multiexp_2<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
+    assert_eq!(coeffs.len(), bases.len());
+
+    let num_threads = multicore::current_num_threads();
+    if coeffs.len() > num_threads {
+        let chunk = coeffs.len() / num_threads;
+        let num_chunks = coeffs.chunks(chunk).len();
+        let mut results = vec![C::Curve::identity(); num_chunks];
+        multicore::scope(|scope| {
+            let chunk = coeffs.len() / num_threads;
+
+            for ((coeffs, bases), acc) in coeffs
+                .chunks(chunk)
+                .zip(bases.chunks(chunk))
+                .zip(results.iter_mut())
+            {
+                scope.spawn(move |_| {
+                    multiexp_serial_2(coeffs, bases, acc);
+                });
+            }
+        });
+        results.iter().fold(C::Curve::identity(), |a, b| a + b)
+    } else {
+        let mut acc = C::Curve::identity();
+        multiexp_serial_2(coeffs, bases, &mut acc);
         acc
     }
 }
@@ -226,11 +333,48 @@ fn get_bucket_index() {
         acc
     }
 
-    for b in 0..10000 {
+    for _ in 0..10000 {
         let a = Fr::random(OsRng);
         let b = Fr::random(OsRng);
         let c0 = mul(a, b, window);
         let c1 = a * b;
         assert_eq!(c0, c1);
     }
+}
+
+#[test]
+fn test_msm_with_booth() {
+    // let n = 100;
+
+    // let points = (0..n).map(|_| G1Affine::random(OsRng)).collect::<Vec<_>>();
+    // let scalars = (0..n).map(|_| Fr::random(OsRng)).collect::<Vec<_>>();
+
+    // let mut e0 = G1::identity();
+    // multiexp_serial(&scalars[..], &points[..], &mut e0);
+
+    // let mut e1 = G1::identity();
+    // multiexp_serial_2(&scalars[..], &points[..], &mut e1);
+    // assert_eq!(e0, e1);
+
+    let n = 1 << 21;
+
+    let points = (0..n).map(|_| G1Affine::random(OsRng)).collect::<Vec<_>>();
+    let scalars = (0..n).map(|_| Fr::random(OsRng)).collect::<Vec<_>>();
+
+    let t0 = start_timer!(|| "zcash");
+    let e0 = best_multiexp(&scalars[..], &points[..]);
+    end_timer!(t0);
+
+    let t1 = start_timer!(|| "booth");
+    let e1 = best_multiexp_2(&scalars[..], &points[..]);
+    end_timer!(t1);
+    assert_eq!(e0, e1);
+
+    let t1 = start_timer!(|| "booth");
+    let _e1 = best_multiexp_2(&scalars[..], &points[..]);
+    end_timer!(t1);
+
+    let t0 = start_timer!(|| "zcash");
+    let _e0 = best_multiexp(&scalars[..], &points[..]);
+    end_timer!(t0);
 }
