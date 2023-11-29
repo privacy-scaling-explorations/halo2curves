@@ -8,7 +8,7 @@ use crate::multicore;
 
 fn get_booth_index(window_index: usize, window_size: usize, el: &[u8]) -> i32 {
     // Booth encoding:
-    // * step by `window`e size
+    // * step by `window` size
     // * slice by size of `window + 1``
     // * each window overlap by 1 bit
     // * append a zero bit to the least significant end
@@ -27,7 +27,7 @@ fn get_booth_index(window_index: usize, window_size: usize, el: &[u8]) -> i32 {
     }
     let mut tmp = u32::from_le_bytes(v);
 
-    // pad with one 0 if windowing least significant window
+    // pad with one 0 if slicing the least significant window
     if window_index == 0 {
         tmp <<= 1;
     }
@@ -46,7 +46,7 @@ fn get_booth_index(window_index: usize, window_size: usize, el: &[u8]) -> i32 {
     if sign {
         tmp as i32
     } else {
-        ((!tmp.saturating_sub(1) & ((1 << window_size) - 1)) as i32).neg()
+        ((!(tmp - 1) & ((1 << window_size) - 1)) as i32).neg()
     }
 }
 
@@ -363,17 +363,16 @@ mod test {
         }
     }
 
-    #[test]
-    fn test_msm_cross() {
-        let min_k = 10;
-        let max_k = 22;
-
+    fn run_msm_cross<C: CurveAffine>(min_k: usize, max_k: usize) {
         let points = (0..1 << max_k)
-            .map(|_| G1Affine::random(OsRng))
+            .map(|_| C::Curve::random(OsRng))
             .collect::<Vec<_>>();
+        let mut affine_points = vec![C::identity(); 1 << max_k];
+        C::Curve::batch_normalize(&points[..], &mut affine_points[..]);
+        let points = affine_points;
 
         let scalars = (0..1 << max_k)
-            .map(|_| Fr::random(OsRng))
+            .map(|_| C::Scalar::random(OsRng))
             .collect::<Vec<_>>();
 
         for k in min_k..=max_k {
@@ -390,5 +389,11 @@ mod test {
 
             assert_eq!(e0, e1);
         }
+    }
+
+    #[test]
+    fn test_msm_cross() {
+        run_msm_cross::<G1Affine>(10, 18);
+        // run_msm_cross::<G1Affine>(19, 23);
     }
 }

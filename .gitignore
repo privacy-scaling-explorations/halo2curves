@@ -4,7 +4,6 @@ Cargo.lock
 .vscode
 **/*.html
 .DS_Store
-**/*.py
 
 # script generated source code
 src/bn256/fr/table.rs
