@@ -42,19 +42,19 @@ use pasta_curves::arithmetic::CurveAffine;
 // The ZK Accel Layer API
 // ---------------------------------------------------
 
-pub(crate) trait ZalEngine{}
+pub trait ZalEngine{}
 
-pub(crate) trait MsmAccel<C: CurveAffine>: ZalEngine {
+pub trait MsmAccel<C: CurveAffine>: ZalEngine {
     fn msm(&self, coeffs: &[C::Scalar], base: &[C]) -> C:: Curve;
 }
 
 // ZAL using Halo2curves as a backend
 // ---------------------------------------------------
 
-pub(crate) struct H2cEngine;
+pub struct H2cEngine;
 
 impl H2cEngine {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self{}
     }
 }
