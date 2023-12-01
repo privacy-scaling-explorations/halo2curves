@@ -63,6 +63,74 @@ macro_rules! field_common {
                 $crate::ff_ext::jacobi::jacobi::<5>(&self.0, &$modulus.0)
             }
 
+            pub const fn montgomery_form(val: [u64; 4], r: $field) -> $field {
+                // Converts a 4 64-bit limb value into its congruent field representation.
+                // If `val` representes a 256 bit value then `r` should be R^2,
+                // if `val` represents the 256 MSB of a 512 bit value, then `r` should be R^3.
+
+                let (r0, carry) = mac(0, val[0], r.0[0], 0);
+                let (r1, carry) = mac(0, val[0], r.0[1], carry);
+                let (r2, carry) = mac(0, val[0], r.0[2], carry);
+                let (r3, r4) = mac(0, val[0], r.0[3], carry);
+
+                let (r1, carry) = mac(r1, val[1], r.0[0], 0);
+                let (r2, carry) = mac(r2, val[1], r.0[1], carry);
+                let (r3, carry) = mac(r3, val[1], r.0[2], carry);
+                let (r4, r5) = mac(r4, val[1], r.0[3], carry);
+
+                let (r2, carry) = mac(r2, val[2], r.0[0], 0);
+                let (r3, carry) = mac(r3, val[2], r.0[1], carry);
+                let (r4, carry) = mac(r4, val[2], r.0[2], carry);
+                let (r5, r6) = mac(r5, val[2], r.0[3], carry);
+
+                let (r3, carry) = mac(r3, val[3], r.0[0], 0);
+                let (r4, carry) = mac(r4, val[3], r.0[1], carry);
+                let (r5, carry) = mac(r5, val[3], r.0[2], carry);
+                let (r6, r7) = mac(r6, val[3], r.0[3], carry);
+
+                // Montgomery reduction
+                let k = r0.wrapping_mul($inv);
+                let (_, carry) = mac(r0, k, $modulus.0[0], 0);
+                let (r1, carry) = mac(r1, k, $modulus.0[1], carry);
+                let (r2, carry) = mac(r2, k, $modulus.0[2], carry);
+                let (r3, carry) = mac(r3, k, $modulus.0[3], carry);
+                let (r4, carry2) = adc(r4, 0, carry);
+
+                let k = r1.wrapping_mul($inv);
+                let (_, carry) = mac(r1, k, $modulus.0[0], 0);
+                let (r2, carry) = mac(r2, k, $modulus.0[1], carry);
+                let (r3, carry) = mac(r3, k, $modulus.0[2], carry);
+                let (r4, carry) = mac(r4, k, $modulus.0[3], carry);
+                let (r5, carry2) = adc(r5, carry2, carry);
+
+                let k = r2.wrapping_mul($inv);
+                let (_, carry) = mac(r2, k, $modulus.0[0], 0);
+                let (r3, carry) = mac(r3, k, $modulus.0[1], carry);
+                let (r4, carry) = mac(r4, k, $modulus.0[2], carry);
+                let (r5, carry) = mac(r5, k, $modulus.0[3], carry);
+                let (r6, carry2) = adc(r6, carry2, carry);
+
+                let k = r3.wrapping_mul($inv);
+                let (_, carry) = mac(r3, k, $modulus.0[0], 0);
+                let (r4, carry) = mac(r4, k, $modulus.0[1], carry);
+                let (r5, carry) = mac(r5, k, $modulus.0[2], carry);
+                let (r6, carry) = mac(r6, k, $modulus.0[3], carry);
+                let (r7, carry2) = adc(r7, carry2, carry);
+
+                // Result may be within MODULUS of the correct value
+                let (d0, borrow) = sbb(r4, $modulus.0[0], 0);
+                let (d1, borrow) = sbb(r5, $modulus.0[1], borrow);
+                let (d2, borrow) = sbb(r6, $modulus.0[2], borrow);
+                let (d3, borrow) = sbb(r7, $modulus.0[3], borrow);
+                let (_, borrow) = sbb(carry2, 0, borrow);
+                let (d0, carry) = adc(d0, $modulus.0[0] & borrow, 0);
+                let (d1, carry) = adc(d1, $modulus.0[1] & borrow, carry);
+                let (d2, carry) = adc(d2, $modulus.0[2] & borrow, carry);
+                let (d3, _) = adc(d3, $modulus.0[3] & borrow, carry);
+
+                $field([d0, d1, d2, d3])
+            }
+
             fn from_u512(limbs: [u64; 8]) -> $field {
                 // We reduce an arbitrary 512-bit number by decomposing it into two 256-bit digits
                 // with the higher bits multiplied by 2^256. Thus, we perform two reductions
@@ -77,10 +145,18 @@ macro_rules! field_common {
                 // that (2^256 - 1)*c is an acceptable product for the reduction. Therefore, the
                 // reduction always works so long as `c` is in the field; in this case it is either the
                 // constant `R2` or `R3`.
-                let d0 = $field([limbs[0], limbs[1], limbs[2], limbs[3]]);
-                let d1 = $field([limbs[4], limbs[5], limbs[6], limbs[7]]);
-                // Convert to Montgomery form
-                d0 * $r2 + d1 * $r3
+
+                let lower_256 = [limbs[0], limbs[1], limbs[2], limbs[3]];
+                let upper_256 = [limbs[4], limbs[5], limbs[6], limbs[7]];
+
+                #[cfg(feature = "asm")]
+                {
+                    Self::montgomery_form(lower_256, $r2) + Self::montgomery_form(upper_256, $r3)
+                }
+                #[cfg(not(feature = "asm"))]
+                {
+                    $field(lower_256) * $r2 + $field(upper_256) * $r3
+                }
             }
 
             /// Converts from an integer represented in little endian
@@ -88,67 +164,7 @@ macro_rules! field_common {
             pub const fn from_raw(val: [u64; 4]) -> Self {
                 #[cfg(feature = "asm")]
                 {
-                    let (r0, carry) = mac(0, val[0], $r2.0[0], 0);
-                    let (r1, carry) = mac(0, val[0], $r2.0[1], carry);
-                    let (r2, carry) = mac(0, val[0], $r2.0[2], carry);
-                    let (r3, r4) = mac(0, val[0], $r2.0[3], carry);
-
-                    let (r1, carry) = mac(r1, val[1], $r2.0[0], 0);
-                    let (r2, carry) = mac(r2, val[1], $r2.0[1], carry);
-                    let (r3, carry) = mac(r3, val[1], $r2.0[2], carry);
-                    let (r4, r5) = mac(r4, val[1], $r2.0[3], carry);
-
-                    let (r2, carry) = mac(r2, val[2], $r2.0[0], 0);
-                    let (r3, carry) = mac(r3, val[2], $r2.0[1], carry);
-                    let (r4, carry) = mac(r4, val[2], $r2.0[2], carry);
-                    let (r5, r6) = mac(r5, val[2], $r2.0[3], carry);
-
-                    let (r3, carry) = mac(r3, val[3], $r2.0[0], 0);
-                    let (r4, carry) = mac(r4, val[3], $r2.0[1], carry);
-                    let (r5, carry) = mac(r5, val[3], $r2.0[2], carry);
-                    let (r6, r7) = mac(r6, val[3], $r2.0[3], carry);
-
-                    // Montgomery reduction
-                    let k = r0.wrapping_mul($inv);
-                    let (_, carry) = mac(r0, k, $modulus.0[0], 0);
-                    let (r1, carry) = mac(r1, k, $modulus.0[1], carry);
-                    let (r2, carry) = mac(r2, k, $modulus.0[2], carry);
-                    let (r3, carry) = mac(r3, k, $modulus.0[3], carry);
-                    let (r4, carry2) = adc(r4, 0, carry);
-
-                    let k = r1.wrapping_mul($inv);
-                    let (_, carry) = mac(r1, k, $modulus.0[0], 0);
-                    let (r2, carry) = mac(r2, k, $modulus.0[1], carry);
-                    let (r3, carry) = mac(r3, k, $modulus.0[2], carry);
-                    let (r4, carry) = mac(r4, k, $modulus.0[3], carry);
-                    let (r5, carry2) = adc(r5, carry2, carry);
-
-                    let k = r2.wrapping_mul($inv);
-                    let (_, carry) = mac(r2, k, $modulus.0[0], 0);
-                    let (r3, carry) = mac(r3, k, $modulus.0[1], carry);
-                    let (r4, carry) = mac(r4, k, $modulus.0[2], carry);
-                    let (r5, carry) = mac(r5, k, $modulus.0[3], carry);
-                    let (r6, carry2) = adc(r6, carry2, carry);
-
-                    let k = r3.wrapping_mul($inv);
-                    let (_, carry) = mac(r3, k, $modulus.0[0], 0);
-                    let (r4, carry) = mac(r4, k, $modulus.0[1], carry);
-                    let (r5, carry) = mac(r5, k, $modulus.0[2], carry);
-                    let (r6, carry) = mac(r6, k, $modulus.0[3], carry);
-                    let (r7, carry2) = adc(r7, carry2, carry);
-
-                    // Result may be within MODULUS of the correct value
-                    let (d0, borrow) = sbb(r4, $modulus.0[0], 0);
-                    let (d1, borrow) = sbb(r5, $modulus.0[1], borrow);
-                    let (d2, borrow) = sbb(r6, $modulus.0[2], borrow);
-                    let (d3, borrow) = sbb(r7, $modulus.0[3], borrow);
-                    let (_, borrow) = sbb(carry2, 0, borrow);
-                    let (d0, carry) = adc(d0, $modulus.0[0] & borrow, 0);
-                    let (d1, carry) = adc(d1, $modulus.0[1] & borrow, carry);
-                    let (d2, carry) = adc(d2, $modulus.0[2] & borrow, carry);
-                    let (d3, _) = adc(d3, $modulus.0[3] & borrow, carry);
-
-                    $field([d0, d1, d2, d3])
+                    Self::montgomery_form(val, $r2)
                 }
                 #[cfg(not(feature = "asm"))]
                 {
