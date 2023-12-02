@@ -42,10 +42,10 @@ use pasta_curves::arithmetic::CurveAffine;
 // The ZK Accel Layer API
 // ---------------------------------------------------
 
-pub trait ZalEngine{}
+pub trait ZalEngine {}
 
 pub trait MsmAccel<C: CurveAffine>: ZalEngine {
-    fn msm(&self, coeffs: &[C::Scalar], base: &[C]) -> C:: Curve;
+    fn msm(&self, coeffs: &[C::Scalar], base: &[C]) -> C::Curve;
 }
 
 // ZAL using Halo2curves as a backend
@@ -55,14 +55,14 @@ pub struct H2cEngine;
 
 impl H2cEngine {
     pub fn new() -> Self {
-        Self{}
+        Self {}
     }
 }
 
-impl ZalEngine for H2cEngine{}
+impl ZalEngine for H2cEngine {}
 
 impl<C: CurveAffine> MsmAccel<C> for H2cEngine {
-    fn msm(&self, coeffs: &[C::Scalar], bases: &[C]) -> C:: Curve {
+    fn msm(&self, coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
         best_multiexp(coeffs, bases)
     }
 }
@@ -72,13 +72,13 @@ impl<C: CurveAffine> MsmAccel<C> for H2cEngine {
 
 #[cfg(test)]
 mod test {
+    use super::{H2cEngine, MsmAccel};
     use crate::bn256::G1Affine;
     use ark_std::{end_timer, start_timer};
     use ff::Field;
     use group::{Curve, Group};
     use pasta_curves::arithmetic::CurveAffine;
     use rand_core::OsRng;
-    use super::{H2cEngine, MsmAccel};
 
     fn run_msm_zal<C: CurveAffine>(min_k: usize, max_k: usize) {
         let points = (0..1 << max_k)
