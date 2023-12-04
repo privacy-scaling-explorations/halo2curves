@@ -19,13 +19,13 @@ pub use fr::*;
 
 #[cfg(test)]
 mod test {
-    use pasta_curves::arithmetic::CurveExt;
-    use group::GroupEncoding;
-    use rand_core::{SeedableRng, RngCore};
     use super::G1 as Bn256Point;
+    use group::GroupEncoding;
+    use pasta_curves::arithmetic::CurveExt;
+    use rand_core::{RngCore, SeedableRng};
 
     #[test]
-    fn test_hash_to_curve_print(){
+    fn test_hash_to_curve_print() {
         // the goal of this test is to generate test vectors to ensure that the ASM implementation matches the
         // vanilla implementation
         let num_vecs = 10;
@@ -39,7 +39,7 @@ mod test {
             "f1c69be8c5f5f9e28b0e9f76ab77651a7dcaaae371fbba66450cbcee0ed5b16b",
             "e86267c2e3355d7a6f664a0ea71374406337d452a3f9a294a0594df53c08df21",
             "03cf55ca983ecd8a2e2baae18d979d97d688a978d829701c66a14d7c4da58e62",
-            "5302c2cfe3c909e9378d08c951bb33d0813818a1baf734379aac8aaa47f38f0d"
+            "5302c2cfe3c909e9378d08c951bb33d0813818a1baf734379aac8aaa47f38f0d",
         ];
 
         let mut seeded_rng = rand_chacha::ChaChaRng::seed_from_u64(0u64);
@@ -47,12 +47,20 @@ mod test {
             let mut bytes = [0u8; 32];
             seeded_rng.fill_bytes(&mut bytes);
             Some(bytes)
-        }).take(num_vecs).collect::<Vec<_>>();
+        })
+        .take(num_vecs)
+        .collect::<Vec<_>>();
         let hash = Bn256Point::hash_to_curve("from_uniform_bytes");
         for i in 0..num_vecs {
             let p = hash(&uniform_bytes[i]);
             let expected_result = hex::decode(expected_results[i]).unwrap();
-            assert_eq!(p.to_bytes().as_ref(), &expected_result[..], "hash_to_curve_print failed, expected: {}, got: {}", expected_results[i], hex::encode(p.to_bytes().as_ref()));
+            assert_eq!(
+                p.to_bytes().as_ref(),
+                &expected_result[..],
+                "hash_to_curve_print failed, expected: {}, got: {}",
+                expected_results[i],
+                hex::encode(p.to_bytes().as_ref())
+            );
         }
     }
 }
