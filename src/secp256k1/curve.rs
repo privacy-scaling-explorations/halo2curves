@@ -1,7 +1,7 @@
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
-use crate::hash_to_curve::svdw_hash_to_curve;
+use crate::hash_to_curve::simple_svdw_hash_to_curve;
 use crate::secp256k1::Fp;
 use crate::secp256k1::Fq;
 use crate::{Coordinates, CurveAffine, CurveExt};
@@ -48,6 +48,20 @@ const SECP_GENERATOR_Y: Fp = Fp::from_raw([
 const SECP_A: Fp = Fp::from_raw([0, 0, 0, 0]);
 const SECP_B: Fp = Fp::from_raw([7, 0, 0, 0]);
 
+// Simplified SWU for AB == 0 <https://www.rfc-editor.org/rfc/rfc9380.html#name-simplified-swu-for-ab-0>
+//
+// E': y'^2 = x'^3 + A' * x' + B', where
+//   A': 0x3f8731abdd661adca08a5558f0f5d272e953d363cb6f0e5d405447c01a444533
+//   B': 1771
+// (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-suites-for-secp256k1>)
+pub const ISO_SECP_A: Fp = Fp::from_raw([
+    0x405447c01a444533,
+    0xe953d363cb6f0e5d,
+    0xa08a5558f0f5d272,
+    0x3f8731abdd661adc,
+]);
+pub const ISO_SECP_B: Fp = Fp::from_raw([1771, 0, 0, 0]);
+
 use crate::{
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
     impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
@@ -65,11 +79,18 @@ new_curve_impl!(
     SECP_A,
     SECP_B,
     "secp256k1",
-    |curve_id, domain_prefix| svdw_hash_to_curve(curve_id, domain_prefix, Secp256k1::SVDW_Z),
+    |curve_id, domain_prefix| simple_svdw_hash_to_curve(curve_id, domain_prefix, Secp256k1::SSWU_Z, Some(ISO_SECP_A), Some(ISO_SECP_B)),
 );
 
 impl Secp256k1 {
-    const SVDW_Z: Fp = Fp::ONE;
+    // Z = -11 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-suites-for-secp256k1>)
+    // 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc24
+    const SSWU_Z: Fp = Fp([
+        0xfffffffefffffc24,
+        0xffffffffffffffff,
+        0xffffffffffffffff,
+        0xffffffffffffffff,
+    ]);
 }
 
 #[test]
