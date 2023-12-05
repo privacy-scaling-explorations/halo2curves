@@ -87,14 +87,19 @@ fn hash_to_field<F: FromUniformBytes<64>>(
 
 // Implementation of <https://datatracker.ietf.org/doc/html/rfc9380#name-simplified-swu-method>
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn simple_svdw_map_to_curve<C>(u: C::Base, z: C::Base) -> C
+pub(crate) fn simple_svdw_map_to_curve<C>(
+    u: C::Base,
+    z: C::Base,
+    iso_a: Option<C::Base>,
+    iso_b: Option<C::Base>,
+) -> (C::Base, C::Base)
 where
     C: CurveExt,
 {
     let zero = C::Base::ZERO;
     let one = C::Base::ONE;
-    let a = C::a();
-    let b = C::b();
+    let a = iso_a.unwrap_or(C::a());
+    let b = iso_b.unwrap_or(C::b());
 
     //1.  tv1 = u^2
     let tv1 = u.square();
@@ -148,7 +153,7 @@ where
     //25.   x = x / tv4
     let x = x * tv4.invert().unwrap();
     //26. return (x, y)
-    C::new_jacobian(x, y, one).unwrap()
+    (x, y)
 }
 
 #[allow(clippy::type_complexity)]
@@ -156,6 +161,8 @@ pub(crate) fn simple_svdw_hash_to_curve<'a, C>(
     curve_id: &'static str,
     domain_prefix: &'a str,
     z: C::Base,
+    iso_a: Option<C::Base>,
+    iso_b: Option<C::Base>,
 ) -> Box<dyn Fn(&[u8]) -> C + 'a>
 where
     C: CurveExt,
@@ -165,9 +172,21 @@ where
         let mut us = [C::Base::ZERO; 2];
         hash_to_field("SSWU", curve_id, domain_prefix, message, &mut us);
 
-        let [q0, q1]: [C; 2] = us.map(|u| simple_svdw_map_to_curve(u, z));
+        let mut q = [C::identity(); 2];
+        for (i, u) in us.into_iter().enumerate() {
+            let (xp, yp) = simple_svdw_map_to_curve::<C>(u, z, iso_a, iso_b);
+            let (x, y) = match curve_id {
+                "secp256k1" => iso_map_secp256k1::<C>(xp, yp),
+                _ => (xp, yp),
+            };
+            q[i] = if x.is_zero().into() && y.is_zero().into() {
+                C::identity()
+            } else {
+                C::new_jacobian(x, y, C::Base::ONE).unwrap()
+            };
+        }
 
-        let r = q0 + &q1;
+        let r = q[0] + &q[1];
         debug_assert!(bool::from(r.is_on_curve()));
         r
     })
