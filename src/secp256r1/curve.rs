@@ -76,7 +76,7 @@ new_curve_impl!(
     SECP_A,
     SECP_B,
     "secp256r1",
-    |curve_id, domain_prefix| simple_svdw_hash_to_curve(curve_id, domain_prefix, Secp256r1::SSVDW_Z, None, None),
+    |curve_id, domain_prefix| simple_svdw_hash_to_curve(curve_id, domain_prefix, Secp256r1::SSVDW_Z),
 );
 
 impl Secp256r1 {

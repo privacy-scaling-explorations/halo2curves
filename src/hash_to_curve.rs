@@ -90,16 +90,14 @@ fn hash_to_field<F: FromUniformBytes<64>>(
 pub(crate) fn simple_svdw_map_to_curve<C>(
     u: C::Base,
     z: C::Base,
-    iso_a: Option<C::Base>,
-    iso_b: Option<C::Base>,
+    a: C::Base,
+    b: C::Base,
 ) -> (C::Base, C::Base)
 where
     C: CurveExt,
 {
     let zero = C::Base::ZERO;
     let one = C::Base::ONE;
-    let a = iso_a.unwrap_or(C::a());
-    let b = iso_b.unwrap_or(C::b());
 
     //1.  tv1 = u^2
     let tv1 = u.square();
@@ -156,13 +154,12 @@ where
     (x, y)
 }
 
+// Implementation of <https://datatracker.ietf.org/doc/html/rfc9380#name-simplified-swu-method>
 #[allow(clippy::type_complexity)]
 pub(crate) fn simple_svdw_hash_to_curve<'a, C>(
     curve_id: &'static str,
     domain_prefix: &'a str,
     z: C::Base,
-    iso_a: Option<C::Base>,
-    iso_b: Option<C::Base>,
 ) -> Box<dyn Fn(&[u8]) -> C + 'a>
 where
     C: CurveExt,
@@ -172,21 +169,46 @@ where
         let mut us = [C::Base::ZERO; 2];
         hash_to_field("SSWU", curve_id, domain_prefix, message, &mut us);
 
-        let mut q = [C::identity(); 2];
-        for (i, u) in us.into_iter().enumerate() {
-            let (xp, yp) = simple_svdw_map_to_curve::<C>(u, z, iso_a, iso_b);
-            let (x, y) = match curve_id {
-                "secp256k1" => iso_map_secp256k1::<C>(xp, yp),
-                _ => (xp, yp),
-            };
-            q[i] = if x.is_zero().into() && y.is_zero().into() {
-                C::identity()
-            } else {
-                C::new_jacobian(x, y, C::Base::ONE).unwrap()
-            };
-        }
+        let [q0, q1]: [C; 2] = us
+            .map(|u| simple_svdw_map_to_curve::<C>(u, z, C::a(), C::b()))
+            .map(|(x, y)| C::new_jacobian(x, y, C::Base::ONE).unwrap());
 
-        let r = q[0] + &q[1];
+        let r = q0 + &q1;
+        debug_assert!(bool::from(r.is_on_curve()));
+        r
+    })
+}
+
+// Implementation of <https://datatracker.ietf.org/doc/html/rfc9380#name-simplified-swu-for-ab-0>
+#[allow(clippy::type_complexity)]
+pub(crate) fn simple_svdw_hash_to_curve_with_iso_map<'a, C>(
+    curve_id: &'static str,
+    domain_prefix: &'a str,
+    z: C::Base,
+    iso_a: C::Base,
+    iso_b: C::Base,
+    iso_map: Box<dyn Fn(C::Base, C::Base) -> (C::Base, C::Base)>,
+) -> Box<dyn Fn(&[u8]) -> C + 'a>
+where
+    C: CurveExt,
+    C::Base: FromUniformBytes<64>,
+{
+    Box::new(move |message| {
+        let mut us = [C::Base::ZERO; 2];
+        hash_to_field("SSWU", curve_id, domain_prefix, message, &mut us);
+
+        let [q0, q1] = us
+            .map(|u| simple_svdw_map_to_curve::<C>(u, z, iso_a, iso_b))
+            .map(|(xp, yp)| iso_map(xp, yp))
+            .map(|(x, y)| {
+                if x.is_zero().into() && y.is_zero().into() {
+                    C::identity()
+                } else {
+                    C::new_jacobian(x, y, C::Base::ONE).unwrap()
+                }
+            });
+
+        let r = q0 + &q1;
         debug_assert!(bool::from(r.is_on_curve()));
         r
     })
@@ -194,7 +216,7 @@ where
 
 /// 3-Isogeny Map for Secp256k1
 /// Reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-3-isogeny-map-for-secp256k1>
-fn iso_map_secp256k1<C>(x: C::Base, y: C::Base) -> (C::Base, C::Base)
+pub fn iso_map_secp256k1<C>(x: C::Base, y: C::Base) -> (C::Base, C::Base)
 where
     C: CurveExt,
     C::Base: FromUniformBytes<64>,
