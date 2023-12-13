@@ -25,10 +25,12 @@ mod test {
     use rand_core::{RngCore, SeedableRng};
 
     #[test]
-    fn test_hash_to_curve_print() {
-        // the goal of this test is to generate test vectors to ensure that the ASM implementation matches the
-        // vanilla implementation
+    fn test_consistent_hash_to_curve() {
+        // The goal of this test is to generate test vectors to ensure that the ASM implementation
+        // matches the rust implementation.
         let num_vecs = 10;
+
+        // Test vectors generated with rust implementation.
         let expected_results = [
             "e0c5a6834e0329b4f8bdc91144b3e687ac9d810a8e899415267db9cfbf61e91e",
             "7052a20bee99cbe054fdd8b2e336db3ed3e9a265229e44ab8197c5eabdef2b0b",
