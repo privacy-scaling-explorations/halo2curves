@@ -1,7 +1,7 @@
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
-use crate::hash_to_curve::{iso_map_secp256k1, simple_svdw_hash_to_curve_with_iso_map};
+use crate::hash_to_curve::{simple_svdw_hash_to_curve, simple_svdw_hash_to_curve_secp256k1};
 use crate::secp256k1::Fp;
 use crate::secp256k1::Fq;
 use crate::{Coordinates, CurveAffine, CurveExt};
@@ -11,6 +11,12 @@ use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+use crate::{
+    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
+    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+    new_curve_impl,
+};
 
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
@@ -48,6 +54,31 @@ const SECP_GENERATOR_Y: Fp = Fp::from_raw([
 const SECP_A: Fp = Fp::from_raw([0, 0, 0, 0]);
 const SECP_B: Fp = Fp::from_raw([7, 0, 0, 0]);
 
+new_curve_impl!(
+    (pub),
+    Secp256k1,
+    Secp256k1Affine,
+    true,
+    Fp,
+    Fq,
+    (SECP_GENERATOR_X,SECP_GENERATOR_Y),
+    SECP_A,
+    SECP_B,
+    "secp256k1",
+    |curve_id, domain_prefix| simple_svdw_hash_to_curve_secp256k1(curve_id, domain_prefix),
+);
+
+impl Secp256k1 {
+    // Z = -11 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-suites-for-secp256k1>)
+    // 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc24
+    const SSWU_Z: Fp = Fp([
+        0xfffffffefffffc24,
+        0xffffffffffffffff,
+        0xffffffffffffffff,
+        0xffffffffffffffff,
+    ]);
+}
+
 // Simplified SWU for AB == 0 <https://www.rfc-editor.org/rfc/rfc9380.html#name-simplified-swu-for-ab-0>
 //
 // E': y'^2 = x'^3 + A' * x' + B', where
@@ -62,30 +93,54 @@ pub const ISO_SECP_A: Fp = Fp::from_raw([
 ]);
 pub const ISO_SECP_B: Fp = Fp::from_raw([1771, 0, 0, 0]);
 
-use crate::{
-    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
-    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
-    new_curve_impl,
-};
+const ISO_SECP_GENERATOR_X: Fp = Fp::from_raw([
+    0xD11D739D05A9F7A8,
+    0x00E448E38AF94593,
+    0x2287B72788F0933A,
+    0xC49B6C192E36AB1A,
+]);
+const ISO_SECP_GENERATOR_Y: Fp = Fp::from_raw([
+    0x10836BBAD9E12F4F,
+    0xC054381C214E65D4,
+    0x6DF11CC434B9FAC0,
+    0x9A9322D799106965,
+]);
+
+impl group::cofactor::CofactorGroup for IsoSecp256k1 {
+    type Subgroup = IsoSecp256k1;
+
+    fn clear_cofactor(&self) -> Self {
+        *self
+    }
+
+    fn into_subgroup(self) -> CtOption<Self::Subgroup> {
+        CtOption::new(self, 1.into())
+    }
+
+    fn is_torsion_free(&self) -> Choice {
+        1.into()
+    }
+}
 
 new_curve_impl!(
     (pub),
-    Secp256k1,
-    Secp256k1Affine,
+    IsoSecp256k1,
+    IsoSecp256k1Affine,
     true,
     Fp,
     Fq,
-    (SECP_GENERATOR_X,SECP_GENERATOR_Y),
-    SECP_A,
-    SECP_B,
+    (ISO_SECP_GENERATOR_X, ISO_SECP_GENERATOR_Y),
+    ISO_SECP_A,
+    ISO_SECP_B,
     "secp256k1",
-    |curve_id, domain_prefix| simple_svdw_hash_to_curve_with_iso_map(curve_id, domain_prefix, Secp256k1::SSWU_Z, ISO_SECP_A, ISO_SECP_B, Box::new(iso_map_secp256k1::<Secp256k1>)),
+    |curve_id, domain_prefix| simple_svdw_hash_to_curve(curve_id, domain_prefix, IsoSecp256k1::SVDW_Z),
 );
 
-impl Secp256k1 {
+impl IsoSecp256k1 {
     // Z = -11 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-suites-for-secp256k1>)
     // 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc24
-    const SSWU_Z: Fp = Fp([
+    // NOTE: This `Z` is the `SSWU_Z` of `Secp256k1` curve.
+    const SVDW_Z: Fp = Fp([
         0xfffffffefffffc24,
         0xffffffffffffffff,
         0xffffffffffffffff,
