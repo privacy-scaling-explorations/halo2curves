@@ -91,12 +91,14 @@ fn hash_to_field<F: FromUniformBytes<64>>(
 
 // Implementation of <https://datatracker.ietf.org/doc/html/rfc9380#name-simplified-swu-method>
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn simple_svdw_map_to_curve<C>(u: C::Base, z: C::Base, a: C::Base, b: C::Base) -> C
+pub(crate) fn simple_svdw_map_to_curve<C>(u: C::Base, z: C::Base) -> C
 where
     C: CurveExt,
 {
     let zero = C::Base::ZERO;
     let one = C::Base::ONE;
+    let a = C::a();
+    let b = C::b();
 
     //1.  tv1 = u^2
     let tv1 = u.square();
@@ -168,7 +170,7 @@ where
         let mut us = [C::Base::ZERO; 2];
         hash_to_field("SSWU", curve_id, domain_prefix, message, &mut us);
 
-        let [q0, q1]: [C; 2] = us.map(|u| simple_svdw_map_to_curve::<C>(u, z, C::a(), C::b()));
+        let [q0, q1]: [C; 2] = us.map(|u| simple_svdw_map_to_curve::<C>(u, z));
 
         let r = q0 + &q1;
         debug_assert!(bool::from(r.is_on_curve()));
