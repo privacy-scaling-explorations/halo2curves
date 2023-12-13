@@ -265,7 +265,7 @@ where
 }
 
 // Implement https://datatracker.ietf.org/doc/html/rfc9380#name-sqrt_ratio-for-any-field
-// Copied from ff sqrt_ratio_generic subsituting F::ROOT_OF_UNITY for input Z
+// Copied from ff sqrt_ratio_generic substituting F::ROOT_OF_UNITY for input Z
 fn sqrt_ratio<F: PrimeField>(num: &F, div: &F, z: &F) -> (Choice, F) {
     // General implementation:
     //
