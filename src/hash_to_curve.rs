@@ -246,7 +246,7 @@ pub fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
     let y_num = k[3][3] * x_cubed + k[3][2] * x_squared + k[3][1] * x + k[3][0];
     let y_den = x_cubed + k[4][2] * x_squared + k[4][1] * x + k[4][0];
 
-    // Exceptional case MUST return identity
+    // exceptional case MUST return identity
     //   reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-simplified-swu-for-ab-0>
     if x_den.is_zero().into() || y_den.is_zero().into() {
         return Secp256k1::identity();

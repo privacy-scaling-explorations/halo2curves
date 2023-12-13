@@ -71,6 +71,7 @@ new_curve_impl!(
 impl Secp256k1 {
     // Z = -11 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-suites-for-secp256k1>)
     // 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc24
+    #[allow(dead_code)]
     const SSWU_Z: Fp = Fp([
         0xfffffffefffffc24,
         0xffffffffffffffff,
