@@ -404,7 +404,7 @@ macro_rules! field_arithmetic_asm {
                         "adcx r10, r12",
                         "adox r14, r10",
 
-                        //   Final substraction
+                        //   Final subtraction
                         "mov  r12, r11",
                         "sub  r12, qword ptr [{m_ptr} + 0]",
                         "mov  r10, r13",
