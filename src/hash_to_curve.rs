@@ -1,6 +1,7 @@
 #![allow(clippy::op_ref)]
 
 use ff::{Field, FromUniformBytes, PrimeField};
+use group::Group;
 use pasta_curves::arithmetic::CurveExt;
 use static_assertions::const_assert;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -184,12 +185,7 @@ pub(crate) fn simple_svdw_hash_to_curve_secp256k1<'a>(
     Box::new(move |message| {
         let rp = IsoSecp256k1::hash_to_curve(domain_prefix)(message);
 
-        let r = {
-            let (xp, yp, zp) = rp.jacobian_coordinates();
-            let (xp, yp) = jacobian_to_affine::<IsoSecp256k1>(xp, yp, zp);
-            let (x, y) = iso_map_secp256k1(xp, yp);
-            Secp256k1::new_jacobian(x, y, <Secp256k1 as CurveExt>::Base::ONE).unwrap()
-        };
+        let r = iso_map_secp256k1(rp);
 
         debug_assert!(bool::from(r.is_on_curve()));
         r
@@ -198,10 +194,7 @@ pub(crate) fn simple_svdw_hash_to_curve_secp256k1<'a>(
 
 /// 3-Isogeny Map for Secp256k1
 /// Reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-3-isogeny-map-for-secp256k1>
-pub fn iso_map_secp256k1(
-    x: <IsoSecp256k1 as CurveExt>::Base,
-    y: <IsoSecp256k1 as CurveExt>::Base,
-) -> (<Secp256k1 as CurveExt>::Base, <Secp256k1 as CurveExt>::Base) {
+pub fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
     // constants for secp256k1 iso_map computation
     const K: [[&str; 4]; 5] = [
         ["0x00", "0x00", "0x00", "0x00"],
@@ -239,6 +232,11 @@ pub fn iso_map_secp256k1(
         }
     }
 
+    // convert to affine form
+    let (xp, yp, zp) = rp.jacobian_coordinates();
+    let (x, y) = jacobian_to_affine::<IsoSecp256k1>(xp, yp, zp);
+
+    // iso_map logic
     let x_squared = x.square();
     let x_cubed = x * x_squared;
 
@@ -249,25 +247,21 @@ pub fn iso_map_secp256k1(
     let y_den = x_cubed + k[4][2] * x_squared + k[4][1] * x + k[4][0];
 
     // Exceptional case MUST return identity
-    // reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-simplified-swu-for-ab-0>
+    //   reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-simplified-swu-for-ab-0>
     if x_den.is_zero().into() || y_den.is_zero().into() {
-        return (
-            <Secp256k1 as CurveExt>::Base::ZERO,
-            <Secp256k1 as CurveExt>::Base::ZERO,
-        );
+        return Secp256k1::identity();
     }
 
     let x = x_num * x_den.invert().unwrap();
     let y = y * (y_num * y_den.invert().unwrap());
 
-    (x, y)
+    Secp256k1::new_jacobian(x, y, <Secp256k1 as CurveExt>::Base::ONE).unwrap()
 }
 
 /// Converting a point from Jacobian coordinates to affine coordinates on an elliptic curve
 fn jacobian_to_affine<C>(x: C::Base, y: C::Base, z: C::Base) -> (C::Base, C::Base)
 where
     C: CurveExt,
-    C::Base: FromUniformBytes<64>,
 {
     // identity
     if z.is_zero().into() {
