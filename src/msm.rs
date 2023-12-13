@@ -196,7 +196,7 @@ mod test {
     use pasta_curves::arithmetic::CurveAffine;
     use rand_core::OsRng;
 
-    // keeping older implementation it here for baseline comparision, debugging & benchmarking
+    // keeping older implementation it here for baseline comparison, debugging & benchmarking
     fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
         assert_eq!(coeffs.len(), bases.len());
 
