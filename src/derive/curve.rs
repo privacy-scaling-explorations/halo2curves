@@ -305,11 +305,11 @@ macro_rules! new_curve_impl {
                 }
 
                 paste::paste! {
-                    use ::serde::de::Error as _;
                     impl<'de> ::serde::Deserialize<'de> for $name {
                         fn deserialize<D: ::serde::Deserializer<'de>>(
                             deserializer: D,
                         ) -> Result<Self, D::Error> {
+                            use ::serde::de::Error as _;
                             let bytes = if deserializer.is_human_readable() {
                                 ::hex::serde::deserialize(deserializer)?
                             } else {
@@ -334,11 +334,11 @@ macro_rules! new_curve_impl {
                 }
 
                 paste::paste! {
-                    use ::serde::de::Error as _;
                     impl<'de> ::serde::Deserialize<'de> for $name_affine {
                         fn deserialize<D: ::serde::Deserializer<'de>>(
                             deserializer: D,
                         ) -> Result<Self, D::Error> {
+                            use ::serde::de::Error as _;
                             let bytes = if deserializer.is_human_readable() {
                                 ::hex::serde::deserialize(deserializer)?
                             } else {
@@ -530,6 +530,7 @@ macro_rules! new_curve_impl {
             }
 
 
+            #[allow(clippy::redundant_closure_call)]
             fn hash_to_curve<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a> {
                 $hash_to_curve($curve_id, domain_prefix)
             }

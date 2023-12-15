@@ -74,14 +74,15 @@ impl<const L: usize> Shr<u32> for &LInt<L> {
             "Cannot shift by 0 or more than 63 bits!"
         );
         let (mut data, right) = ([0; L], u64::BITS - bits);
-        for i in 0..(L - 1) {
-            data[i] = (self.0[i] >> bits) | (self.0[i + 1] << right);
+
+        for (i, d) in data.iter_mut().enumerate().take(L - 1) {
+            *d = (self.0[i] >> bits) | (self.0[i + 1] << right);
         }
         data[L - 1] = self.0[L - 1] >> bits;
         if self.is_negative() {
             data[L - 1] |= u64::MAX << right;
         }
-        Self::Output { 0: data }
+        LInt::<L>(data)
     }
 }
 
@@ -96,10 +97,10 @@ impl<const L: usize> Add for &LInt<L> {
     type Output = LInt<L>;
     fn add(self, other: Self) -> Self::Output {
         let (mut data, mut carry) = ([0; L], false);
-        for i in 0..L {
-            (data[i], carry) = Self::Output::sum(self.0[i], other.0[i], carry);
+        for (i, d) in data.iter_mut().enumerate().take(L) {
+            (*d, carry) = Self::Output::sum(self.0[i], other.0[i], carry);
         }
-        Self::Output { 0: data }
+        LInt::<L>(data)
     }
 }
 
@@ -128,10 +129,10 @@ impl<const L: usize> Sub for &LInt<L> {
         // addition algorithm, where the carry flag is initialized with "true"
         // and the chunks of the second argument are bitwise inverted
         let (mut data, mut carry) = ([0; L], true);
-        for i in 0..L {
-            (data[i], carry) = Self::Output::sum(self.0[i], !other.0[i], carry);
+        for (i, d) in data.iter_mut().enumerate().take(L) {
+            (*d, carry) = Self::Output::sum(self.0[i], !other.0[i], carry);
         }
-        Self::Output { 0: data }
+        LInt::<L>(data)
     }
 }
 
@@ -155,10 +156,10 @@ impl<const L: usize> Neg for &LInt<L> {
         // For the two's complement code the additive negation is the result
         // of adding 1 to the bitwise inverted argument's representation
         let (mut data, mut carry) = ([0; L], true);
-        for i in 0..L {
-            (data[i], carry) = (!self.0[i]).overflowing_add(carry as u64);
+        for (i, d) in data.iter_mut().enumerate().take(L) {
+            (*d, carry) = (!self.0[i]).overflowing_add(carry as u64);
         }
-        Self::Output { 0: data }
+        LInt::<L>(data)
     }
 }
 
@@ -180,7 +181,7 @@ impl<const L: usize> Mul for &LInt<L> {
                     Self::Output::prodsum(self.0[i], other.0[k], data[i + k], carry);
             }
         }
-        Self::Output { 0: data }
+        LInt::<L>(data)
     }
 }
 
@@ -219,10 +220,10 @@ impl<const L: usize> Mul<i64> for &LInt<L> {
         } else {
             (other as u64, 0, 0)
         };
-        for i in 0..L {
-            (data[i], carry) = Self::Output::prodsum(self.0[i] ^ mask, other, 0, carry);
+        for (i, d) in data.iter_mut().enumerate().take(L) {
+            (*d, carry) = Self::Output::prodsum(self.0[i] ^ mask, other, 0, carry);
         }
-        Self::Output { 0: data }
+        LInt::<L>(data)
     }
 }
 
