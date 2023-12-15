@@ -102,7 +102,7 @@ pub fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &
         let mut buckets: Vec<Bucket<C>> = vec![Bucket::None; 1 << (c - 1)];
 
         for (coeff, base) in coeffs.iter().zip(bases.iter()) {
-            let coeff = get_booth_index(current_window as usize, c, coeff.as_ref());
+            let coeff = get_booth_index(current_window, c, coeff.as_ref());
             if coeff.is_positive() {
                 buckets[coeff as usize - 1].add_assign(base);
             }
@@ -333,7 +333,7 @@ mod test {
                     acc = acc.double();
                 }
 
-                let idx = super::get_booth_index(i as usize, window, u.as_ref());
+                let idx = super::get_booth_index(i, window, u.as_ref());
 
                 if idx.is_negative() {
                     acc += table[idx.unsigned_abs() as usize].neg();
