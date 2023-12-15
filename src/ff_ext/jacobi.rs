@@ -82,7 +82,7 @@ impl<const L: usize> Shr<u32> for &LInt<L> {
         if self.is_negative() {
             data[L - 1] |= u64::MAX << right;
         }
-        Self::Output { 0: data }
+        LInt::<L>(data)
     }
 }
 
@@ -100,7 +100,7 @@ impl<const L: usize> Add for &LInt<L> {
         for (i, d) in data.iter_mut().enumerate().take(L) {
             (*d, carry) = Self::Output::sum(self.0[i], other.0[i], carry);
         }
-        Self::Output { 0: data }
+        LInt::<L>(data)
     }
 }
 
@@ -132,7 +132,7 @@ impl<const L: usize> Sub for &LInt<L> {
         for (i, d) in data.iter_mut().enumerate().take(L) {
             (*d, carry) = Self::Output::sum(self.0[i], !other.0[i], carry);
         }
-        Self::Output { 0: data }
+        LInt::<L>(data)
     }
 }
 
@@ -159,7 +159,7 @@ impl<const L: usize> Neg for &LInt<L> {
         for (i, d) in data.iter_mut().enumerate().take(L) {
             (*d, carry) = (!self.0[i]).overflowing_add(carry as u64);
         }
-        Self::Output { 0: data }
+        LInt::<L>(data)
     }
 }
 
@@ -181,7 +181,7 @@ impl<const L: usize> Mul for &LInt<L> {
                     Self::Output::prodsum(self.0[i], other.0[k], data[i + k], carry);
             }
         }
-        Self::Output { 0: data }
+        LInt::<L>(data)
     }
 }
 
@@ -223,7 +223,7 @@ impl<const L: usize> Mul<i64> for &LInt<L> {
         for (i, d) in data.iter_mut().enumerate().take(L) {
             (*d, carry) = Self::Output::prodsum(self.0[i] ^ mask, other, 0, carry);
         }
-        Self::Output { 0: data }
+        LInt::<L>(data)
     }
 }
 

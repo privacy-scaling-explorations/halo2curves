@@ -62,7 +62,7 @@ impl<const B: usize, const L: usize> Add for &CInt<B, L> {
             *d = sum & CInt::<B, L>::MASK;
             carry = sum >> B;
         }
-        Self::Output { 0: data }
+        CInt::<B, L>(data)
     }
 }
 
@@ -96,7 +96,7 @@ impl<const B: usize, const L: usize> Sub for &CInt<B, L> {
             *d = sum & CInt::<B, L>::MASK;
             carry = sum >> B;
         }
-        Self::Output { 0: data }
+        CInt::<B, L>(data)
     }
 }
 
@@ -125,7 +125,7 @@ impl<const B: usize, const L: usize> Neg for &CInt<B, L> {
             *d = sum & CInt::<B, L>::MASK;
             carry = sum >> B;
         }
-        Self::Output { 0: data }
+        CInt::<B, L>(data)
     }
 }
 
@@ -150,7 +150,7 @@ impl<const B: usize, const L: usize> Mul for &CInt<B, L> {
                 carry = (sum >> B) as u64;
             }
         }
-        Self::Output { 0: data }
+        CInt::<B, L>(data)
     }
 }
 
@@ -194,7 +194,7 @@ impl<const B: usize, const L: usize> Mul<i64> for &CInt<B, L> {
             *d = sum as u64 & CInt::<B, L>::MASK;
             carry = (sum >> B) as u64;
         }
-        Self::Output { 0: data }
+        CInt::<B, L>(data)
     }
 }
 
