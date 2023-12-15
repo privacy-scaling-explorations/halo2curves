@@ -381,7 +381,7 @@ impl Field for Fp2 {
         };
 
         // Algorithm (not constant time)
-        let b = self.pow_vartime(&[
+        let b = self.pow_vartime([
             // (p-1)/4 =
             // 0x900000000000900004c3800035fdc392a00f29dbd0e499bd10fe69736a29b1ef929e97fa3eb7ff5a8a9fa30c001ae5167ffff34c0000000
             0x67ffff34c0000000,
@@ -747,7 +747,7 @@ fn test_frobenius() {
             let mut b = a;
 
             for _ in 0..i {
-                a = a.pow_vartime(&[
+                a = a.pow_vartime([
                     0x9ffffcd300000001,
                     0xa2a7e8c30006b945,
                     0xe4a7a5fe8fadffd6,

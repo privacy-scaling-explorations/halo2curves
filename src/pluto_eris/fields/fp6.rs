@@ -762,7 +762,7 @@ fn test_frobenius() {
             let mut b = a;
 
             for _ in 0..i {
-                a = a.pow_vartime(&[
+                a = a.pow_vartime([
                     // p
                     0x9ffffcd300000001,
                     0xa2a7e8c30006b945,
