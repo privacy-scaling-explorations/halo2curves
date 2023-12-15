@@ -57,9 +57,9 @@ impl<const B: usize, const L: usize> Add for &CInt<B, L> {
     type Output = CInt<B, L>;
     fn add(self, other: Self) -> Self::Output {
         let (mut data, mut carry) = ([0; L], 0);
-        for i in 0..L {
+        for (i, d) in data.iter_mut().enumerate().take(L) {
             let sum = self.0[i] + other.0[i] + carry;
-            data[i] = sum & CInt::<B, L>::MASK;
+            *d = sum & CInt::<B, L>::MASK;
             carry = sum >> B;
         }
         Self::Output { 0: data }
@@ -91,9 +91,9 @@ impl<const B: usize, const L: usize> Sub for &CInt<B, L> {
         // addition algorithm, where the carry flag is initialized with 1 and
         // the chunks of the second argument are bitwise inverted
         let (mut data, mut carry) = ([0; L], 1);
-        for i in 0..L {
+        for (i, d) in data.iter_mut().enumerate().take(L) {
             let sum = self.0[i] + (other.0[i] ^ CInt::<B, L>::MASK) + carry;
-            data[i] = sum & CInt::<B, L>::MASK;
+            *d = sum & CInt::<B, L>::MASK;
             carry = sum >> B;
         }
         Self::Output { 0: data }
@@ -120,9 +120,9 @@ impl<const B: usize, const L: usize> Neg for &CInt<B, L> {
         // For the two's complement code the additive negation is the result
         // of adding 1 to the bitwise inverted argument's representation
         let (mut data, mut carry) = ([0; L], 1);
-        for i in 0..L {
+        for (i, d) in data.iter_mut().enumerate().take(L) {
             let sum = (self.0[i] ^ CInt::<B, L>::MASK) + carry;
-            data[i] = sum & CInt::<B, L>::MASK;
+            *d = sum & CInt::<B, L>::MASK;
             carry = sum >> B;
         }
         Self::Output { 0: data }
@@ -189,9 +189,9 @@ impl<const B: usize, const L: usize> Mul<i64> for &CInt<B, L> {
         } else {
             (other, 0, 0)
         };
-        for i in 0..L {
+        for (i, d) in data.iter_mut().enumerate().take(L) {
             let sum = (carry as u128) + ((self.0[i] ^ mask) as u128) * (other as u128);
-            data[i] = sum as u64 & CInt::<B, L>::MASK;
+            *d = sum as u64 & CInt::<B, L>::MASK;
             carry = (sum >> B) as u64;
         }
         Self::Output { 0: data }
