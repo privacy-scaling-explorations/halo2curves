@@ -530,6 +530,7 @@ macro_rules! new_curve_impl {
             }
 
 
+            #[allow(clippy::redundant_closure_call)]
             fn hash_to_curve<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a> {
                 $hash_to_curve($curve_id, domain_prefix)
             }
