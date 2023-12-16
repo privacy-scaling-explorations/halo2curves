@@ -1,7 +1,7 @@
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
-use crate::hash_to_curve::{simple_svdw_hash_to_curve, simple_svdw_hash_to_curve_secp256k1};
+use crate::hash_to_curve::{sswu_hash_to_curve, sswu_hash_to_curve_secp256k1};
 use crate::secp256k1::Fp;
 use crate::secp256k1::Fq;
 use crate::{Coordinates, CurveAffine, CurveExt};
@@ -65,7 +65,7 @@ new_curve_impl!(
     SECP_A,
     SECP_B,
     "secp256k1",
-    |curve_id, domain_prefix| simple_svdw_hash_to_curve_secp256k1(curve_id, domain_prefix),
+    |curve_id, domain_prefix| sswu_hash_to_curve_secp256k1(curve_id, domain_prefix),
 );
 
 impl Secp256k1 {
@@ -134,14 +134,14 @@ new_curve_impl!(
     ISO_SECP_A,
     ISO_SECP_B,
     "secp256k1",
-    |curve_id, domain_prefix| simple_svdw_hash_to_curve(curve_id, domain_prefix, IsoSecp256k1::SVDW_Z),
+    |curve_id, domain_prefix| sswu_hash_to_curve(curve_id, domain_prefix, IsoSecp256k1::SSWU_Z),
 );
 
 impl IsoSecp256k1 {
     // Z = -11 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-suites-for-secp256k1>)
     // 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc24
     // NOTE: This `Z` is the `SSWU_Z` of `Secp256k1` curve.
-    const SVDW_Z: Fp = Fp([
+    const SSWU_Z: Fp = Fp([
         0xfffffffefffffc24,
         0xffffffffffffffff,
         0xffffffffffffffff,
