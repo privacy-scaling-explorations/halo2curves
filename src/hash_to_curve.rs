@@ -233,9 +233,11 @@ pub fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
         }
     }
 
-    // convert to affine form
-    let (xp, yp, zp) = rp.jacobian_coordinates();
-    let (x, y) = jacobian_to_affine::<IsoSecp256k1>(xp, yp, zp);
+    // convert to affine form: (x, y) = (X/Z, Y/Z)
+    let (x, y) = {
+        let z_inv = rp.z.invert().unwrap();
+        (rp.x * z_inv, rp.y * z_inv)
+    };
 
     // iso_map logic
     let x_squared = x.square();
@@ -257,25 +259,6 @@ pub fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
     let y = y * (y_num * y_den.invert().unwrap());
 
     Secp256k1::new_jacobian(x, y, <Secp256k1 as CurveExt>::Base::ONE).unwrap()
-}
-
-/// Converting a point from Jacobian coordinates to affine coordinates on an elliptic curve
-fn jacobian_to_affine<C>(x: C::Base, y: C::Base, z: C::Base) -> (C::Base, C::Base)
-where
-    C: CurveExt,
-{
-    // identity
-    if z.is_zero().into() {
-        return (C::Base::ZERO, C::Base::ZERO);
-    }
-
-    let z_squared = z * z;
-    let z_cubed = z_squared * z;
-
-    let z_squared_inv = z_squared.invert().unwrap();
-    let z_cubed_inv = z_cubed.invert().unwrap();
-
-    (x * z_squared_inv, y * z_cubed_inv)
 }
 
 #[allow(clippy::too_many_arguments)]
