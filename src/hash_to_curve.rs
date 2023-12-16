@@ -9,6 +9,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use crate::{
     ff_ext::Legendre,
     secp256k1::{IsoSecp256k1, Secp256k1},
+    utils::fe_from_str,
 };
 
 /// Hashes over a message and writes the output to all of `buf`.
@@ -225,12 +226,10 @@ pub fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
             "0x00",
         ],
     ];
-    let mut k: [[<IsoSecp256k1 as CurveExt>::Base; 4]; 5] =
-        [[<IsoSecp256k1 as CurveExt>::Base::from_uniform_bytes(&[0; 64]); 4]; 5];
-    for i in 0..5 {
+    let mut k: [[<IsoSecp256k1 as CurveExt>::Base; 4]; 5] = [[fe_from_str("0x00"); 4]; 5];
+    for i in 1..5 {
         for j in 0..4 {
-            k[i][j] =
-                <IsoSecp256k1 as CurveExt>::Base::from_uniform_bytes(&hex_str_to_le_bytes(K[i][j]));
+            k[i][j] = fe_from_str(K[i][j]);
         }
     }
 
@@ -277,43 +276,6 @@ where
     let z_cubed_inv = z_cubed.invert().unwrap();
 
     (x * z_squared_inv, y * z_cubed_inv)
-}
-
-/// Convert hex string to little-endian bytes array of length `L`
-///
-/// NOTE: hex string should be prefixed with "0x"
-///
-/// Example:  
-///
-///   hex_str_to_le_bytes::<4>("0x01020304") -> [4, 3, 2, 1]
-///
-///   hex_str_to_le_bytes::<6>("0x01020304") -> [4, 3, 2, 1, 0, 0]
-///
-///   hex_str_to_le_bytes::<2>("0x01020304") -> [4, 3]
-///
-fn hex_str_to_le_bytes<const L: usize>(hex: &str) -> [u8; L] {
-    let padded_hex_string = if hex.len() % 2 != 0 {
-        format!("0{}", &hex[2..])
-    } else {
-        hex[2..].to_owned()
-    };
-
-    // Convert each pair of hex characters to u8 and collect into a vector
-    let le_bytes: Result<Vec<u8>, _> = (0..padded_hex_string.len())
-        .step_by(2)
-        .rev() // Iterate in reverse order for little-endian byte order
-        .map(|i| {
-            u8::from_str_radix(&padded_hex_string[i..i + 2], 16)
-                .map_err(|_| "Invalid hex character")
-        })
-        .collect();
-    let le_bytes = le_bytes.expect("Invalid bytes");
-
-    let mut result = [0; L];
-    for i in 0..L.min(le_bytes.len()) {
-        result[i] = le_bytes[i];
-    }
-    result
 }
 
 #[allow(clippy::too_many_arguments)]
