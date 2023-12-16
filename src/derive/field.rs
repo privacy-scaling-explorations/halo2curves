@@ -63,6 +63,7 @@ macro_rules! field_common {
                 $crate::ff_ext::jacobi::jacobi::<5>(&self.0, &$modulus.0)
             }
 
+            #[cfg(feature = "asm")]
             const fn montgomery_form(val: [u64; 4], r: $field) -> $field {
                 // Converts a 4 64-bit limb value into its congruent field representation.
                 // If `val` representes a 256 bit value then `r` should be R^2,
