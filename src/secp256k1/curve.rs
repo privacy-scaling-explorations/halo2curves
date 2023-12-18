@@ -124,7 +124,7 @@ impl group::cofactor::CofactorGroup for IsoSecp256k1 {
 }
 
 new_curve_impl!(
-    (pub),
+    (pub(crate)),
     IsoSecp256k1,
     IsoSecp256k1Affine,
     true,
@@ -147,6 +147,130 @@ impl IsoSecp256k1 {
         0xffffffffffffffff,
         0xffffffffffffffff,
     ]);
+}
+
+/// 3-Isogeny Map for Secp256k1
+/// Reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-3-isogeny-map-for-secp256k1>
+pub(crate) fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
+    // constants for secp256k1 iso_map computation
+    const K: [[Fp; 4]; 5] = [
+        [Fp::ZERO; 4],
+        [
+            Fp([
+                0x8e38e38daaaaa8c7,
+                0x38e38e38e38e38e3,
+                0xe38e38e38e38e38e,
+                0x8e38e38e38e38e38,
+            ]),
+            Fp([
+                0xdfff1044f17c6581,
+                0xd595d2fc0bf63b92,
+                0xb9f315cea7fd44c5,
+                0x7d3d4c80bc321d5,
+            ]),
+            Fp([
+                0x4ecbd0b53d9dd262,
+                0xe4506144037c4031,
+                0xe2a413deca25caec,
+                0x534c328d23f234e6,
+            ]),
+            Fp([
+                0x8e38e38daaaaa88c,
+                0x38e38e38e38e38e3,
+                0xe38e38e38e38e38e,
+                0x8e38e38e38e38e38,
+            ]),
+        ],
+        [
+            Fp([
+                0x9fe6b745781eb49b,
+                0x86cd409542f8487d,
+                0x9ca34ccbb7b640dd,
+                0xd35771193d94918a,
+            ]),
+            Fp([
+                0xc52a56612a8c6d14,
+                0x06d36b641f5e41bb,
+                0xf7c4b2d51b542254,
+                0xedadc6f64383dc1d,
+            ]),
+            Fp::ZERO,
+            Fp::ZERO,
+        ],
+        [
+            Fp([
+                0xa12f684b8e38e23c,
+                0x2f684bda12f684bd,
+                0x684bda12f684bda1,
+                0x4bda12f684bda12f,
+            ]),
+            Fp([
+                0xdffc90fc201d71a3,
+                0x647ab046d686da6f,
+                0xa9d0a54b12a0a6d5,
+                0xc75e0c32d5cb7c0f,
+            ]),
+            Fp([
+                0xa765e85a9ecee931,
+                0x722830a201be2018,
+                0x715209ef6512e576,
+                0x29a6194691f91a73,
+            ]),
+            Fp([
+                0x84bda12f38e38d84,
+                0xbda12f684bda12f6,
+                0xa12f684bda12f684,
+                0x2f684bda12f684bd,
+            ]),
+        ],
+        [
+            Fp([
+                0xfffffffefffff93b,
+                0xffffffffffffffff,
+                0xffffffffffffffff,
+                0xffffffffffffffff,
+            ]),
+            Fp([
+                0xdfb425d2685c2573,
+                0x9467c1bfc8e8d978,
+                0xd5e9e6632722c298,
+                0x7a06534bb8bdb49f,
+            ]),
+            Fp([
+                0xa7bf8192bfd2a76f,
+                0x0a3d21162f0d6299,
+                0xf3a70c3fa8fe337e,
+                0x6484aa716545ca2c,
+            ]),
+            Fp::ZERO,
+        ],
+    ];
+
+    // Convert to affine coordinates:
+    let coords = <IsoSecp256k1 as CurveExt>::AffineExt::coordinates(&rp.into()).unwrap();
+    let x = coords.x();
+    let y = coords.y();
+
+    // iso_map logic
+    let x_squared = x.square();
+    let x_cubed = x * x_squared;
+
+    let x_num = K[1][3] * x_cubed + K[1][2] * x_squared + K[1][1] * x + K[1][0];
+    let x_den = x_squared + K[2][1] * x + K[2][0];
+
+    let y_num = K[3][3] * x_cubed + K[3][2] * x_squared + K[3][1] * x + K[3][0];
+    let y_den = x_cubed + K[4][2] * x_squared + K[4][1] * x + K[4][0];
+
+    // exceptional case MUST return identity
+    //   reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-simplified-swu-for-ab-0>
+    if x_den.is_zero().into() || y_den.is_zero().into() {
+        return Secp256k1::identity();
+    }
+
+    let x = x_num * x_den.invert().unwrap();
+    let y = y * (y_num * y_den.invert().unwrap());
+
+    Secp256k1::new_jacobian(x, y, <Secp256k1 as CurveExt>::Base::ONE).unwrap()
 }
 
 #[cfg(test)]

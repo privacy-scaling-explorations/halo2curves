@@ -1,15 +1,13 @@
 #![allow(clippy::op_ref)]
 
 use ff::{Field, FromUniformBytes, PrimeField};
-use group::Group;
 use pasta_curves::arithmetic::CurveExt;
 use static_assertions::const_assert;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::{
     ff_ext::Legendre,
-    secp256k1::{IsoSecp256k1, Secp256k1},
-    utils::fe_from_str,
+    secp256k1::{iso_map_secp256k1, IsoSecp256k1, Secp256k1},
 };
 
 /// Hashes over a message and writes the output to all of `buf`.
@@ -193,72 +191,6 @@ pub(crate) fn sswu_hash_to_curve_secp256k1<'a>(
         debug_assert!(bool::from(r.is_on_curve()));
         r
     })
-}
-
-/// 3-Isogeny Map for Secp256k1
-/// Reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-3-isogeny-map-for-secp256k1>
-pub fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
-    // constants for secp256k1 iso_map computation
-    const K: [[&str; 4]; 5] = [
-        ["0x00", "0x00", "0x00", "0x00"],
-        [
-            "0x8e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38daaaaa8c7",
-            "0x7d3d4c80bc321d5b9f315cea7fd44c5d595d2fc0bf63b92dfff1044f17c6581",
-            "0x534c328d23f234e6e2a413deca25caece4506144037c40314ecbd0b53d9dd262",
-            "0x8e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38daaaaa88c",
-        ],
-        [
-            "0xd35771193d94918a9ca34ccbb7b640dd86cd409542f8487d9fe6b745781eb49b",
-            "0xedadc6f64383dc1df7c4b2d51b54225406d36b641f5e41bbc52a56612a8c6d14",
-            "0x00",
-            "0x00",
-        ],
-        [
-            "0x4bda12f684bda12f684bda12f684bda12f684bda12f684bda12f684b8e38e23c",
-            "0xc75e0c32d5cb7c0fa9d0a54b12a0a6d5647ab046d686da6fdffc90fc201d71a3",
-            "0x29a6194691f91a73715209ef6512e576722830a201be2018a765e85a9ecee931",
-            "0x2f684bda12f684bda12f684bda12f684bda12f684bda12f684bda12f38e38d84",
-        ],
-        [
-            "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffff93b",
-            "0x7a06534bb8bdb49fd5e9e6632722c2989467c1bfc8e8d978dfb425d2685c2573",
-            "0x6484aa716545ca2cf3a70c3fa8fe337e0a3d21162f0d6299a7bf8192bfd2a76f",
-            "0x00",
-        ],
-    ];
-    let mut k: [[<IsoSecp256k1 as CurveExt>::Base; 4]; 5] = [[fe_from_str("0x00"); 4]; 5];
-    for i in 1..5 {
-        for j in 0..4 {
-            k[i][j] = fe_from_str(K[i][j]);
-        }
-    }
-
-    // convert to affine form: (x, y) = (X/Z, Y/Z)
-    let (x, y) = {
-        let z_inv = rp.z.invert().unwrap();
-        (rp.x * z_inv, rp.y * z_inv)
-    };
-
-    // iso_map logic
-    let x_squared = x.square();
-    let x_cubed = x * x_squared;
-
-    let x_num = k[1][3] * x_cubed + k[1][2] * x_squared + k[1][1] * x + k[1][0];
-    let x_den = x_squared + k[2][1] * x + k[2][0];
-
-    let y_num = k[3][3] * x_cubed + k[3][2] * x_squared + k[3][1] * x + k[3][0];
-    let y_den = x_cubed + k[4][2] * x_squared + k[4][1] * x + k[4][0];
-
-    // exceptional case MUST return identity
-    //   reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-simplified-swu-for-ab-0>
-    if x_den.is_zero().into() || y_den.is_zero().into() {
-        return Secp256k1::identity();
-    }
-
-    let x = x_num * x_den.invert().unwrap();
-    let y = y * (y_num * y_den.invert().unwrap());
-
-    Secp256k1::new_jacobian(x, y, <Secp256k1 as CurveExt>::Base::ONE).unwrap()
 }
 
 #[allow(clippy::too_many_arguments)]
