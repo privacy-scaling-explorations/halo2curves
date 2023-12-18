@@ -9,6 +9,8 @@ use ff::PrimeField;
 use ff::WithSmallOrderMulGroup;
 use std::convert::TryInto;
 
+pub use bls12_381::*;
+
 // Obtained from https://github.com/ConsenSys/gnark-crypto/blob/master/ecc/utils.go
 // See https://github.com/demining/Endomorphism-Secp256k1/blob/main/README.md
 // to have more details about the endomorphism.
