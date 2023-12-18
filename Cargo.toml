@@ -35,8 +35,8 @@ serde = { version = "1.0", default-features = false, optional = true }
 serde_arrays = { version = "0.1.0", optional = true }
 hex = { version = "0.4", optional = true, default-features = false, features = ["alloc", "serde"] }
 blake2b_simd = "1"
+bls12_381 = { git = "https://github.com/privacy-scaling-explorations/bls12_381", tag = "v2023_10_26", features = ["groups", "basefield"] }
 maybe-rayon = { version = "0.1.0", default-features = false }
-bls12_381 = { git = "https://github.com/privacy-scaling-explorations/bls12_381", branch =  "feat/pub_fq", features = ["groups", "basefield"] }
 
 [features]
 default = ["bits", "multicore"]
