@@ -3,14 +3,14 @@ pub use maybe_rayon::{
     join, scope, Scope,
 };
 
-#[cfg(feature = "multicore")]
+#[cfg(all(feature = "multicore", target_pointer_width = "64"))]
 pub use maybe_rayon::{
     current_num_threads,
     iter::{IndexedParallelIterator, IntoParallelRefIterator},
     slice::ParallelSliceMut,
 };
 
-#[cfg(not(feature = "multicore"))]
+#[cfg(any(not(feature = "multicore"), target_pointer_width = "32"))]
 pub fn current_num_threads() -> usize {
     1
 }
