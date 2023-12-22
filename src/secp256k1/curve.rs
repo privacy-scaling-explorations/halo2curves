@@ -270,7 +270,7 @@ pub(crate) fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
     let x = x_num * x_den.invert().unwrap();
     let y = y * (y_num * y_den.invert().unwrap());
 
-    Secp256k1::new_jacobian(x, y, <Secp256k1 as CurveExt>::Base::ONE).unwrap()
+    Secp256k1::new_jacobian(x, y, Fp::ONE).unwrap()
 }
 
 #[cfg(test)]
