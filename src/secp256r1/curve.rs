@@ -1,7 +1,7 @@
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
-use crate::hash_to_curve::simple_svdw_hash_to_curve;
+use crate::hash_to_curve::sswu_hash_to_curve;
 use crate::secp256r1::Fp;
 use crate::secp256r1::Fq;
 use crate::{Coordinates, CurveAffine, CurveExt};
@@ -76,7 +76,7 @@ new_curve_impl!(
     SECP_A,
     SECP_B,
     "secp256r1",
-    |curve_id, domain_prefix| simple_svdw_hash_to_curve(curve_id, domain_prefix, Secp256r1::SSVDW_Z),
+    |curve_id, domain_prefix| sswu_hash_to_curve(curve_id, domain_prefix, Secp256r1::SSVDW_Z),
 );
 
 impl Secp256r1 {
