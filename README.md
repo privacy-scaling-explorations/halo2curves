@@ -27,6 +27,15 @@ Notice that if the `multicore` feature is active, the library will not compile t
 This is because WASM architectures at the time of writing this still don't handle parallelism properly. 
 See: [Rayon: Usage with WwbAssembly](https://github.com/rayon-rs/rayon#usage-with-webassembly) for more info. 
 
+A way to import this library into the project that works this arround (in case you might compile to `wasm`-targets) could be as follows:
+```toml
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+halo2curves = { version = "0.5.0", features = ["derive_serde", "multicore"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# bypass the default "multicore" feature
+halo2curves = { version = "0.5.0", default-features = false, features = ["derive_serde", "multicore"] }
+```
 ## Benchmarks
 
 Benchmarking is supported through the use of Rust's built-in test framework. Benchmarks can be run without assembly optimizations:
