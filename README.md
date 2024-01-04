@@ -25,7 +25,7 @@ This will significantly degrade performance.
 
 Notice that if the `multicore` feature is active, the library will not compile to any `wasm` target. 
 This is because WASM architectures at the time of writing this still don't handle parallelism properly. 
-See: [Rayon: Usage with WwbAssembly](https://github.com/rayon-rs/rayon#usage-with-webassembly) for more info. 
+See: [Rayon: Usage with WebAssembly](https://github.com/rayon-rs/rayon#usage-with-webassembly) for more info. 
 
 A way to import this library into the project that works this arround (in case you might compile to `wasm`-targets) could be as follows:
 ```toml
