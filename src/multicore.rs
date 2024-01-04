@@ -1,3 +1,12 @@
+#[cfg(all(
+    feature = "multicore",
+    target_arch = "wasm32",
+    not(target_feature = "atomics")
+))]
+compile_error!(
+    "The multicore feature flag is not supported on wasm32 architectures without atomics"
+);
+
 pub use maybe_rayon::{
     iter::{IntoParallelIterator, IntoParallelRefMutIterator, ParallelIterator},
     join, scope, Scope,
