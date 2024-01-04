@@ -13,6 +13,20 @@ The implementations were originally ported from [matterlabs/pairing](https://git
 * Various features related to serialization and deserialization of curve points and field elements.
 * Curve-specific optimizations and benchmarking capabilities.
 
+## Controlling parallelism
+
+`halo2curves` currently uses [rayon](https://github.com/rayon-rs/rayon) for parallel
+computation. The `RAYON_NUM_THREADS` environment variable can be used to set the number of
+threads.
+
+You can disable `rayon` by disabling the `"multicore"` feature.
+Warning! halo2curves will lose access to parallelism if you disable the `"multicore"` feature.
+This will significantly degrade performance.
+
+Notice that if the `multicore` feature is active, the library will not compile to any `wasm` target. 
+This is because WASM architectures at the time of writing this still don't handle parallelism properly. 
+See: [Rayon: Usage with WwbAssembly](https://github.com/rayon-rs/rayon#usage-with-webassembly) for more info. 
+
 ## Benchmarks
 
 Benchmarking is supported through the use of Rust's built-in test framework. Benchmarks can be run without assembly optimizations:
