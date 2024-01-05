@@ -58,7 +58,7 @@ jobs:
         # We run WASM build (for tests) which compiles the lib allowig us to have
         # `getrandom` as a dev-dependency.
       - name: Build (WASM compat)
-        run: cargi build --tests --release --no-default-features --features "${{ matrix.feature }}
+        run: cargo build --tests --release --no-default-features --features "${{ matrix.feature }}"
       - name: Test
         run: |
           cargo nextest run --profile ci --release --workspace --no-default-features --features "${{ matrix.feature }}"
