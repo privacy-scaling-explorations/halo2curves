@@ -4,8 +4,6 @@ use ff::PrimeField;
 use group::Group;
 use pasta_curves::arithmetic::CurveAffine;
 
-use crate::multicore;
-
 fn get_booth_index(window_index: usize, window_size: usize, el: &[u8]) -> i32 {
     // Booth encoding:
     // * step by `window` size
@@ -155,12 +153,12 @@ pub fn small_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::C
 pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
     assert_eq!(coeffs.len(), bases.len());
 
-    let num_threads = multicore::current_num_threads();
+    let num_threads = rayon::current_num_threads();
     if coeffs.len() > num_threads {
         let chunk = coeffs.len() / num_threads;
         let num_chunks = coeffs.chunks(chunk).len();
         let mut results = vec![C::Curve::identity(); num_chunks];
-        multicore::scope(|scope| {
+        rayon::scope(|scope| {
             let chunk = coeffs.len() / num_threads;
 
             for ((coeffs, bases), acc) in coeffs
@@ -186,10 +184,7 @@ mod test {
 
     use std::ops::Neg;
 
-    use crate::{
-        bn256::{Fr, G1Affine, G1},
-        multicore,
-    };
+    use crate::bn256::{Fr, G1Affine, G1};
     use ark_std::{end_timer, start_timer};
     use ff::{Field, PrimeField};
     use group::{Curve, Group};
@@ -200,12 +195,12 @@ mod test {
     fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
         assert_eq!(coeffs.len(), bases.len());
 
-        let num_threads = multicore::current_num_threads();
+        let num_threads = rayon::current_num_threads();
         if coeffs.len() > num_threads {
             let chunk = coeffs.len() / num_threads;
             let num_chunks = coeffs.chunks(chunk).len();
             let mut results = vec![C::Curve::identity(); num_chunks];
-            multicore::scope(|scope| {
+            rayon::scope(|scope| {
                 let chunk = coeffs.len() / num_threads;
 
                 for ((coeffs, bases), acc) in coeffs

@@ -17,6 +17,19 @@ The implementations were originally ported from [matterlabs/pairing](https://git
 * Various features related to serialization and deserialization of curve points and field elements.
 * Curve-specific optimizations and benchmarking capabilities.
 
+## Controlling parallelism
+
+`halo2curves` currently uses [rayon](https://github.com/rayon-rs/rayon) for parallel
+computation. 
+
+The `RAYON_NUM_THREADS` environment variable can be used to set the number of
+threads.
+
+When compiling to WASM-targets, notice that since version `1.7`, `rayon` will fallback automatically (with no need to handle features) to require `getrandom` in order to be able to work.
+For more info related to WASM-compilation.
+
+See: [Rayon: Usage with WebAssembly](https://github.com/rayon-rs/rayon#usage-with-webassembly) for more info.  
+
 ## Benchmarks
 
 Benchmarking is supported through the use of Rust's built-in test framework. Benchmarks can be run without assembly optimizations:

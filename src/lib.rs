@@ -3,7 +3,6 @@ pub mod ff_ext;
 pub mod fft;
 pub mod hash_to_curve;
 pub mod msm;
-pub mod multicore;
 pub mod serde;
 
 pub mod bn256;
