@@ -34,7 +34,7 @@ halo2curves = { version = "0.5.0", features = ["derive_serde", "multicore"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # bypass the default "multicore" feature
-halo2curves = { version = "0.5.0", default-features = false, features = ["derive_serde", "multicore"] }
+halo2curves = { version = "0.5.0", default-features = false, features = ["derive_serde"]] }
 ```
 ## Benchmarks
 
