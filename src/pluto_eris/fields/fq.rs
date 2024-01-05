@@ -270,7 +270,7 @@ pub struct FqRepr {
 }
 
 impl FqRepr {
-    /// Returns an iterator over the bytes of the canoncial representation of the element.
+    /// Returns an iterator over the bytes of the canonical representation of the element.
     pub fn iter(&self) -> Iter<'_, u8> {
         self.repr.iter()
     }
