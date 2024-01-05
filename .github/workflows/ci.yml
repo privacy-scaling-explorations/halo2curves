@@ -43,6 +43,10 @@ jobs:
         target:
           - wasm32-unknown-unknown
           - wasm32-wasi
+        include:
+          - feature: default
+          - feature: bn256-table
+          - feature: derive_serde
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -61,6 +65,9 @@ jobs:
       matrix:
         include:
           - feature: default
+          - feature: bn256-table
+          - feature: derive_serde
+          - feature: asm
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
