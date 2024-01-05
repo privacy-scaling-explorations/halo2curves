@@ -32,7 +32,6 @@ env:
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
-  
 
 jobs:
   test:
@@ -42,8 +41,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - feature: 
           - feature: default
+        target:
+          - wasm32-unknown-unknown
+          - wasm32-wasi
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -54,6 +55,10 @@ jobs:
         # This build will be reused by nextest,
         # and also checks (--all-targets) that benches don't bit-rot
         run: cargo build --release --all-targets --no-default-features --features "${{ matrix.feature }}"
+        # We run WASM build (for tests) which compiles the lib allowig us to have
+        # `getrandom` as a dev-dependency.
+      - name: Build (WASM compat)
+        run: cargi build --tests --release --no-default-features --features "${{ matrix.feature }}
       - name: Test
         run: |
           cargo nextest run --profile ci --release --workspace --no-default-features --features "${{ matrix.feature }}"
