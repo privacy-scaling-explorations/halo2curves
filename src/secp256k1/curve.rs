@@ -246,31 +246,26 @@ pub(crate) fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
         ],
     ];
 
-    // Convert to affine coordinates:
-    let coords = <IsoSecp256k1 as CurveExt>::AffineExt::coordinates(&rp.into()).unwrap();
-    let x = coords.x();
-    let y = coords.y();
+    let (x, y, z) = rp.jacobian_coordinates();
 
-    // iso_map logic
-    let x_squared = x.square();
-    let x_cubed = x * x_squared;
+    let z2 = z.square();
+    let z3 = z2 * z;
+    let z4 = z2.square();
+    let z6 = z3.square();
 
-    let x_num = K[1][3] * x_cubed + K[1][2] * x_squared + K[1][1] * x + K[1][0];
-    let x_den = x_squared + K[2][1] * x + K[2][0];
+    // iso_map logic (avoid inversion)
+    //   reference: <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs#L80-L106>
+    let x_num = ((K[1][3] * x + K[1][2] * z2) * x + K[1][1] * z4) * x + K[1][0] * z6;
+    let x_den = (z2 * x + K[2][1] * z4) * x + K[2][0] * z6;
 
-    let y_num = K[3][3] * x_cubed + K[3][2] * x_squared + K[3][1] * x + K[3][0];
-    let y_den = x_cubed + K[4][2] * x_squared + K[4][1] * x + K[4][0];
+    let y_num = (((K[3][3] * x + K[3][2] * z2) * x + K[3][1] * z4) * x + K[3][0] * z6) * y;
+    let y_den = (((x + K[4][2] * z2) * x + K[4][1] * z4) * x + K[4][0] * z6) * z3;
 
-    // exceptional case MUST return identity
-    //   reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-simplified-swu-for-ab-0>
-    if x_den.is_zero().into() || y_den.is_zero().into() {
-        return Secp256k1::identity();
-    }
+    let z = x_den * y_den;
+    let x = x_num * y_den * z;
+    let y = y_num * x_den * z.square();
 
-    let x = x_num * x_den.invert().unwrap();
-    let y = y * (y_num * y_den.invert().unwrap());
-
-    Secp256k1::new_jacobian(x, y, Fp::ONE).unwrap()
+    Secp256k1::new_jacobian(x, y, z).unwrap()
 }
 
 #[cfg(test)]
