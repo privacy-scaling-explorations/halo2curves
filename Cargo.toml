@@ -48,7 +48,6 @@ asm = []
 bits = ["ff/bits"]
 bn256-table = []
 derive_serde = ["serde/derive", "serde_arrays", "hex"]
-prefetch = []
 print-trace = ["ark-std/print-trace"]
 
 [profile.bench]
@@ -83,4 +82,3 @@ harness = false
 [[bench]]
 name = "msm"
 harness = false
-required-features = ["multicore"]
