@@ -66,7 +66,7 @@ macro_rules! field_common {
             #[cfg(feature = "asm")]
             const fn montgomery_form(val: [u64; 4], r: $field) -> $field {
                 // Converts a 4 64-bit limb value into its congruent field representation.
-                // If `val` representes a 256 bit value then `r` should be R^2,
+                // If `val` represents a 256 bit value then `r` should be R^2,
                 // if `val` represents the 256 MSB of a 512 bit value, then `r` should be R^3.
 
                 let (r0, carry) = mac(0, val[0], r.0[0], 0);

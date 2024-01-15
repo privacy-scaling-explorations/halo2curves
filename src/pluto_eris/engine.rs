@@ -285,7 +285,7 @@ impl G2Prepared {
 
             r.y -= &tmp2;
 
-            // up to here everything was by algorith, line 11
+            // up to here everything was by algorithm, line 11
             // use R instead of new T
 
             // tmp3 is the first part of line 12
