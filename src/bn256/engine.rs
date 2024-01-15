@@ -655,184 +655,187 @@ impl MultiMillerLoop for Bn256 {
 }
 
 #[cfg(test)]
-use rand::SeedableRng;
-#[cfg(test)]
-use rand_xorshift::XorShiftRng;
+mod tests {
+    use super::*;
+    use rand::SeedableRng;
+    use rand_xorshift::XorShiftRng;
 
-#[test]
-fn test_pairing() {
-    let g1 = G1::generator();
-    let mut g2 = G2::generator();
-    g2 = g2.double();
-    let pair12 = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
-
-    let mut g1 = G1::generator();
-    let g2 = G2::generator();
-    g1 = g1.double();
-    let pair21 = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
-
-    assert_eq!(pair12, pair21);
-
-    let g1 = G1::generator();
-    let mut g2 = G2::generator();
-    g2 = g2.double().double();
-    let pair12 = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
-
-    let mut g1 = G1::generator();
-    let mut g2 = G2::generator();
-    g1 = g1.double();
-    g2 = g2.double();
-    let pair21 = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
-
-    assert_eq!(pair12, pair21);
-
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-    for _ in 0..1000 {
-        let a = Fr::random(&mut rng);
-        let b = Fr::random(&mut rng);
+    #[test]
+    fn test_pairing() {
+        let g1 = G1::generator();
+        let mut g2 = G2::generator();
+        g2 = g2.double();
+        let pair12 = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
         let mut g1 = G1::generator();
-        g1.mul_assign(a);
+        let g2 = G2::generator();
+        g1 = g1.double();
+        let pair21 = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
+        assert_eq!(pair12, pair21);
+
+        let g1 = G1::generator();
         let mut g2 = G2::generator();
-        g1.mul_assign(b);
+        g2 = g2.double().double();
+        let pair12 = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
-        let pair_ab = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
+        let mut g1 = G1::generator();
+        let mut g2 = G2::generator();
+        g1 = g1.double();
+        g2 = g2.double();
+        let pair21 = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
-        g1 = G1::generator();
-        g1.mul_assign(b);
+        assert_eq!(pair12, pair21);
 
-        g2 = G2::generator();
-        g1.mul_assign(a);
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+        for _ in 0..1000 {
+            let a = Fr::random(&mut rng);
+            let b = Fr::random(&mut rng);
 
-        let pair_ba = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
+            let mut g1 = G1::generator();
+            g1.mul_assign(a);
 
-        assert_eq!(pair_ab, pair_ba);
-    }
-}
+            let mut g2 = G2::generator();
+            g1.mul_assign(b);
 
-#[test]
-fn random_bilinearity_tests() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
+            let pair_ab = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
-    for _ in 0..1000 {
-        let mut a = G1::generator();
-        let ka = Fr::random(&mut rng);
-        a.mul_assign(ka);
+            g1 = G1::generator();
+            g1.mul_assign(b);
 
-        let mut b = G2::generator();
-        let kb = Fr::random(&mut rng);
-        b.mul_assign(kb);
+            g2 = G2::generator();
+            g1.mul_assign(a);
 
-        let c = Fr::random(&mut rng);
-        let d = Fr::random(&mut rng);
+            let pair_ba = Bn256::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
-        let mut ac = a;
-        ac.mul_assign(c);
-
-        let mut ad = a;
-        ad.mul_assign(d);
-
-        let mut bc = b;
-        bc.mul_assign(c);
-
-        let mut bd = b;
-        bd.mul_assign(d);
-
-        let acbd = Bn256::pairing(&G1Affine::from(ac), &G2Affine::from(bd));
-        let adbc = Bn256::pairing(&G1Affine::from(ad), &G2Affine::from(bc));
-
-        let mut cd = c;
-        cd.mul_assign(&d);
-
-        cd *= Fr([1, 0, 0, 0]);
-
-        let abcd = Gt(Bn256::pairing(&G1Affine::from(a), &G2Affine::from(b))
-            .0
-            .pow_vartime(cd.0));
-
-        assert_eq!(acbd, adbc);
-        assert_eq!(acbd, abcd);
-    }
-}
-
-#[test]
-pub fn engine_tests() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..10 {
-        let a = G1Affine::from(G1::random(&mut rng));
-        let b = G2Affine::from(G2::random(&mut rng));
-
-        assert!(a.pairing_with(&b) == b.pairing_with(&a));
-        assert!(a.pairing_with(&b) == pairing(&a, &b));
+            assert_eq!(pair_ab, pair_ba);
+        }
     }
 
-    for _ in 0..1000 {
-        let z1 = G1Affine::identity();
-        let z2 = G2Prepared::from(G2Affine::identity());
+    #[test]
+    fn random_bilinearity_tests() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
 
-        let a = G1Affine::from(G1::random(&mut rng));
-        let b = G2Prepared::from(G2Affine::from(G2::random(&mut rng)));
-        let c = G1Affine::from(G1::random(&mut rng));
-        let d = G2Prepared::from(G2Affine::from(G2::random(&mut rng)));
+        for _ in 0..1000 {
+            let mut a = G1::generator();
+            let ka = Fr::random(&mut rng);
+            a.mul_assign(ka);
 
-        assert_eq!(
-            Fq12::ONE,
-            multi_miller_loop(&[(&z1, &b)]).final_exponentiation().0,
-        );
+            let mut b = G2::generator();
+            let kb = Fr::random(&mut rng);
+            b.mul_assign(kb);
 
-        assert_eq!(
-            Fq12::ONE,
-            multi_miller_loop(&[(&a, &z2)]).final_exponentiation().0,
-        );
+            let c = Fr::random(&mut rng);
+            let d = Fr::random(&mut rng);
 
-        assert_eq!(
-            multi_miller_loop(&[(&z1, &b), (&c, &d)]).final_exponentiation(),
-            multi_miller_loop(&[(&a, &z2), (&c, &d)]).final_exponentiation(),
-        );
+            let mut ac = a;
+            ac.mul_assign(c);
 
-        assert_eq!(
-            multi_miller_loop(&[(&a, &b), (&z1, &d)]).final_exponentiation(),
-            multi_miller_loop(&[(&a, &b), (&c, &z2)]).final_exponentiation(),
-        );
+            let mut ad = a;
+            ad.mul_assign(d);
+
+            let mut bc = b;
+            bc.mul_assign(c);
+
+            let mut bd = b;
+            bd.mul_assign(d);
+
+            let acbd = Bn256::pairing(&G1Affine::from(ac), &G2Affine::from(bd));
+            let adbc = Bn256::pairing(&G1Affine::from(ad), &G2Affine::from(bc));
+
+            let mut cd = c;
+            cd.mul_assign(&d);
+
+            cd *= Fr([1, 0, 0, 0]);
+
+            let abcd = Gt(Bn256::pairing(&G1Affine::from(a), &G2Affine::from(b))
+                .0
+                .pow_vartime(cd.0));
+
+            assert_eq!(acbd, adbc);
+            assert_eq!(acbd, abcd);
+        }
     }
-}
 
-#[test]
-fn random_miller_loop_tests() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
+    #[test]
+    pub fn engine_tests() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
 
-    // Exercise a double miller loop
-    for _ in 0..1000 {
-        let a = G1Affine::from(G1::random(&mut rng));
-        let b = G2Affine::from(G2::random(&mut rng));
-        let c = G1Affine::from(G1::random(&mut rng));
-        let d = G2Affine::from(G2::random(&mut rng));
+        for _ in 0..10 {
+            let a = G1Affine::from(G1::random(&mut rng));
+            let b = G2Affine::from(G2::random(&mut rng));
 
-        let ab = pairing(&a, &b);
-        let cd = pairing(&c, &d);
+            assert!(a.pairing_with(&b) == b.pairing_with(&a));
+            assert!(a.pairing_with(&b) == pairing(&a, &b));
+        }
 
-        let mut abcd = ab;
-        abcd = Gt(abcd.0 * cd.0);
+        for _ in 0..1000 {
+            let z1 = G1Affine::identity();
+            let z2 = G2Prepared::from(G2Affine::identity());
 
-        let b = G2Prepared::from(b);
-        let d = G2Prepared::from(d);
+            let a = G1Affine::from(G1::random(&mut rng));
+            let b = G2Prepared::from(G2Affine::from(G2::random(&mut rng)));
+            let c = G1Affine::from(G1::random(&mut rng));
+            let d = G2Prepared::from(G2Affine::from(G2::random(&mut rng)));
 
-        let abcd_with_double_loop = multi_miller_loop(&[(&a, &b), (&c, &d)]).final_exponentiation();
+            assert_eq!(
+                Fq12::ONE,
+                multi_miller_loop(&[(&z1, &b)]).final_exponentiation().0,
+            );
 
-        assert_eq!(abcd, abcd_with_double_loop);
+            assert_eq!(
+                Fq12::ONE,
+                multi_miller_loop(&[(&a, &z2)]).final_exponentiation().0,
+            );
+
+            assert_eq!(
+                multi_miller_loop(&[(&z1, &b), (&c, &d)]).final_exponentiation(),
+                multi_miller_loop(&[(&a, &z2), (&c, &d)]).final_exponentiation(),
+            );
+
+            assert_eq!(
+                multi_miller_loop(&[(&a, &b), (&z1, &d)]).final_exponentiation(),
+                multi_miller_loop(&[(&a, &b), (&c, &z2)]).final_exponentiation(),
+            );
+        }
+    }
+
+    #[test]
+    fn random_miller_loop_tests() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+
+        // Exercise a double miller loop
+        for _ in 0..1000 {
+            let a = G1Affine::from(G1::random(&mut rng));
+            let b = G2Affine::from(G2::random(&mut rng));
+            let c = G1Affine::from(G1::random(&mut rng));
+            let d = G2Affine::from(G2::random(&mut rng));
+
+            let ab = pairing(&a, &b);
+            let cd = pairing(&c, &d);
+
+            let mut abcd = ab;
+            abcd = Gt(abcd.0 * cd.0);
+
+            let b = G2Prepared::from(b);
+            let d = G2Prepared::from(d);
+
+            let abcd_with_double_loop =
+                multi_miller_loop(&[(&a, &b), (&c, &d)]).final_exponentiation();
+
+            assert_eq!(abcd, abcd_with_double_loop);
+        }
     }
 }

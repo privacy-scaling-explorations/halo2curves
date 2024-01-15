@@ -242,46 +242,53 @@ new_curve_impl!(
     |_, _| unimplemented!(),
 );
 
-#[test]
-fn test_curve_pluto() {
-    crate::tests::curve::curve_tests::<G1>();
-}
-#[test]
-fn test_curve_eris() {
-    crate::tests::curve::curve_tests::<Eris>();
-}
-#[test]
-fn test_curve_triton() {
-    crate::tests::curve::curve_tests::<G2>();
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn test_serialization() {
-    crate::tests::curve::random_serialization_test::<G1>();
-    crate::tests::curve::random_serialization_test::<Eris>();
-    crate::tests::curve::random_serialization_test::<G2>();
-    #[cfg(feature = "derive_serde")]
-    crate::tests::curve::random_serde_test::<G1>();
-    #[cfg(feature = "derive_serde")]
-    crate::tests::curve::random_serde_test::<Eris>();
-    #[cfg(feature = "derive_serde")]
-    crate::tests::curve::random_serde_test::<G2>();
-}
+    #[test]
+    fn test_curve_pluto() {
+        crate::tests::curve::curve_tests::<G1>();
+    }
 
-#[test]
-fn test_hash_to_curve() {
-    crate::tests::curve::hash_to_curve_test::<G1>();
-    crate::tests::curve::hash_to_curve_test::<Eris>();
-}
+    #[test]
+    fn test_curve_eris() {
+        crate::tests::curve::curve_tests::<Eris>();
+    }
 
-#[test]
-fn test_endo_consistency() {
-    let g = Eris::generator();
-    assert_eq!(g * Fp::ZETA, g.endo());
+    #[test]
+    fn test_curve_triton() {
+        crate::tests::curve::curve_tests::<G2>();
+    }
 
-    let g = G1::generator();
-    assert_eq!(g * Fq::ZETA, g.endo());
+    #[test]
+    fn test_serialization() {
+        crate::tests::curve::random_serialization_test::<G1>();
+        crate::tests::curve::random_serialization_test::<Eris>();
+        crate::tests::curve::random_serialization_test::<G2>();
+        #[cfg(feature = "derive_serde")]
+        crate::tests::curve::random_serde_test::<G1>();
+        #[cfg(feature = "derive_serde")]
+        crate::tests::curve::random_serde_test::<Eris>();
+        #[cfg(feature = "derive_serde")]
+        crate::tests::curve::random_serde_test::<G2>();
+    }
 
-    let g = G2::generator();
-    assert_eq!(g * Fq::ZETA, g.endo());
+    #[test]
+    fn test_hash_to_curve() {
+        crate::tests::curve::hash_to_curve_test::<G1>();
+        crate::tests::curve::hash_to_curve_test::<Eris>();
+    }
+
+    #[test]
+    fn test_endo_consistency() {
+        let g = Eris::generator();
+        assert_eq!(g * Fp::ZETA, g.endo());
+
+        let g = G1::generator();
+        assert_eq!(g * Fq::ZETA, g.endo());
+
+        let g = G2::generator();
+        assert_eq!(g * Fq::ZETA, g.endo());
+    }
 }

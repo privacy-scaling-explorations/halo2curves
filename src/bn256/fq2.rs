@@ -541,213 +541,215 @@ impl WithSmallOrderMulGroup<3> for Fq2 {
 }
 
 #[cfg(test)]
-use rand::SeedableRng;
-#[cfg(test)]
-use rand_xorshift::XorShiftRng;
+mod tests {
+    use super::*;
+    use rand::SeedableRng;
+    use rand_xorshift::XorShiftRng;
 
-#[test]
-fn test_ser() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
+    #[test]
+    fn test_ser() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
 
-    let a0 = Fq2::random(&mut rng);
-    let a_bytes = a0.to_bytes();
-    let a1 = Fq2::from_bytes(&a_bytes).unwrap();
-    assert_eq!(a0, a1);
-}
+        let a0 = Fq2::random(&mut rng);
+        let a_bytes = a0.to_bytes();
+        let a1 = Fq2::from_bytes(&a_bytes).unwrap();
+        assert_eq!(a0, a1);
+    }
 
-#[test]
-fn test_fq2_ordering() {
-    let mut a = Fq2 {
-        c0: Fq::zero(),
-        c1: Fq::zero(),
-    };
-
-    let mut b = a;
-
-    assert!(a.cmp(&b) == Ordering::Equal);
-    b.c0 += &Fq::one();
-    assert!(a.cmp(&b) == Ordering::Less);
-    a.c0 += &Fq::one();
-    assert!(a.cmp(&b) == Ordering::Equal);
-    b.c1 += &Fq::one();
-    assert!(a.cmp(&b) == Ordering::Less);
-    a.c0 += &Fq::one();
-    assert!(a.cmp(&b) == Ordering::Less);
-    a.c1 += &Fq::one();
-    assert!(a.cmp(&b) == Ordering::Greater);
-    b.c0 += &Fq::one();
-    assert!(a.cmp(&b) == Ordering::Equal);
-}
-
-#[test]
-fn test_fq2_basics() {
-    assert_eq!(
-        Fq2 {
+    #[test]
+    fn test_fq2_ordering() {
+        let mut a = Fq2 {
             c0: Fq::zero(),
             c1: Fq::zero(),
-        },
-        Fq2::ZERO
-    );
-    assert_eq!(
-        Fq2 {
+        };
+
+        let mut b = a;
+
+        assert!(a.cmp(&b) == Ordering::Equal);
+        b.c0 += &Fq::one();
+        assert!(a.cmp(&b) == Ordering::Less);
+        a.c0 += &Fq::one();
+        assert!(a.cmp(&b) == Ordering::Equal);
+        b.c1 += &Fq::one();
+        assert!(a.cmp(&b) == Ordering::Less);
+        a.c0 += &Fq::one();
+        assert!(a.cmp(&b) == Ordering::Less);
+        a.c1 += &Fq::one();
+        assert!(a.cmp(&b) == Ordering::Greater);
+        b.c0 += &Fq::one();
+        assert!(a.cmp(&b) == Ordering::Equal);
+    }
+
+    #[test]
+    fn test_fq2_basics() {
+        assert_eq!(
+            Fq2 {
+                c0: Fq::zero(),
+                c1: Fq::zero(),
+            },
+            Fq2::ZERO
+        );
+        assert_eq!(
+            Fq2 {
+                c0: Fq::one(),
+                c1: Fq::zero(),
+            },
+            Fq2::ONE
+        );
+        assert_eq!(Fq2::ZERO.is_zero().unwrap_u8(), 1);
+        assert_eq!(Fq2::ONE.is_zero().unwrap_u8(), 0);
+        assert_eq!(
+            Fq2 {
+                c0: Fq::zero(),
+                c1: Fq::one(),
+            }
+            .is_zero()
+            .unwrap_u8(),
+            0
+        );
+    }
+
+    #[test]
+    fn test_fq2_squaring() {
+        let mut a = Fq2 {
             c0: Fq::one(),
-            c1: Fq::zero(),
-        },
-        Fq2::ONE
-    );
-    assert_eq!(Fq2::ZERO.is_zero().unwrap_u8(), 1);
-    assert_eq!(Fq2::ONE.is_zero().unwrap_u8(), 0);
-    assert_eq!(
-        Fq2 {
+            c1: Fq::one(),
+        }; // u + 1
+        a.square_assign();
+        assert_eq!(
+            a,
+            Fq2 {
+                c0: Fq::zero(),
+                c1: Fq::one() + Fq::one(),
+            }
+        ); // 2u
+
+        let mut a = Fq2 {
             c0: Fq::zero(),
             c1: Fq::one(),
-        }
-        .is_zero()
-        .unwrap_u8(),
-        0
-    );
-}
-
-#[test]
-fn test_fq2_squaring() {
-    let mut a = Fq2 {
-        c0: Fq::one(),
-        c1: Fq::one(),
-    }; // u + 1
-    a.square_assign();
-    assert_eq!(
-        a,
-        Fq2 {
-            c0: Fq::zero(),
-            c1: Fq::one() + Fq::one(),
-        }
-    ); // 2u
-
-    let mut a = Fq2 {
-        c0: Fq::zero(),
-        c1: Fq::one(),
-    }; // u
-    a.square_assign();
-    assert_eq!(a, {
-        let neg1 = -Fq::one();
-        Fq2 {
-            c0: neg1,
-            c1: Fq::zero(),
-        }
-    }); // -1
-}
-
-#[test]
-fn test_fq2_mul_nonresidue() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-    let nine = Fq::one().double().double().double() + Fq::one();
-    let nqr = Fq2 {
-        c0: nine,
-        c1: Fq::one(),
-    };
-
-    for _ in 0..1000 {
-        let mut a = Fq2::random(&mut rng);
-        let mut b = a;
-        a.mul_by_nonresidue();
-        b.mul_assign(&nqr);
-
-        assert_eq!(a, b);
-    }
-}
-
-#[test]
-pub fn test_sqrt() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..10000 {
-        let a = Fq2::random(&mut rng);
-        if a.legendre() == -1 {
-            assert!(bool::from(a.sqrt().is_none()));
-        }
+        }; // u
+        a.square_assign();
+        assert_eq!(a, {
+            let neg1 = -Fq::one();
+            Fq2 {
+                c0: neg1,
+                c1: Fq::zero(),
+            }
+        }); // -1
     }
 
-    for _ in 0..10000 {
-        let a = Fq2::random(&mut rng);
-        let mut b = a;
-        b.square_assign();
-        assert_eq!(b.legendre(), 1);
+    #[test]
+    fn test_fq2_mul_nonresidue() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+        let nine = Fq::one().double().double().double() + Fq::one();
+        let nqr = Fq2 {
+            c0: nine,
+            c1: Fq::one(),
+        };
 
-        let b = b.sqrt().unwrap();
-        let mut negb = b;
-        negb = negb.neg();
-
-        assert!(a == b || a == negb);
-    }
-
-    let mut c = Fq2::ONE;
-    for _ in 0..10000 {
-        let mut b = c;
-        b.square_assign();
-        assert_eq!(b.legendre(), 1);
-
-        b = b.sqrt().unwrap();
-
-        if b != c {
-            b = b.neg();
-        }
-
-        assert_eq!(b, c);
-
-        c += &Fq2::ONE;
-    }
-}
-
-#[test]
-fn test_frobenius() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..100 {
-        for i in 0..14 {
+        for _ in 0..1000 {
             let mut a = Fq2::random(&mut rng);
             let mut b = a;
-
-            for _ in 0..i {
-                a = a.pow([
-                    0x3c208c16d87cfd47,
-                    0x97816a916871ca8d,
-                    0xb85045b68181585d,
-                    0x30644e72e131a029,
-                ]);
-            }
-            b.frobenius_map(i);
+            a.mul_by_nonresidue();
+            b.mul_assign(&nqr);
 
             assert_eq!(a, b);
         }
     }
-}
 
-#[test]
-fn test_zeta() {
-    let zeta = Fq2::new(Fq::ZETA.square(), Fq::zero());
-    assert_eq!(zeta, Fq2::ZETA);
-}
+    #[test]
+    pub fn test_sqrt() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
 
-#[test]
-fn test_field() {
-    crate::tests::field::random_field_tests::<Fq2>("fq2".to_string());
-}
+        for _ in 0..10000 {
+            let a = Fq2::random(&mut rng);
+            if a.legendre() == -1 {
+                assert!(bool::from(a.sqrt().is_none()));
+            }
+        }
 
-#[test]
-fn test_serialization() {
-    crate::tests::field::random_serialization_test::<Fq2>("fq2".to_string());
-    #[cfg(feature = "derive_serde")]
-    crate::tests::field::random_serde_test::<Fq2>("fq2".to_string());
+        for _ in 0..10000 {
+            let a = Fq2::random(&mut rng);
+            let mut b = a;
+            b.square_assign();
+            assert_eq!(b.legendre(), 1);
+
+            let b = b.sqrt().unwrap();
+            let mut negb = b;
+            negb = negb.neg();
+
+            assert!(a == b || a == negb);
+        }
+
+        let mut c = Fq2::ONE;
+        for _ in 0..10000 {
+            let mut b = c;
+            b.square_assign();
+            assert_eq!(b.legendre(), 1);
+
+            b = b.sqrt().unwrap();
+
+            if b != c {
+                b = b.neg();
+            }
+
+            assert_eq!(b, c);
+
+            c += &Fq2::ONE;
+        }
+    }
+
+    #[test]
+    fn test_frobenius() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+
+        for _ in 0..100 {
+            for i in 0..14 {
+                let mut a = Fq2::random(&mut rng);
+                let mut b = a;
+
+                for _ in 0..i {
+                    a = a.pow([
+                        0x3c208c16d87cfd47,
+                        0x97816a916871ca8d,
+                        0xb85045b68181585d,
+                        0x30644e72e131a029,
+                    ]);
+                }
+                b.frobenius_map(i);
+
+                assert_eq!(a, b);
+            }
+        }
+    }
+
+    #[test]
+    fn test_zeta() {
+        let zeta = Fq2::new(Fq::ZETA.square(), Fq::zero());
+        assert_eq!(zeta, Fq2::ZETA);
+    }
+
+    #[test]
+    fn test_field() {
+        crate::tests::field::random_field_tests::<Fq2>("fq2".to_string());
+    }
+
+    #[test]
+    fn test_serialization() {
+        crate::tests::field::random_serialization_test::<Fq2>("fq2".to_string());
+        #[cfg(feature = "derive_serde")]
+        crate::tests::field::random_serde_test::<Fq2>("fq2".to_string());
+    }
 }

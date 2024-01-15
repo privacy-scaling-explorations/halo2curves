@@ -586,124 +586,126 @@ pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
 ];
 
 #[cfg(test)]
-use rand::SeedableRng;
-#[cfg(test)]
-use rand_xorshift::XorShiftRng;
+mod tests {
+    use super::*;
+    use rand::SeedableRng;
+    use rand_xorshift::XorShiftRng;
 
-#[test]
-fn test_fq6_mul_nonresidue() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
+    #[test]
+    fn test_fq6_mul_nonresidue() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
 
-    let nqr = Fq6 {
-        c0: Fq2::zero(),
-        c1: Fq2::one(),
-        c2: Fq2::zero(),
-    };
-
-    for _ in 0..1000 {
-        let mut a = Fq6::random(&mut rng);
-        let mut b = a;
-        a.mul_by_nonresidue();
-        b.mul_assign(&nqr);
-
-        assert_eq!(a, b);
-    }
-}
-
-#[test]
-fn test_fq6_mul_by_1() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..1000 {
-        let c1 = Fq2::random(&mut rng);
-        let mut a = Fq6::random(&mut rng);
-        let mut b = a;
-
-        a.mul_by_1(&c1);
-        b.mul_assign(&Fq6 {
+        let nqr = Fq6 {
             c0: Fq2::zero(),
-            c1,
+            c1: Fq2::one(),
             c2: Fq2::zero(),
-        });
+        };
 
-        assert_eq!(a, b);
-    }
-}
-
-#[test]
-fn test_fq6_mul_by_01() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..1000 {
-        let c0 = Fq2::random(&mut rng);
-        let c1 = Fq2::random(&mut rng);
-        let mut a = Fq6::random(&mut rng);
-        let mut b = a;
-
-        a.mul_by_01(&c0, &c1);
-        b.mul_assign(&Fq6 {
-            c0,
-            c1,
-            c2: Fq2::zero(),
-        });
-
-        assert_eq!(a, b);
-    }
-}
-
-#[test]
-fn test_squaring() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..1000 {
-        let mut a = Fq6::random(&mut rng);
-        let mut b = a;
-        b.mul_assign(&a);
-        a.square_assign();
-        assert_eq!(a, b);
-    }
-}
-
-#[test]
-fn test_frobenius() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..100 {
-        for i in 0..14 {
+        for _ in 0..1000 {
             let mut a = Fq6::random(&mut rng);
             let mut b = a;
-
-            for _ in 0..i {
-                a = a.pow_vartime([
-                    0x3c208c16d87cfd47,
-                    0x97816a916871ca8d,
-                    0xb85045b68181585d,
-                    0x30644e72e131a029,
-                ]);
-            }
-            b.frobenius_map(i);
+            a.mul_by_nonresidue();
+            b.mul_assign(&nqr);
 
             assert_eq!(a, b);
         }
     }
-}
 
-#[test]
-fn test_field() {
-    crate::tests::field::random_field_tests::<Fq6>("fq6".to_string());
+    #[test]
+    fn test_fq6_mul_by_1() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+
+        for _ in 0..1000 {
+            let c1 = Fq2::random(&mut rng);
+            let mut a = Fq6::random(&mut rng);
+            let mut b = a;
+
+            a.mul_by_1(&c1);
+            b.mul_assign(&Fq6 {
+                c0: Fq2::zero(),
+                c1,
+                c2: Fq2::zero(),
+            });
+
+            assert_eq!(a, b);
+        }
+    }
+
+    #[test]
+    fn test_fq6_mul_by_01() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+
+        for _ in 0..1000 {
+            let c0 = Fq2::random(&mut rng);
+            let c1 = Fq2::random(&mut rng);
+            let mut a = Fq6::random(&mut rng);
+            let mut b = a;
+
+            a.mul_by_01(&c0, &c1);
+            b.mul_assign(&Fq6 {
+                c0,
+                c1,
+                c2: Fq2::zero(),
+            });
+
+            assert_eq!(a, b);
+        }
+    }
+
+    #[test]
+    fn test_squaring() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+
+        for _ in 0..1000 {
+            let mut a = Fq6::random(&mut rng);
+            let mut b = a;
+            b.mul_assign(&a);
+            a.square_assign();
+            assert_eq!(a, b);
+        }
+    }
+
+    #[test]
+    fn test_frobenius() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+
+        for _ in 0..100 {
+            for i in 0..14 {
+                let mut a = Fq6::random(&mut rng);
+                let mut b = a;
+
+                for _ in 0..i {
+                    a = a.pow_vartime([
+                        0x3c208c16d87cfd47,
+                        0x97816a916871ca8d,
+                        0xb85045b68181585d,
+                        0x30644e72e131a029,
+                    ]);
+                }
+                b.frobenius_map(i);
+
+                assert_eq!(a, b);
+            }
+        }
+    }
+
+    #[test]
+    fn test_field() {
+        crate::tests::field::random_field_tests::<Fq6>("fq6".to_string());
+    }
 }

@@ -309,7 +309,7 @@ impl WithSmallOrderMulGroup<3> for Fp {
 extend_field_legendre!(Fp);
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use ff::Field;
     use rand_core::OsRng;

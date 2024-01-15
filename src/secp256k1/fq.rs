@@ -298,7 +298,7 @@ impl WithSmallOrderMulGroup<3> for Fq {
 extend_field_legendre!(Fq);
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use ff::Field;
     use rand_core::OsRng;
@@ -369,6 +369,7 @@ mod test {
         #[cfg(feature = "derive_serde")]
         crate::tests::field::random_serde_test::<Fq>("secp256k1 scalar".to_string());
     }
+
     #[test]
     fn test_quadratic_residue() {
         crate::tests::field::random_quadratic_residue_test::<Fq>();

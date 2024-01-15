@@ -684,262 +684,264 @@ impl Engine for Pluto {
 }
 
 #[cfg(test)]
-use rand::SeedableRng;
-#[cfg(test)]
-use rand_xorshift::XorShiftRng;
+mod tests {
+    use super::*;
+    use rand::SeedableRng;
+    use rand_xorshift::XorShiftRng;
 
-#[test]
-fn test_pairing() {
-    let g1 = G1::generator();
-    let mut g2 = G2::generator();
-    g2 = g2.double();
-    let pair12 = Pluto::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
-
-    let mut g1 = G1::generator();
-    let g2 = G2::generator();
-    g1 = g1.double();
-    let pair21 = Pluto::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
-
-    assert_eq!(pair12, pair21);
-
-    let g1 = G1::generator();
-    let mut g2 = G2::generator();
-    g2 = g2.double().double();
-    let pair12 = Pluto::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
-
-    let mut g1 = G1::generator();
-    let mut g2 = G2::generator();
-    g1 = g1.double();
-    g2 = g2.double();
-    let pair21 = Pluto::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
-
-    assert_eq!(pair12, pair21);
-
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-    for _ in 0..100 {
-        let a = Fq::random(&mut rng);
-        let b = Fq::random(&mut rng);
+    #[test]
+    fn test_pairing() {
+        let g1 = G1::generator();
+        let mut g2 = G2::generator();
+        g2 = g2.double();
+        let pair12 = Pluto::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
         let mut g1 = G1::generator();
-        g1.mul_assign(a);
+        let g2 = G2::generator();
+        g1 = g1.double();
+        let pair21 = Pluto::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
+        assert_eq!(pair12, pair21);
+
+        let g1 = G1::generator();
         let mut g2 = G2::generator();
-        g1.mul_assign(b);
+        g2 = g2.double().double();
+        let pair12 = Pluto::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
-        let pair_ab = Pluto::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
+        let mut g1 = G1::generator();
+        let mut g2 = G2::generator();
+        g1 = g1.double();
+        g2 = g2.double();
+        let pair21 = Pluto::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
-        g1 = G1::generator();
-        g1.mul_assign(b);
+        assert_eq!(pair12, pair21);
 
-        g2 = G2::generator();
-        g1.mul_assign(a);
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+        for _ in 0..100 {
+            let a = Fq::random(&mut rng);
+            let b = Fq::random(&mut rng);
 
-        let pair_ba = Pluto::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
+            let mut g1 = G1::generator();
+            g1.mul_assign(a);
 
-        assert_eq!(pair_ab, pair_ba);
-    }
-}
+            let mut g2 = G2::generator();
+            g1.mul_assign(b);
 
-#[test]
-fn tricking_miller_loop_result() {
-    assert_eq!(
-        Pluto::multi_miller_loop(&[(&G1Affine::identity(), &G2Affine::generator().into())]).0,
-        Fp12::one()
-    );
-    assert_eq!(
-        Pluto::multi_miller_loop(&[(&G1Affine::generator(), &G2Affine::identity().into())]).0,
-        Fp12::one()
-    );
-    assert_ne!(
-        Pluto::multi_miller_loop(&[
-            (&G1Affine::generator(), &G2Affine::generator().into()),
-            (&-G1Affine::generator(), &G2Affine::generator().into())
-        ])
-        .0,
-        Fp12::one()
-    );
-    assert_eq!(
-        Pluto::multi_miller_loop(&[
-            (&G1Affine::generator(), &G2Affine::generator().into()),
-            (&-G1Affine::generator(), &G2Affine::generator().into())
-        ])
-        .final_exponentiation(),
-        Gt::identity()
-    );
-}
+            let pair_ab = Pluto::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
-#[test]
-fn random_bilinearity_tests() {
-    let mut rng = XorShiftRng::from_seed([
-        0x55, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
+            g1 = G1::generator();
+            g1.mul_assign(b);
 
-    for _ in 0..10 {
-        let mut a = G1::generator();
-        let ka = Fq::random(&mut rng);
-        a.mul_assign(ka);
+            g2 = G2::generator();
+            g1.mul_assign(a);
 
-        let mut b = G2::generator();
-        let kb = Fq::random(&mut rng);
-        b.mul_assign(kb);
+            let pair_ba = Pluto::pairing(&G1Affine::from(g1), &G2Affine::from(g2));
 
-        let c = Fq::random(&mut rng);
-        let d = Fq::random(&mut rng);
-
-        let mut ac = a;
-        ac.mul_assign(c);
-
-        let mut ad = a;
-        ad.mul_assign(d);
-
-        let mut bc = b;
-        bc.mul_assign(c);
-
-        let mut bd = b;
-        bd.mul_assign(d);
-
-        let acbd = Pluto::pairing(&G1Affine::from(ac), &G2Affine::from(bd));
-        let adbc = Pluto::pairing(&G1Affine::from(ad), &G2Affine::from(bc));
-
-        let mut cd = c;
-        cd.mul_assign(&d);
-
-        cd *= Fq([1, 0, 0, 0, 0, 0, 0]);
-
-        let abcd = Gt(Pluto::pairing(&G1Affine::from(a), &G2Affine::from(b))
-            .0
-            .pow_vartime(cd.0));
-
-        assert_eq!(acbd, adbc);
-        assert_eq!(acbd, abcd);
-    }
-}
-
-#[test]
-pub fn engine_tests() {
-    let mut rng = XorShiftRng::from_seed([
-        0x56, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..10 {
-        let a = G1Affine::from(G1::random(&mut rng));
-        let b = G2Affine::from(G2::random(&mut rng));
-
-        assert!(a.pairing_with(&b) == b.pairing_with(&a));
-        assert!(a.pairing_with(&b) == Pluto::pairing(&a, &b));
+            assert_eq!(pair_ab, pair_ba);
+        }
     }
 
-    for _ in 0..10 {
-        let z1 = G1Affine::identity();
-        let z2 = G2Prepared::from(G2Affine::identity());
-
-        let a = G1Affine::from(G1::random(&mut rng));
-        let b = G2Prepared::from(G2Affine::from(G2::random(&mut rng)));
-        let c = G1Affine::from(G1::random(&mut rng));
-        let d = G2Prepared::from(G2Affine::from(G2::random(&mut rng)));
-
+    #[test]
+    fn tricking_miller_loop_result() {
         assert_eq!(
-            Fp12::ONE,
-            Pluto::multi_miller_loop(&[(&z1, &b)])
-                .final_exponentiation()
-                .0,
+            Pluto::multi_miller_loop(&[(&G1Affine::identity(), &G2Affine::generator().into())]).0,
+            Fp12::one()
         );
-
         assert_eq!(
-            Fp12::ONE,
-            Pluto::multi_miller_loop(&[(&a, &z2)])
-                .final_exponentiation()
-                .0,
+            Pluto::multi_miller_loop(&[(&G1Affine::generator(), &G2Affine::identity().into())]).0,
+            Fp12::one()
         );
-
-        assert_eq!(
-            Pluto::multi_miller_loop(&[(&z1, &b), (&c, &d)]).final_exponentiation(),
-            Pluto::multi_miller_loop(&[(&a, &z2), (&c, &d)]).final_exponentiation(),
+        assert_ne!(
+            Pluto::multi_miller_loop(&[
+                (&G1Affine::generator(), &G2Affine::generator().into()),
+                (&-G1Affine::generator(), &G2Affine::generator().into())
+            ])
+            .0,
+            Fp12::one()
         );
-
         assert_eq!(
-            Pluto::multi_miller_loop(&[(&a, &b), (&z1, &d)]).final_exponentiation(),
-            Pluto::multi_miller_loop(&[(&a, &b), (&c, &z2)]).final_exponentiation(),
+            Pluto::multi_miller_loop(&[
+                (&G1Affine::generator(), &G2Affine::generator().into()),
+                (&-G1Affine::generator(), &G2Affine::generator().into())
+            ])
+            .final_exponentiation(),
+            Gt::identity()
         );
     }
-}
 
-#[test]
-fn random_miller_loop_tests() {
-    let mut rng = XorShiftRng::from_seed([
-        0x58, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
+    #[test]
+    fn random_bilinearity_tests() {
+        let mut rng = XorShiftRng::from_seed([
+            0x55, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
 
-    // Exercise a double miller loop
-    for _ in 0..10 {
-        let a = G1Affine::from(G1::random(&mut rng));
-        let b = G2Affine::from(G2::random(&mut rng));
-        let c = G1Affine::from(G1::random(&mut rng));
-        let d = G2Affine::from(G2::random(&mut rng));
+        for _ in 0..10 {
+            let mut a = G1::generator();
+            let ka = Fq::random(&mut rng);
+            a.mul_assign(ka);
 
-        let ab = Pluto::pairing(&a, &b);
-        let cd = Pluto::pairing(&c, &d);
+            let mut b = G2::generator();
+            let kb = Fq::random(&mut rng);
+            b.mul_assign(kb);
 
-        let mut abcd = ab;
-        abcd = Gt(abcd.0 * cd.0);
+            let c = Fq::random(&mut rng);
+            let d = Fq::random(&mut rng);
 
-        let b = G2Prepared::from(b);
-        let d = G2Prepared::from(d);
+            let mut ac = a;
+            ac.mul_assign(c);
 
-        let abcd_with_double_loop =
-            Pluto::multi_miller_loop(&[(&a, &b), (&c, &d)]).final_exponentiation();
+            let mut ad = a;
+            ad.mul_assign(d);
 
-        assert_eq!(abcd, abcd_with_double_loop);
+            let mut bc = b;
+            bc.mul_assign(c);
+
+            let mut bd = b;
+            bd.mul_assign(d);
+
+            let acbd = Pluto::pairing(&G1Affine::from(ac), &G2Affine::from(bd));
+            let adbc = Pluto::pairing(&G1Affine::from(ad), &G2Affine::from(bc));
+
+            let mut cd = c;
+            cd.mul_assign(&d);
+
+            cd *= Fq([1, 0, 0, 0, 0, 0, 0]);
+
+            let abcd = Gt(Pluto::pairing(&G1Affine::from(a), &G2Affine::from(b))
+                .0
+                .pow_vartime(cd.0));
+
+            assert_eq!(acbd, adbc);
+            assert_eq!(acbd, abcd);
+        }
     }
-}
 
-#[test]
-pub fn multi_miller_final_exp_tests() {
-    let g1 = G1::generator();
-    let g2 = G2::generator();
+    #[test]
+    fn engine_tests() {
+        let mut rng = XorShiftRng::from_seed([
+            0x56, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
 
-    let mut rng = XorShiftRng::from_seed([
-        0x56, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
+        for _ in 0..10 {
+            let a = G1Affine::from(G1::random(&mut rng));
+            let b = G2Affine::from(G2::random(&mut rng));
 
-    for _ in 0..10 {
-        let s = Fq::random(&mut rng);
+            assert!(a.pairing_with(&b) == b.pairing_with(&a));
+            assert!(a.pairing_with(&b) == Pluto::pairing(&a, &b));
+        }
 
-        let mut s_g1 = g1;
-        s_g1.mul_assign(s);
+        for _ in 0..10 {
+            let z1 = G1Affine::identity();
+            let z2 = G2Prepared::from(G2Affine::identity());
 
-        let mut s_g2 = g2;
-        s_g2.mul_assign(s);
+            let a = G1Affine::from(G1::random(&mut rng));
+            let b = G2Prepared::from(G2Affine::from(G2::random(&mut rng)));
+            let c = G1Affine::from(G1::random(&mut rng));
+            let d = G2Prepared::from(G2Affine::from(G2::random(&mut rng)));
 
-        let s_g2_prepared = G2Prepared::from(G2Affine::from(s_g2));
-        let g2_prepared = G2Prepared::from(G2Affine::from(g2));
-
-        let (term_1, term_2) = (
-            (&G1Affine::from(g1), &s_g2_prepared),
-            (&-G1Affine::from(s_g1), &g2_prepared),
-        );
-
-        let terms = &[term_1, term_2];
-
-        assert!(
-            bool::from(
-                Pluto::multi_miller_loop(&terms[..])
+            assert_eq!(
+                Fp12::ONE,
+                Pluto::multi_miller_loop(&[(&z1, &b)])
                     .final_exponentiation()
-                    .is_identity(),
-            ),
-            "trivial pairing check failed"
-        );
+                    .0,
+            );
 
-        let lhs = Pluto::pairing(&G1Affine::from(g1), &G2Affine::from(s_g2));
-        let rhs = Pluto::pairing(&G1Affine::from(s_g1), &G2Affine::from(g2));
+            assert_eq!(
+                Fp12::ONE,
+                Pluto::multi_miller_loop(&[(&a, &z2)])
+                    .final_exponentiation()
+                    .0,
+            );
 
-        assert_eq!(lhs, rhs, "failed trivial check");
+            assert_eq!(
+                Pluto::multi_miller_loop(&[(&z1, &b), (&c, &d)]).final_exponentiation(),
+                Pluto::multi_miller_loop(&[(&a, &z2), (&c, &d)]).final_exponentiation(),
+            );
+
+            assert_eq!(
+                Pluto::multi_miller_loop(&[(&a, &b), (&z1, &d)]).final_exponentiation(),
+                Pluto::multi_miller_loop(&[(&a, &b), (&c, &z2)]).final_exponentiation(),
+            );
+        }
+    }
+
+    #[test]
+    fn random_miller_loop_tests() {
+        let mut rng = XorShiftRng::from_seed([
+            0x58, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+
+        // Exercise a double miller loop
+        for _ in 0..10 {
+            let a = G1Affine::from(G1::random(&mut rng));
+            let b = G2Affine::from(G2::random(&mut rng));
+            let c = G1Affine::from(G1::random(&mut rng));
+            let d = G2Affine::from(G2::random(&mut rng));
+
+            let ab = Pluto::pairing(&a, &b);
+            let cd = Pluto::pairing(&c, &d);
+
+            let mut abcd = ab;
+            abcd = Gt(abcd.0 * cd.0);
+
+            let b = G2Prepared::from(b);
+            let d = G2Prepared::from(d);
+
+            let abcd_with_double_loop =
+                Pluto::multi_miller_loop(&[(&a, &b), (&c, &d)]).final_exponentiation();
+
+            assert_eq!(abcd, abcd_with_double_loop);
+        }
+    }
+
+    #[test]
+    fn multi_miller_final_exp_tests() {
+        let g1 = G1::generator();
+        let g2 = G2::generator();
+
+        let mut rng = XorShiftRng::from_seed([
+            0x56, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+
+        for _ in 0..10 {
+            let s = Fq::random(&mut rng);
+
+            let mut s_g1 = g1;
+            s_g1.mul_assign(s);
+
+            let mut s_g2 = g2;
+            s_g2.mul_assign(s);
+
+            let s_g2_prepared = G2Prepared::from(G2Affine::from(s_g2));
+            let g2_prepared = G2Prepared::from(G2Affine::from(g2));
+
+            let (term_1, term_2) = (
+                (&G1Affine::from(g1), &s_g2_prepared),
+                (&-G1Affine::from(s_g1), &g2_prepared),
+            );
+
+            let terms = &[term_1, term_2];
+
+            assert!(
+                bool::from(
+                    Pluto::multi_miller_loop(&terms[..])
+                        .final_exponentiation()
+                        .is_identity(),
+                ),
+                "trivial pairing check failed"
+            );
+
+            let lhs = Pluto::pairing(&G1Affine::from(g1), &G2Affine::from(s_g2));
+            let rhs = Pluto::pairing(&G1Affine::from(s_g1), &G2Affine::from(g2));
+
+            assert_eq!(lhs, rhs, "failed trivial check");
+        }
     }
 }

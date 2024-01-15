@@ -400,7 +400,7 @@ impl WithSmallOrderMulGroup<3> for Fp {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use crate::serde::SerdeObject;
 
     use super::*;
