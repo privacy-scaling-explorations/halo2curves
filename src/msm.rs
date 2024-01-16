@@ -221,7 +221,7 @@ mod test {
         }
     }
 
-    // keeping older implementation it here for baseline comparision, debugging & benchmarking
+    // keeping older implementation it here for baseline comparison, debugging & benchmarking
     fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C::Curve) {
         let coeffs: Vec<_> = coeffs.iter().map(|a| a.to_repr()).collect();
 
