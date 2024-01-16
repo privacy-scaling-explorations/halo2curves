@@ -13,6 +13,7 @@ pub fn random_field_tests<F: Field>(type_name: String) {
         0xe5,
     ]);
 
+    // normal cases
     random_multiplication_tests::<F, _>(&mut rng, type_name.clone());
     random_addition_tests::<F, _>(&mut rng, type_name.clone());
     random_subtraction_tests::<F, _>(&mut rng, type_name.clone());
@@ -22,29 +23,9 @@ pub fn random_field_tests<F: Field>(type_name: String) {
     random_inversion_tests::<F, _>(&mut rng, type_name.clone());
     random_expansion_tests::<F, _>(&mut rng, type_name);
 
-    assert_eq!(F::ZERO.is_zero().unwrap_u8(), 1);
-    {
-        let mut z = F::ZERO;
-        z = z.neg();
-        assert_eq!(z.is_zero().unwrap_u8(), 1);
-    }
-
-    assert!(bool::from(F::ZERO.invert().is_none()));
-
-    // Multiplication by zero
-    {
-        let mut a = F::random(&mut rng);
-        a.mul_assign(&F::ZERO);
-        assert_eq!(a.is_zero().unwrap_u8(), 1);
-    }
-
-    // Addition by zero
-    {
-        let mut a = F::random(&mut rng);
-        let copy = a;
-        a.add_assign(&F::ZERO);
-        assert_eq!(a, copy);
-    }
+    // edge cases
+    zero_tests::<F, _>(&mut rng);
+    one_tests::<F, _>(&mut rng);
 }
 
 fn random_multiplication_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
@@ -210,6 +191,52 @@ fn random_expansion_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
         assert_eq!(t0, t2);
     }
     end_timer!(start);
+}
+
+fn zero_tests<F: Field, R: RngCore>(mut rng: R) {
+    assert_eq!(F::ZERO.is_zero().unwrap_u8(), 1);
+    {
+        let mut z = F::ZERO;
+        z = z.neg();
+        assert_eq!(z.is_zero().unwrap_u8(), 1);
+    }
+
+    assert!(bool::from(F::ZERO.invert().is_none()));
+
+    // Multiplication by zero
+    {
+        let mut a = F::random(&mut rng);
+        a.mul_assign(&F::ZERO);
+        assert_eq!(a.is_zero().unwrap_u8(), 1);
+    }
+
+    // Addition by zero
+    {
+        let mut a = F::random(&mut rng);
+        let copy = a;
+        a.add_assign(&F::ZERO);
+        assert_eq!(a, copy);
+    }
+}
+
+fn one_tests<F: Field, R: RngCore>(mut rng: R) {
+    assert!(bool::from(F::ONE.invert().is_some()));
+
+    // Multiplication by one
+    {
+        let mut a = F::random(&mut rng);
+        let copy = a;
+        a.mul_assign(&F::ONE);
+        assert_eq!(a, copy);
+    }
+
+    // Addition by one
+    {
+        let mut a = F::random(&mut rng);
+        let copy = a;
+        a.add_assign(&F::ONE);
+        assert_eq!(a, copy + F::ONE);
+    }
 }
 
 pub fn random_conversion_tests<F: ff::PrimeField<Repr = [u8; 32]>>(type_name: String) {
