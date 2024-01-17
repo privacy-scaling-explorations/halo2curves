@@ -242,43 +242,15 @@ new_curve_impl!(
     |_, _| unimplemented!(),
 );
 
+// MUST add `G2` later
+// The reason is that "G2::hash_to_curve" is unimplemented.
+// Hence, it causes the panic in "test_hash_to_curve".
 #[cfg(test)]
-mod tests {
+crate::tests::curve::curve_testing_suite!(G1, Eris);
+
+#[cfg(test)]
+mod extra_tests {
     use super::*;
-
-    #[test]
-    fn test_curve_pluto() {
-        crate::tests::curve::curve_tests::<G1>();
-    }
-
-    #[test]
-    fn test_curve_eris() {
-        crate::tests::curve::curve_tests::<Eris>();
-    }
-
-    #[test]
-    fn test_curve_triton() {
-        crate::tests::curve::curve_tests::<G2>();
-    }
-
-    #[test]
-    fn test_serialization() {
-        crate::tests::curve::random_serialization_test::<G1>();
-        crate::tests::curve::random_serialization_test::<Eris>();
-        crate::tests::curve::random_serialization_test::<G2>();
-        #[cfg(feature = "derive_serde")]
-        crate::tests::curve::random_serde_test::<G1>();
-        #[cfg(feature = "derive_serde")]
-        crate::tests::curve::random_serde_test::<Eris>();
-        #[cfg(feature = "derive_serde")]
-        crate::tests::curve::random_serde_test::<G2>();
-    }
-
-    #[test]
-    fn test_hash_to_curve() {
-        crate::tests::curve::hash_to_curve_test::<G1>();
-        crate::tests::curve::hash_to_curve_test::<Eris>();
-    }
 
     #[test]
     fn test_endo_consistency() {

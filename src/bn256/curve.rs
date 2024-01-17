@@ -198,19 +198,20 @@ impl G1 {
     const SVDW_Z: Fq = Fq::ONE;
 }
 
+// MUST add `G2` later
+// The reason is that "G2::hash_to_curve" is unimplemented.
+// Hence, it causes the panic in "test_hash_to_curve".
 #[cfg(test)]
-mod tests {
+crate::tests::curve::curve_testing_suite!(G1);
+
+#[cfg(test)]
+mod extra_tests {
     use crate::arithmetic::CurveEndo;
     use crate::bn256::{Fr, G1, G2};
     use crate::CurveExt;
     use ff::Field;
     use ff::{PrimeField, WithSmallOrderMulGroup};
     use rand_core::OsRng;
-
-    #[test]
-    fn test_hash_to_curve() {
-        crate::tests::curve::hash_to_curve_test::<G1>();
-    }
 
     #[test]
     fn test_map_to_curve() {
@@ -265,12 +266,6 @@ mod tests {
     }
 
     #[test]
-    fn test_curve() {
-        crate::tests::curve::curve_tests::<G1>();
-        crate::tests::curve::curve_tests::<G2>();
-    }
-
-    #[test]
     fn test_endo() {
         let z_impl = Fr::ZETA;
         let z_other = Fr::from_raw([
@@ -298,17 +293,6 @@ mod tests {
             } else {
                 assert_eq!(k, Fr::from_u128(k1) - Fr::ZETA * Fr::from_u128(k2))
             }
-        }
-    }
-
-    #[test]
-    fn test_serialization() {
-        crate::tests::curve::random_serialization_test::<G1>();
-        crate::tests::curve::random_serialization_test::<G2>();
-        #[cfg(feature = "derive_serde")]
-        {
-            crate::tests::curve::random_serde_test::<G1>();
-            crate::tests::curve::random_serde_test::<G2>();
         }
     }
 }

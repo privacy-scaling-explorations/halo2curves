@@ -90,22 +90,15 @@ impl G1 {
 }
 
 #[cfg(test)]
-mod tests {
+crate::tests::curve::curve_testing_suite!(G1);
+
+#[cfg(test)]
+mod extra_tests {
     use crate::arithmetic::CurveEndo;
     use crate::grumpkin::{Fr, G1};
     use crate::CurveExt;
     use ff::{Field, PrimeField, WithSmallOrderMulGroup};
     use rand_core::OsRng;
-
-    #[test]
-    fn test_hash_to_curve() {
-        crate::tests::curve::hash_to_curve_test::<G1>();
-    }
-
-    #[test]
-    fn test_curve() {
-        crate::tests::curve::curve_tests::<G1>();
-    }
 
     #[test]
     fn test_endo() {
@@ -136,12 +129,5 @@ mod tests {
                 assert_eq!(k, Fr::from_u128(k1) - Fr::ZETA * Fr::from_u128(k2))
             }
         }
-    }
-
-    #[test]
-    fn test_serialization() {
-        crate::tests::curve::random_serialization_test::<G1>();
-        #[cfg(feature = "derive_serde")]
-        crate::tests::curve::random_serde_test::<G1>();
     }
 }

@@ -92,29 +92,15 @@ impl Secp256r1 {
 }
 
 #[cfg(test)]
-mod tests {
+crate::tests::curve::curve_testing_suite!(Secp256r1);
+
+#[cfg(test)]
+mod extra_tests {
     use super::*;
     use crate::group::Curve;
     use crate::secp256r1::{Fp, Fq, Secp256r1};
     use ff::FromUniformBytes;
     use rand_core::OsRng;
-
-    #[test]
-    fn test_hash_to_curve() {
-        crate::tests::curve::hash_to_curve_test::<Secp256r1>();
-    }
-
-    #[test]
-    fn test_curve() {
-        crate::tests::curve::curve_tests::<Secp256r1>();
-    }
-
-    #[test]
-    fn test_serialization() {
-        crate::tests::curve::random_serialization_test::<Secp256r1>();
-        #[cfg(feature = "derive_serde")]
-        crate::tests::curve::random_serde_test::<Secp256r1>();
-    }
 
     #[test]
     fn ecdsa_example() {
