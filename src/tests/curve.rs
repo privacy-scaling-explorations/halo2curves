@@ -3,10 +3,13 @@
 use crate::ff::Field;
 use crate::ff_ext::Legendre;
 use crate::group::prime::PrimeCurveAffine;
-use crate::tests::fe_from_str;
 use crate::{group::GroupEncoding, serde::SerdeObject};
 use crate::{hash_to_curve, CurveAffine, CurveExt};
+use ff::PrimeField;
+use num_bigint::BigUint;
+use num_traits::Num;
 use rand_core::{OsRng, RngCore};
+use std::borrow::Cow;
 use std::iter;
 
 #[cfg(feature = "derive_serde")]
@@ -350,6 +353,16 @@ pub fn hash_to_curve_test<G: CurveExt>() {
             .collect::<Vec<_>>();
         assert!(bool::from(hasher(&message).is_on_curve()));
     }
+}
+
+fn fe_from_str<F: PrimeField>(string: impl AsRef<str>) -> F {
+    let string = string.as_ref();
+    let oct = if let Some(hex) = string.strip_prefix("0x") {
+        Cow::Owned(BigUint::from_str_radix(hex, 16).unwrap().to_string())
+    } else {
+        Cow::Borrowed(string)
+    };
+    F::from_str_vartime(&oct).unwrap()
 }
 
 pub fn svdw_map_to_curve_test<G: CurveExt>(

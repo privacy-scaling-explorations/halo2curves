@@ -1,5 +1,9 @@
 # A collection of Elliptic Curves for ZkCrypto traits
 
+[![crates.io version](https://img.shields.io/crates/v/halo2curves.svg)](https://crates.io/crates/halo2curves)
+[![docs.rs availability](https://img.shields.io/docsrs/halo2curves?label=docs.rs)](https://docs.rs/halo2curves)
+[![Build status](https://img.shields.io/github/actions/workflow/status/privacy-scaling-explorations/halo2curves/ci.yml?branch=main)](https://github.com/privacy-scaling-explorations/halo2curves/actions)
+
 This library provides efficient and flexible implementations of various halo2-friendly elliptic curves, originally implementing the BN256 curve with traits from the `zkcrypto` ecosystem,
 
 * [`zkcrypto/ff`](https://github.com/zkcrypto/ff)
@@ -8,10 +12,23 @@ This library provides efficient and flexible implementations of various halo2-fr
 
 The implementations were originally ported from [matterlabs/pairing](https://github.com/matter-labs/pairing/tree/master/src/bn256) and [zkcrypto/bls12-381](https://github.com/zkcrypto/bls12_381), but have been extended and optimized to cover a broader set of curves and use cases. Since its initial release, the library has expanded to include additional curves, along with the following features:
 
-* `secp256k1`, `secp256r1`, and `grumpkin` curves, enhancing its usability across a range of cryptographic protocols.
+* `secp256k1`, `secp256r1`, `pluto`, `eris` and `grumpkin` curves, enhancing its usability across a range of cryptographic protocols.
 * Assembly optimizations leading to significantly improved performance.
 * Various features related to serialization and deserialization of curve points and field elements.
 * Curve-specific optimizations and benchmarking capabilities.
+
+## Controlling parallelism
+
+`halo2curves` currently uses [rayon](https://github.com/rayon-rs/rayon) for parallel
+computation. 
+
+The `RAYON_NUM_THREADS` environment variable can be used to set the number of
+threads.
+
+When compiling to WASM-targets, notice that since version `1.7`, `rayon` will fallback automatically (with no need to handle features) to require `getrandom` in order to be able to work.
+For more info related to WASM-compilation.
+
+See: [Rayon: Usage with WebAssembly](https://github.com/rayon-rs/rayon#usage-with-webassembly) for more info.  
 
 ## Benchmarks
 
@@ -42,4 +59,4 @@ The library's top-level directories are organized as follows:
 
 * `benches`: Contains benchmarking tests.
 * `script`: Contains utility scripts.
-* `src`: Contains the source code of the library, further subdivided into modules for each supported curve (`bn256`, `grumpkin`, `secp256k1`, `secp256r1`, `pasta`) and additional functionalities (`derive`, `tests`).
+* `src`: Contains the source code of the library, further subdivided into modules for each supported curve (`bn256`, `grumpkin`, `secp256k1`, `secp256r1`, `secq256k1`, `pasta`, `pluto`, `eris`) and additional functionalities (`derive`, `tests`).

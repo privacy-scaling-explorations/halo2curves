@@ -355,7 +355,7 @@ pub fn jacobi<const L: usize>(n: &[u64], d: &[u64]) -> i64 {
         // When each "approximation" variable has the same value as the corresponding "precise"
         // one, the computation is accomplished using the short-arithmetic method of the Jacobi
         // symbol calculation by means of the binary Euclidean algorithm. This approach aims at
-        // avoiding the parts of the final computations, which are related to long arithmetics
+        // avoiding the parts of the final computations, which are related to long arithmetic
         if precise {
             return jacobinary(a, b, t);
         }
