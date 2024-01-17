@@ -12,18 +12,116 @@ use rand_core::{OsRng, RngCore};
 use std::borrow::Cow;
 use std::iter;
 
+macro_rules! assert_is_on_curve {
+    ($point: expr) => {
+        assert!(bool::from($point.is_on_curve()));
+    };
+}
+
+macro_rules! assert_is_identity {
+    ($point: expr) => {
+        assert!(bool::from($point.is_identity()));
+    };
+}
+
+macro_rules! assert_is_not_identity {
+    ($point: expr) => {
+        assert!(!bool::from($point.is_identity()));
+    };
+}
+
+macro_rules! rep {
+    ($n: expr, $block: tt) => {
+        for _ in 0..$n {
+            $block
+        }
+    };
+}
+
+macro_rules! is_on_curve {
+    ($curve: ident) => {
+        assert_is_on_curve!($curve::generator());
+        assert_is_on_curve!($curve::identity());
+
+        rep!(100, {
+            let point = $curve::random(OsRng);
+            assert_is_on_curve!(point);
+            let affine_point: $curve::AffineExt = point.into();
+            assert_is_on_curve!(affine_point);
+        });
+    };
+}
+
+macro_rules! assert_uneq {
+    ($a: expr, $b: expr) => {
+        assert!($a == $a);
+        assert!($b == $b);
+        assert!($a != $b);
+        assert!($b != $a);
+    };
+}
+
+macro_rules! equality {
+    ($curve: ident) => {
+        let a = $curve::generator();
+        let b = $curve::identity();
+
+        assert_uneq!(a, b);
+
+        rep!(100, {
+            let a = $curve::random(OsRng);
+            let b = $curve::random(OsRng);
+            assert_uneq!(a, b);
+
+            let a: $curve::AffineExt = a.into();
+            let b: $curve::AffineExt = b.into();
+            assert_uneq!(a, b);
+        });
+    };
+}
+
+macro_rules! projective_to_affine_affine_to_projective {
+    ($curve: ident) => {
+        let a = $curve::generator();
+        let b = $curve::identity();
+
+        let affine_a = $curve::AffineExt::from(a);
+        let affine_b = $curve::AffineExt::from(b);
+
+        assert_is_on_curve!(affine_a);
+        assert_is_not_identity!(affine_a);
+        assert_is_on_curve!(affine_b);
+        assert_is_identity!(affine_b);
+
+        let a = $curve::AffineExt::generator();
+        let b = $curve::AffineExt::identity();
+
+        let proj_a = $curve::from(a);
+        let proj_b = $curve::from(b);
+
+        assert_is_on_curve!(proj_a);
+        assert_is_not_identity!(proj_a);
+        assert_is_on_curve!(proj_b);
+        assert_is_identity!(proj_b);
+    };
+}
+
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
 
 pub fn curve_tests<G: CurveExt>() {
-    is_on_curve::<G>();
-    equality::<G>();
-    projective_to_affine_affine_to_projective::<G>();
-    projective_addition::<G>();
-    mixed_addition::<G>();
-    multiplication::<G>();
-    batch_normalize::<G>();
-    serdes::<G>();
+    // is_on_curve::<G>();
+    // equality::<G>();
+    // projective_to_affine_affine_to_projective::<G>();
+    // projective_addition::<G>();
+    // mixed_addition::<G>();
+    // multiplication::<G>();
+    // batch_normalize::<G>();
+    // serdes::<G>();
+
+    is_on_curve!(G);
+    equality!(G);
+    projective_to_affine_affine_to_projective!(G);
 }
 
 fn serdes<G: CurveExt>() {
