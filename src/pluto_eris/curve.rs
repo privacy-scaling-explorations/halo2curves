@@ -247,20 +247,3 @@ new_curve_impl!(
 // Hence, it causes the panic in "test_hash_to_curve".
 #[cfg(test)]
 crate::tests::curve::curve_testing_suite!(G1, Eris);
-
-#[cfg(test)]
-mod extra_tests {
-    use super::*;
-
-    #[test]
-    fn test_endo_consistency() {
-        let g = Eris::generator();
-        assert_eq!(g * Fp::ZETA, g.endo());
-
-        let g = G1::generator();
-        assert_eq!(g * Fq::ZETA, g.endo());
-
-        let g = G2::generator();
-        assert_eq!(g * Fq::ZETA, g.endo());
-    }
-}

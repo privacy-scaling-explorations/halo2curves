@@ -272,12 +272,6 @@ pub(crate) fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
 crate::tests::curve::curve_testing_suite!(Secp256k1);
 
 #[test]
-fn test_endo_consistency() {
-    let g = Secp256k1::generator();
-    assert_eq!(g * Fq::ZETA, g.endo());
-}
-
-#[test]
 fn ecdsa_example() {
     use crate::group::Curve;
     use crate::CurveAffine;

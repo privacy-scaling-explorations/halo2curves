@@ -73,18 +73,3 @@ impl Secq256k1 {
 
 #[cfg(test)]
 crate::tests::curve::curve_testing_suite!(Secq256k1);
-
-#[cfg(test)]
-mod extra_tests {
-    use crate::secq256k1::Fq;
-    use crate::CurveExt;
-    use ff::WithSmallOrderMulGroup;
-
-    use super::Secq256k1;
-
-    #[test]
-    fn test_endo_consistency() {
-        let g = Secq256k1::generator();
-        assert_eq!(g * Fq::ZETA, g.endo());
-    }
-}

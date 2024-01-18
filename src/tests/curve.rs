@@ -6,6 +6,7 @@ use crate::group::prime::PrimeCurveAffine;
 use crate::{group::GroupEncoding, serde::SerdeObject};
 use crate::{hash_to_curve, CurveAffine, CurveExt};
 use ff::PrimeField;
+use ff::WithSmallOrderMulGroup;
 use num_bigint::BigUint;
 use num_traits::Num;
 use rand_core::{OsRng, RngCore};
@@ -355,6 +356,11 @@ pub fn hash_to_curve_test<G: CurveExt>() {
     }
 }
 
+pub fn endo_consistency_test<G: CurveExt>() {
+    let g = G::generator();
+    assert_eq!(g * G::ScalarExt::ZETA, g.endo());
+}
+
 fn fe_from_str<F: PrimeField>(string: impl AsRef<str>) -> F {
     let string = string.as_ref();
     let oct = if let Some(hex) = string.strip_prefix("0x") {
@@ -411,8 +417,14 @@ macro_rules! curve_testing_suite {
                     crate::tests::curve::random_serde_test::<$curve>();
                 )*
             }
-        }
 
+            #[test]
+            fn test_endo_consistency() {
+                $(
+                    crate::tests::curve::endo_consistency_test::<$curve>();
+                )*
+            }
+        }
     };
 }
 

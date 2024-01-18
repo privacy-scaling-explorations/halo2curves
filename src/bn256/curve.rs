@@ -208,7 +208,6 @@ crate::tests::curve::curve_testing_suite!(G1);
 mod extra_tests {
     use crate::arithmetic::CurveEndo;
     use crate::bn256::{Fr, G1, G2};
-    use crate::CurveExt;
     use ff::Field;
     use ff::{PrimeField, WithSmallOrderMulGroup};
     use rand_core::OsRng;
@@ -277,10 +276,6 @@ mod extra_tests {
         assert_eq!(z_impl * z_impl + z_impl, -Fr::ONE);
         assert_eq!(z_other * z_other + z_other, -Fr::ONE);
 
-        let g = G1::generator();
-        assert_eq!(g * Fr::ZETA, g.endo());
-        let g = G2::generator();
-        assert_eq!(g * Fr::ZETA, g.endo());
         for _ in 0..100000 {
             let k = Fr::random(OsRng);
             let (k1, k1_neg, k2, k2_neg) = G1::decompose_scalar(&k);
