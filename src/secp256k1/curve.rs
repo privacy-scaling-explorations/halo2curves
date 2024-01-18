@@ -271,62 +271,64 @@ pub(crate) fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
 #[cfg(test)]
 crate::tests::curve::curve_testing_suite!(Secp256k1);
 
-#[test]
-fn ecdsa_example() {
-    use crate::group::Curve;
-    use crate::CurveAffine;
+#[cfg(test)]
+mod extra_tests {
+    use super::*;
     use ff::FromUniformBytes;
     use rand_core::OsRng;
 
-    fn mod_n(x: Fp) -> Fq {
-        let mut x_repr = [0u8; 32];
-        x_repr.copy_from_slice(x.to_repr().as_ref());
-        let mut x_bytes = [0u8; 64];
-        x_bytes[..32].copy_from_slice(&x_repr[..]);
-        Fq::from_uniform_bytes(&x_bytes)
-    }
+    #[test]
+    fn ecdsa_example() {
+        fn mod_n(x: Fp) -> Fq {
+            let mut x_repr = [0u8; 32];
+            x_repr.copy_from_slice(x.to_repr().as_ref());
+            let mut x_bytes = [0u8; 64];
+            x_bytes[..32].copy_from_slice(&x_repr[..]);
+            Fq::from_uniform_bytes(&x_bytes)
+        }
 
-    let g = Secp256k1::generator();
+        let g = Secp256k1::generator();
 
-    for _ in 0..1000 {
-        // Generate a key pair
-        let sk = Fq::random(OsRng);
-        let pk = (g * sk).to_affine();
+        for _ in 0..1000 {
+            // Generate a key pair
+            let sk = Fq::random(OsRng);
+            let pk = (g * sk).to_affine();
 
-        // Generate a valid signature
-        // Suppose `m_hash` is the message hash
-        let msg_hash = Fq::random(OsRng);
+            // Generate a valid signature
+            // Suppose `m_hash` is the message hash
+            let msg_hash = Fq::random(OsRng);
 
-        let (r, s) = {
-            // Draw arandomness
-            let k = Fq::random(OsRng);
-            let k_inv = k.invert().unwrap();
+            let (r, s) = {
+                // Draw arandomness
+                let k = Fq::random(OsRng);
+                let k_inv = k.invert().unwrap();
 
-            // Calculate `r`
-            let r_point = (g * k).to_affine().coordinates().unwrap();
-            let x = r_point.x();
-            let r = mod_n(*x);
+                // Calculate `r`
+                let r_point = (g * k).to_affine().coordinates().unwrap();
+                let x = r_point.x();
+                let r = mod_n(*x);
 
-            // Calculate `s`
-            let s = k_inv * (msg_hash + (r * sk));
+                // Calculate `s`
+                let s = k_inv * (msg_hash + (r * sk));
 
-            (r, s)
-        };
+                (r, s)
+            };
 
-        {
-            // Verify
-            let s_inv = s.invert().unwrap();
-            let u_1 = msg_hash * s_inv;
-            let u_2 = r * s_inv;
+            {
+                // Verify
+                let s_inv = s.invert().unwrap();
+                let u_1 = msg_hash * s_inv;
+                let u_2 = r * s_inv;
 
-            let v_1 = g * u_1;
-            let v_2 = pk * u_2;
+                let v_1 = g * u_1;
+                let v_2 = pk * u_2;
 
-            let r_point = (v_1 + v_2).to_affine().coordinates().unwrap();
-            let x_candidate = r_point.x();
-            let r_candidate = mod_n(*x_candidate);
+                let r_point = (v_1 + v_2).to_affine().coordinates().unwrap();
+                let x_candidate = r_point.x();
+                let r_candidate = mod_n(*x_candidate);
 
-            assert_eq!(r, r_candidate);
+                assert_eq!(r, r_candidate);
+            }
         }
     }
 }
