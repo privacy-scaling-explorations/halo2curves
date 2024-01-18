@@ -180,7 +180,7 @@ pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Cu
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
 
     use std::ops::Neg;
 

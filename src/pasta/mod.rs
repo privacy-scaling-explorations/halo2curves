@@ -38,41 +38,36 @@ const ENDO_PARAMS_EP: EndoParameters = EndoParameters {
 endo!(Eq, Fp, ENDO_PARAMS_EQ);
 endo!(Ep, Fq, ENDO_PARAMS_EP);
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[test]
+fn test_endo() {
+    use ff::Field;
+    use rand_core::OsRng;
 
-    #[test]
-    fn test_endo() {
-        use ff::Field;
-        use rand_core::OsRng;
-
-        for _ in 0..100000 {
-            let k = Fp::random(OsRng);
-            let (k1, k1_neg, k2, k2_neg) = Eq::decompose_scalar(&k);
-            if k1_neg & k2_neg {
-                assert_eq!(k, -Fp::from_u128(k1) + Fp::ZETA * Fp::from_u128(k2))
-            } else if k1_neg {
-                assert_eq!(k, -Fp::from_u128(k1) - Fp::ZETA * Fp::from_u128(k2))
-            } else if k2_neg {
-                assert_eq!(k, Fp::from_u128(k1) + Fp::ZETA * Fp::from_u128(k2))
-            } else {
-                assert_eq!(k, Fp::from_u128(k1) - Fp::ZETA * Fp::from_u128(k2))
-            }
+    for _ in 0..100000 {
+        let k = Fp::random(OsRng);
+        let (k1, k1_neg, k2, k2_neg) = Eq::decompose_scalar(&k);
+        if k1_neg & k2_neg {
+            assert_eq!(k, -Fp::from_u128(k1) + Fp::ZETA * Fp::from_u128(k2))
+        } else if k1_neg {
+            assert_eq!(k, -Fp::from_u128(k1) - Fp::ZETA * Fp::from_u128(k2))
+        } else if k2_neg {
+            assert_eq!(k, Fp::from_u128(k1) + Fp::ZETA * Fp::from_u128(k2))
+        } else {
+            assert_eq!(k, Fp::from_u128(k1) - Fp::ZETA * Fp::from_u128(k2))
         }
+    }
 
-        for _ in 0..100000 {
-            let k = Fp::random(OsRng);
-            let (k1, k1_neg, k2, k2_neg) = Eq::decompose_scalar(&k);
-            if k1_neg & k2_neg {
-                assert_eq!(k, -Fp::from_u128(k1) + Fp::ZETA * Fp::from_u128(k2))
-            } else if k1_neg {
-                assert_eq!(k, -Fp::from_u128(k1) - Fp::ZETA * Fp::from_u128(k2))
-            } else if k2_neg {
-                assert_eq!(k, Fp::from_u128(k1) + Fp::ZETA * Fp::from_u128(k2))
-            } else {
-                assert_eq!(k, Fp::from_u128(k1) - Fp::ZETA * Fp::from_u128(k2))
-            }
+    for _ in 0..100000 {
+        let k = Fp::random(OsRng);
+        let (k1, k1_neg, k2, k2_neg) = Eq::decompose_scalar(&k);
+        if k1_neg & k2_neg {
+            assert_eq!(k, -Fp::from_u128(k1) + Fp::ZETA * Fp::from_u128(k2))
+        } else if k1_neg {
+            assert_eq!(k, -Fp::from_u128(k1) - Fp::ZETA * Fp::from_u128(k2))
+        } else if k2_neg {
+            assert_eq!(k, Fp::from_u128(k1) + Fp::ZETA * Fp::from_u128(k2))
+        } else {
+            assert_eq!(k, Fp::from_u128(k1) - Fp::ZETA * Fp::from_u128(k2))
         }
     }
 }

@@ -546,123 +546,121 @@ pub const FROBENIUS_COEFF_FP12_C1: [Fp2; 12] = [
 ];
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use rand::SeedableRng;
-    use rand_xorshift::XorShiftRng;
+use rand::SeedableRng;
+#[cfg(test)]
+use rand_xorshift::XorShiftRng;
 
-    #[test]
-    fn test_fp12_mul_by_014() {
-        let mut rng = XorShiftRng::from_seed([
-            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
-            0xbc, 0xe5,
-        ]);
+#[test]
+fn test_fp12_mul_by_014() {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
 
-        for _ in 0..1000 {
-            let c0 = Fp2::random(&mut rng);
-            let c1 = Fp2::random(&mut rng);
-            let c5 = Fp2::random(&mut rng);
+    for _ in 0..1000 {
+        let c0 = Fp2::random(&mut rng);
+        let c1 = Fp2::random(&mut rng);
+        let c5 = Fp2::random(&mut rng);
+        let mut a = Fp12::random(&mut rng);
+        let mut b = a;
+
+        a.mul_by_014(&c0, &c1, &c5);
+        b.mul_assign(&Fp12 {
+            c0: Fp6 {
+                c0,
+                c1,
+                c2: Fp2::zero(),
+            },
+            c1: Fp6 {
+                c0: Fp2::zero(),
+                c1: c5,
+                c2: Fp2::zero(),
+            },
+        });
+
+        assert_eq!(a, b);
+    }
+}
+
+#[test]
+fn test_fp12_mul_by_034() {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+
+    for _ in 0..1000 {
+        let c0 = Fp2::random(&mut rng);
+        let c3 = Fp2::random(&mut rng);
+        let c4 = Fp2::random(&mut rng);
+        let mut a = Fp12::random(&mut rng);
+        let mut b = a;
+
+        a.mul_by_034(&c0, &c3, &c4);
+        b.mul_assign(&Fp12 {
+            c0: Fp6 {
+                c0,
+                c1: Fp2::zero(),
+                c2: Fp2::zero(),
+            },
+            c1: Fp6 {
+                c0: c3,
+                c1: c4,
+                c2: Fp2::zero(),
+            },
+        });
+
+        assert_eq!(a, b);
+    }
+}
+
+#[test]
+fn test_squaring() {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+
+    for _ in 0..1000 {
+        let mut a = Fp12::random(&mut rng);
+        let mut b = a;
+        b.mul_assign(&a);
+        a.square_assign();
+        assert_eq!(a, b);
+    }
+}
+
+#[test]
+fn test_frobenius() {
+    let mut rng = XorShiftRng::from_seed([
+        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+        0xe5,
+    ]);
+
+    for _ in 0..50 {
+        for i in 0..13 {
             let mut a = Fp12::random(&mut rng);
             let mut b = a;
 
-            a.mul_by_014(&c0, &c1, &c5);
-            b.mul_assign(&Fp12 {
-                c0: Fp6 {
-                    c0,
-                    c1,
-                    c2: Fp2::zero(),
-                },
-                c1: Fp6 {
-                    c0: Fp2::zero(),
-                    c1: c5,
-                    c2: Fp2::zero(),
-                },
-            });
-
-            assert_eq!(a, b);
-        }
-    }
-
-    #[test]
-    fn test_fp12_mul_by_034() {
-        let mut rng = XorShiftRng::from_seed([
-            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
-            0xbc, 0xe5,
-        ]);
-
-        for _ in 0..1000 {
-            let c0 = Fp2::random(&mut rng);
-            let c3 = Fp2::random(&mut rng);
-            let c4 = Fp2::random(&mut rng);
-            let mut a = Fp12::random(&mut rng);
-            let mut b = a;
-
-            a.mul_by_034(&c0, &c3, &c4);
-            b.mul_assign(&Fp12 {
-                c0: Fp6 {
-                    c0,
-                    c1: Fp2::zero(),
-                    c2: Fp2::zero(),
-                },
-                c1: Fp6 {
-                    c0: c3,
-                    c1: c4,
-                    c2: Fp2::zero(),
-                },
-            });
-
-            assert_eq!(a, b);
-        }
-    }
-
-    #[test]
-    fn test_squaring() {
-        let mut rng = XorShiftRng::from_seed([
-            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
-            0xbc, 0xe5,
-        ]);
-
-        for _ in 0..1000 {
-            let mut a = Fp12::random(&mut rng);
-            let mut b = a;
-            b.mul_assign(&a);
-            a.square_assign();
-            assert_eq!(a, b);
-        }
-    }
-
-    #[test]
-    fn test_frobenius() {
-        let mut rng = XorShiftRng::from_seed([
-            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
-            0xbc, 0xe5,
-        ]);
-
-        for _ in 0..50 {
-            for i in 0..13 {
-                let mut a = Fp12::random(&mut rng);
-                let mut b = a;
-
-                for _ in 0..i {
-                    a = a.pow_vartime([
-                        0x9ffffcd300000001,
-                        0xa2a7e8c30006b945,
-                        0xe4a7a5fe8fadffd6,
-                        0x443f9a5cda8a6c7b,
-                        0xa803ca76f439266f,
-                        0x0130e0000d7f70e4,
-                        0x2400000000002400,
-                    ]);
-                }
-                b.frobenius_map(i);
-
-                assert_eq!(a, b);
+            for _ in 0..i {
+                a = a.pow_vartime([
+                    0x9ffffcd300000001,
+                    0xa2a7e8c30006b945,
+                    0xe4a7a5fe8fadffd6,
+                    0x443f9a5cda8a6c7b,
+                    0xa803ca76f439266f,
+                    0x0130e0000d7f70e4,
+                    0x2400000000002400,
+                ]);
             }
+            b.frobenius_map(i);
+
+            assert_eq!(a, b);
         }
     }
+}
 
-    #[test]
-    fn test_field() {
-        crate::tests::field::random_field_tests::<Fp12>("fp12".to_string());
-    }
+#[test]
+fn test_field() {
+    crate::tests::field::random_field_tests::<Fp12>("fp12".to_string());
 }

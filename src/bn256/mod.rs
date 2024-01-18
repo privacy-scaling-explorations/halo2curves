@@ -18,7 +18,7 @@ pub use fq6::*;
 pub use fr::*;
 
 #[cfg(test)]
-mod tests {
+mod test {
     use super::G1 as Bn256Point;
     use group::GroupEncoding;
     use pasta_curves::arithmetic::CurveExt;

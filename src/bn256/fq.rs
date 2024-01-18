@@ -283,7 +283,7 @@ impl WithSmallOrderMulGroup<3> for Fq {
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use super::*;
     use crate::ff_ext::Legendre;
     use ff::Field;
