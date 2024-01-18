@@ -334,3 +334,38 @@ pub fn random_quadratic_residue_test<F: Field + Legendre>() {
         assert_eq!(!is_quad_non_res, is_quad_res_or_zero)
     }
 }
+
+macro_rules! field_testing_suite {
+    ($($field: ident),*) => {
+
+        #[cfg(test)]
+        mod tests {
+            use super::*;
+
+            #[test]
+            fn test_field() {
+                $(
+                    crate::tests::field::random_field_tests::<$field>(stringify!($field).to_string());
+                )*
+            }
+
+            #[test]
+            fn test_conversion() {
+                $(
+                    crate::tests::field::random_conversion_tests::<$field>(stringify!($field).to_string());
+                )*
+            }
+
+            #[test]
+            fn test_serialization() {
+                $(
+                    crate::tests::field::random_serialization_test::<$field>(stringify!($field).to_string());
+                    #[cfg(feature = "derive_serde")]
+                    crate::tests::field::random_serde_test::<$field>(stringify!($field));
+                )*
+            }
+        }
+    };
+}
+
+pub(crate) use field_testing_suite;
