@@ -246,4 +246,4 @@ new_curve_impl!(
 // The reason is that "G2::hash_to_curve" is unimplemented.
 // Hence, it causes the panic in "test_hash_to_curve".
 #[cfg(test)]
-crate::tests::curve::curve_testing_suite!(G1, Eris);
+crate::curve_testing_suite!(G1, Eris);

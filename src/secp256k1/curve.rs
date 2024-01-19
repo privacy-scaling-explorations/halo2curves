@@ -269,7 +269,7 @@ pub(crate) fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
 }
 
 #[cfg(test)]
-crate::tests::curve::curve_testing_suite!(Secp256k1);
+crate::curve_testing_suite!(Secp256k1);
 
 #[cfg(test)]
 mod extra_tests {

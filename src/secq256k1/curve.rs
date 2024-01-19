@@ -72,4 +72,4 @@ impl Secq256k1 {
 }
 
 #[cfg(test)]
-crate::tests::curve::curve_testing_suite!(Secq256k1);
+crate::curve_testing_suite!(Secq256k1);

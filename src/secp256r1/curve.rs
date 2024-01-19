@@ -92,7 +92,7 @@ impl Secp256r1 {
 }
 
 #[cfg(test)]
-crate::tests::curve::curve_testing_suite!(Secp256r1);
+crate::curve_testing_suite!(Secp256r1);
 
 #[cfg(test)]
 mod extra_tests {
