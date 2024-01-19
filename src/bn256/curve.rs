@@ -220,58 +220,54 @@ crate::curve_testing_suite!(
 );
 
 #[cfg(test)]
-mod extra_tests {
-    use crate::bn256::{Fr, G1, G2};
-
-    #[test]
-    fn test_map_to_curve() {
-        crate::tests::curve::svdw_map_to_curve_test::<G1>(
-            G1::SVDW_Z,
-            // Precomputed constants taken from https://github.com/ConsenSys/gnark-crypto/blob/441dc0ffe639294b8d09e394f24ba7575577229c/internal/generator/config/bn254.go#L26-L32.
-            [
-                "4",
-                "10944121435919637611123202872628637544348155578648911831344518947322613104291",
-                "8815841940592487685674414971303048083897117035520822607866",
-                "7296080957279758407415468581752425029565437052432607887563012631548408736189",
-            ],
-            // List of (u, (Q.x, Q.y)) taken from https://github.com/ConsenSys/gnark-crypto/blob/441dc0ffe639294b8d09e394f24ba7575577229c/ecc/bn254/hash_vectors_test.go#L4-L28
-            [
+crate::curve_testing_suite!(
+    G1,
+    "svdw_map_to_curve",
+    (
+        // Precomputed constants taken from https://github.com/ConsenSys/gnark-crypto/blob/441dc0ffe639294b8d09e394f24ba7575577229c/internal/generator/config/bn254.go#L26-L32.
+        [
+            "4",
+            "10944121435919637611123202872628637544348155578648911831344518947322613104291",
+            "8815841940592487685674414971303048083897117035520822607866",
+            "7296080957279758407415468581752425029565437052432607887563012631548408736189",
+        ],
+        // List of (u, (Q.x, Q.y)) taken from https://github.com/ConsenSys/gnark-crypto/blob/441dc0ffe639294b8d09e394f24ba7575577229c/ecc/bn254/hash_vectors_test.go#L4-L28
+        [
+            (
+                "0xcb81538a98a2e3580076eed495256611813f6dae9e16d3d4f8de7af0e9833e1",
                 (
-                    "0xcb81538a98a2e3580076eed495256611813f6dae9e16d3d4f8de7af0e9833e1",
-                    (
-                        "0x1bb8810e2ceaf04786d4efd216fc2820ddd9363712efc736ada11049d8af5925",
-                        "0x1efbf8d54c60d865cce08437668ea30f5bf90d287dbd9b5af31da852915e8f11",
-                    ),
+                    "0x1bb8810e2ceaf04786d4efd216fc2820ddd9363712efc736ada11049d8af5925",
+                    "0x1efbf8d54c60d865cce08437668ea30f5bf90d287dbd9b5af31da852915e8f11",
                 ),
+            ),
+            (
+                "0xba35e127276e9000b33011860904ddee28f1d48ddd3577e2a797ef4a5e62319",
                 (
-                    "0xba35e127276e9000b33011860904ddee28f1d48ddd3577e2a797ef4a5e62319",
-                    (
-                        "0xda4a96147df1f35b0f820bd35c6fac3b80e8e320de7c536b1e054667b22c332",
-                        "0x189bd3fbffe4c8740d6543754d95c790e44cd2d162858e3b733d2b8387983bb7",
-                    ),
+                    "0xda4a96147df1f35b0f820bd35c6fac3b80e8e320de7c536b1e054667b22c332",
+                    "0x189bd3fbffe4c8740d6543754d95c790e44cd2d162858e3b733d2b8387983bb7",
                 ),
+            ),
+            (
+                "0x11852286660cd970e9d7f46f99c7cca2b75554245e91b9b19d537aa6147c28fc",
                 (
-                    "0x11852286660cd970e9d7f46f99c7cca2b75554245e91b9b19d537aa6147c28fc",
-                    (
-                        "0x2ff727cfaaadb3acab713fa22d91f5fddab3ed77948f3ef6233d7ea9b03f4da1",
-                        "0x304080768fd2f87a852155b727f97db84b191e41970506f0326ed4046d1141aa",
-                    ),
+                    "0x2ff727cfaaadb3acab713fa22d91f5fddab3ed77948f3ef6233d7ea9b03f4da1",
+                    "0x304080768fd2f87a852155b727f97db84b191e41970506f0326ed4046d1141aa",
                 ),
+            ),
+            (
+                "0x174d1c85d8a690a876cc1deba0166d30569fafdb49cb3ed28405bd1c5357a1cc",
                 (
-                    "0x174d1c85d8a690a876cc1deba0166d30569fafdb49cb3ed28405bd1c5357a1cc",
-                    (
-                        "0x11a2eaa8e3e89de056d1b3a288a7f733c8a1282efa41d28e71af065ab245df9b",
-                        "0x60f37c447ac29fd97b9bb83be98ddccf15e34831a9cdf5493b7fede0777ae06",
-                    ),
+                    "0x11a2eaa8e3e89de056d1b3a288a7f733c8a1282efa41d28e71af065ab245df9b",
+                    "0x60f37c447ac29fd97b9bb83be98ddccf15e34831a9cdf5493b7fede0777ae06",
                 ),
+            ),
+            (
+                "0x73b81432b4cf3a8a9076201500d1b94159539f052a6e0928db7f2df74bff672",
                 (
-                    "0x73b81432b4cf3a8a9076201500d1b94159539f052a6e0928db7f2df74bff672",
-                    (
-                        "0x27409dccc6ee4ce90e24744fda8d72c0bc64e79766f778da0c1c0ef1c186ea84",
-                        "0x1ac201a542feca15e77f30370da183514dc99d8a0b2c136d64ede35cd0b51dc0",
-                    ),
+                    "0x27409dccc6ee4ce90e24744fda8d72c0bc64e79766f778da0c1c0ef1c186ea84",
+                    "0x1ac201a542feca15e77f30370da183514dc99d8a0b2c136d64ede35cd0b51dc0",
                 ),
-            ],
-        );
-    }
-}
+            ),
+        ]
+    )
+);
