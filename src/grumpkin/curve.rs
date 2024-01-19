@@ -96,37 +96,13 @@ crate::curve_testing_suite!(G1);
 crate::curve_testing_suite!(G1, "endo_consistency");
 
 #[cfg(test)]
-mod extra_tests {
-    use crate::arithmetic::CurveEndo;
-    use crate::grumpkin::{Fr, G1};
-    use ff::{Field, PrimeField, WithSmallOrderMulGroup};
-    use rand_core::OsRng;
-
-    #[test]
-    fn test_endo() {
-        let z_impl = Fr::ZETA;
-        let z_other = Fr::from_raw([
-            0xe4bd44e5607cfd48,
-            0xc28f069fbb966e3d,
-            0x5e6dd9e7e0acccb0,
-            0x30644e72e131a029,
-        ]);
-
-        assert_eq!(z_impl * z_impl + z_impl, -Fr::ONE);
-        assert_eq!(z_other * z_other + z_other, -Fr::ONE);
-
-        for _ in 0..100000 {
-            let k = Fr::random(OsRng);
-            let (k1, k1_neg, k2, k2_neg) = G1::decompose_scalar(&k);
-            if k1_neg & k2_neg {
-                assert_eq!(k, -Fr::from_u128(k1) + Fr::ZETA * Fr::from_u128(k2))
-            } else if k1_neg {
-                assert_eq!(k, -Fr::from_u128(k1) - Fr::ZETA * Fr::from_u128(k2))
-            } else if k2_neg {
-                assert_eq!(k, Fr::from_u128(k1) + Fr::ZETA * Fr::from_u128(k2))
-            } else {
-                assert_eq!(k, Fr::from_u128(k1) - Fr::ZETA * Fr::from_u128(k2))
-            }
-        }
-    }
-}
+crate::curve_testing_suite!(
+    G1,
+    "endo",
+    [
+        0xe4bd44e5607cfd48,
+        0xc28f069fbb966e3d,
+        0x5e6dd9e7e0acccb0,
+        0x30644e72e131a029,
+    ]
+);
