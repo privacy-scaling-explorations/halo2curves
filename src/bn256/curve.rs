@@ -205,6 +205,9 @@ impl G1 {
 crate::curve_testing_suite!(G1);
 
 #[cfg(test)]
+crate::curve_testing_suite!(G1, "endo_consistency");
+
+#[cfg(test)]
 mod extra_tests {
     use crate::arithmetic::CurveEndo;
     use crate::bn256::{Fr, G1, G2};

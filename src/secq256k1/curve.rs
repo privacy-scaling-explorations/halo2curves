@@ -73,3 +73,6 @@ impl Secq256k1 {
 
 #[cfg(test)]
 crate::curve_testing_suite!(Secq256k1);
+
+#[cfg(test)]
+crate::curve_testing_suite!(Secq256k1, "endo_consistency");

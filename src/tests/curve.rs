@@ -384,12 +384,10 @@ macro_rules! curve_testing_suite {
         #[cfg(test)]
         mod tests {
             use super::*;
-
             use crate::ff::Field;
             use crate::group::prime::PrimeCurveAffine;
             use crate::{group::GroupEncoding, serde::SerdeObject};
             use crate::{CurveAffine, CurveExt};
-            use ff::WithSmallOrderMulGroup;
             use rand_core::{OsRng, RngCore};
             use std::iter;
 
@@ -422,19 +420,22 @@ macro_rules! curve_testing_suite {
                     random_serde_test!($curve);
                 )*
             }
+        }
+    };
 
-            #[test]
-            fn test_endo_consistency() {
-                $(
-                    let g = $curve::generator();
+    ($($curve: ident),*, "endo_consistency") => {
+        #[test]
+        fn test_endo_consistency() {
+            use rand_core::OsRng;
+            $(
+                let g = $curve::generator();
+                assert_eq!(g * <$curve as CurveExt>::ScalarExt::ZETA, g.endo());
+
+                for _ in 0..100 {
+                    let g = $curve::random(OsRng);
                     assert_eq!(g * <$curve as CurveExt>::ScalarExt::ZETA, g.endo());
-
-                    for _ in 0..100 {
-                        let g = $curve::random(OsRng);
-                        assert_eq!(g * <$curve as CurveExt>::ScalarExt::ZETA, g.endo());
-                    }
-                )*
-            }
+                }
+            )*
         }
     };
 }

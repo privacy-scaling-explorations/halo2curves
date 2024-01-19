@@ -272,6 +272,9 @@ pub(crate) fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
 crate::curve_testing_suite!(Secp256k1);
 
 #[cfg(test)]
+crate::curve_testing_suite!(Secp256k1, "endo_consistency");
+
+#[cfg(test)]
 mod extra_tests {
     use super::*;
     use ff::FromUniformBytes;

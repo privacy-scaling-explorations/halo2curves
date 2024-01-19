@@ -247,3 +247,6 @@ new_curve_impl!(
 // Hence, it causes the panic in "test_hash_to_curve".
 #[cfg(test)]
 crate::curve_testing_suite!(G1, Eris);
+
+#[cfg(test)]
+crate::curve_testing_suite!(G1, Eris, "endo_consistency");
