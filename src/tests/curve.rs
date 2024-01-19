@@ -445,7 +445,7 @@ macro_rules! curve_testing_suite {
             use rand_core::OsRng;
 
             let z_impl = <$curve as CurveExt>::ScalarExt::ZETA;
-            let z_other = <$curve as CurveExt>::ScalarExt::from_raw($z_other_raw);
+            let z_other = <$curve as CurveExt>::ScalarExt::from_raw($z_other_raw as [u64; 4]);
 
             assert_eq!(z_impl * z_impl + z_impl, -<$curve as CurveExt>::ScalarExt::ONE);
             assert_eq!(z_other * z_other + z_other, -<$curve as CurveExt>::ScalarExt::ONE);
