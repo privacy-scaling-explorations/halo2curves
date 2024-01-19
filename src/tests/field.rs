@@ -361,7 +361,7 @@ macro_rules! field_testing_suite {
                 $(
                     crate::tests::field::random_serialization_test::<$field>(stringify!($field).to_string());
                     #[cfg(feature = "derive_serde")]
-                    crate::tests::field::random_serde_test::<$field>(stringify!($field));
+                    crate::tests::field::random_serde_test::<$field>(stringify!($field).to_string());
                 )*
             }
         }
