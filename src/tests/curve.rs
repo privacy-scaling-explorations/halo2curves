@@ -346,6 +346,7 @@ macro_rules! curve_testing_suite {
             }
         }
 
+        #[cfg(feature = "derive_serde")]
         macro_rules! random_serde_test {
             ($c: ident) => {
                 for _ in 0..100 {
