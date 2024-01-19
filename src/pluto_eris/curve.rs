@@ -242,11 +242,11 @@ new_curve_impl!(
     |_, _| unimplemented!(),
 );
 
-// MUST add `G2` later
-// The reason is that "G2::hash_to_curve" is unimplemented.
-// Hence, it causes the panic in "test_hash_to_curve".
 #[cfg(test)]
-crate::curve_testing_suite!(G1, Eris);
+crate::curve_testing_suite!(G1, Eris, G2);
+
+#[cfg(test)]
+crate::curve_testing_suite!(G1, Eris, "hash_to_curve");
 
 #[cfg(test)]
 crate::curve_testing_suite!(G1, Eris, "endo_consistency");

@@ -3,7 +3,6 @@
 #[macro_export]
 macro_rules! curve_testing_suite {
     ($($curve: ident),*) => {
-
         macro_rules! is_on_curve {
             ($c: ident) => {
                 assert!(bool::from($c::identity().is_on_curve()));
@@ -273,20 +272,6 @@ macro_rules! curve_testing_suite {
             }
         }
 
-        macro_rules! hash_to_curve_test {
-            ($c: ident) => {
-                let hasher = $c::hash_to_curve("test");
-                let mut rng = OsRng;
-                for _ in 0..1000 {
-                    let message = iter::repeat_with(|| rng.next_u32().to_be_bytes())
-                        .take(32)
-                        .flatten()
-                        .collect::<Vec<_>>();
-                    assert!(bool::from(hasher(&message).is_on_curve()));
-                }
-            }
-        }
-
         macro_rules! random_serialization_test {
             ($c: ident) => {
                 for _ in 0..100 {
@@ -354,8 +339,7 @@ macro_rules! curve_testing_suite {
             use crate::group::prime::PrimeCurveAffine;
             use crate::{group::GroupEncoding, serde::SerdeObject};
             use crate::{CurveAffine, CurveExt};
-            use rand_core::{OsRng, RngCore};
-            use std::iter;
+            use rand_core::OsRng;
 
             #[test]
             fn test_curve() {
@@ -372,13 +356,6 @@ macro_rules! curve_testing_suite {
             }
 
             #[test]
-            fn test_hash_to_curve() {
-                $(
-                    hash_to_curve_test!($curve);
-                )*
-            }
-
-            #[test]
             fn test_serialization() {
                 $(
                     random_serialization_test!($curve);
@@ -386,6 +363,31 @@ macro_rules! curve_testing_suite {
                     random_serde_test!($curve);
                 )*
             }
+        }
+    };
+
+    ($($curve: ident),*, "hash_to_curve") => {
+        macro_rules! hash_to_curve_test {
+            ($c: ident) => {
+                let hasher = $c::hash_to_curve("test");
+                let mut rng = OsRng;
+                for _ in 0..1000 {
+                    let message = iter::repeat_with(|| rng.next_u32().to_be_bytes())
+                        .take(32)
+                        .flatten()
+                        .collect::<Vec<_>>();
+                    assert!(bool::from(hasher(&message).is_on_curve()));
+                }
+            }
+        }
+
+        #[test]
+        fn test_hash_to_curve() {
+            use rand_core::{OsRng, RngCore};
+            use std::iter;
+            $(
+                hash_to_curve_test!($curve);
+            )*
         }
     };
 

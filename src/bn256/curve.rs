@@ -198,11 +198,11 @@ impl G1 {
     const SVDW_Z: Fq = Fq::ONE;
 }
 
-// MUST add `G2` later
-// The reason is that "G2::hash_to_curve" is unimplemented.
-// Hence, it causes the panic in "test_hash_to_curve".
 #[cfg(test)]
-crate::curve_testing_suite!(G1);
+crate::curve_testing_suite!(G1, G2);
+
+#[cfg(test)]
+crate::curve_testing_suite!(G1, "hash_to_curve");
 
 #[cfg(test)]
 crate::curve_testing_suite!(G1, "endo_consistency");
