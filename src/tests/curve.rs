@@ -49,7 +49,7 @@ macro_rules! curve_testing_suite {
             }
         }
 
-        macro_rules! projective_to_affine_affine_to_projective {
+        macro_rules! projective_affine_roundtrip {
             ($c: ident) => {
                 let a = $c::generator();
                 let b = $c::identity();
@@ -346,7 +346,7 @@ macro_rules! curve_testing_suite {
                 $(
                     is_on_curve!($curve);
                     equality!($curve);
-                    projective_to_affine_affine_to_projective!($curve);
+                    projective_affine_roundtrip!($curve);
                     projective_addition!($curve);
                     mixed_addition!($curve);
                     multiplication!($curve);
