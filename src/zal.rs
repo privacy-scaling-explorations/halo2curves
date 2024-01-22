@@ -1,21 +1,18 @@
 //! This module provides "ZK Acceleration Layer" traits
 //! to abstract away the execution engine for performance-critical primitives.
 //!
-//! The ZAL Engine is voluntarily left unconstrained
-//! so that accelerator libraries are not prematurely limited.
-//!
 //! Terminology
 //! -----------
 //!
 //! We use the name Backend+Engine for concrete implementations of ZalEngine.
-//! For exaple H2cEngine for pure Halo2curves implementation.
+//! For example H2cEngine for pure Halo2curves implementation.
 //!
 //! Alternative names considered were Executor or Driver however
 //! - executor is already used in Rust (and the name is long)
 //! - driver will be confusing as we work quite low-level with GPUs and FPGAs.
 //!
-//! Unfortunately Engine is used in bn256 for pairings.
-//! Fortunately ZalEngine is only used in the prover
+//! Unfortunately the "Engine" name is used in bn256 for pairings.
+//! Fortunately a ZalEngine is only used in the prover (at least for now)
 //! while "pairing engine" is only used in the verifier
 //!
 //! Initialization design space
@@ -25,16 +22,31 @@
 //! - an initialization function:
 //!   - either "fn new() -> ZalEngine" for simple libraries
 //!   - or a builder pattern for complex initializations
-//! - a shutdown function.
-//!
-//! The ZalEngine can be a stub type
-//! and the shutdown function might be unnecessary
-//! if the ZalEngine uses a global threadpool like Rayon.
+//! - a shutdown function or document when it is not needed (when it's a global threadpool like Rayon for example).
 //!
 //! Backends might want to add as an option:
 //! - The number of threads (CPU)
 //! - The device(s) to run on (multi-sockets machines, multi-GPUs machines, ...)
 //! - The curve (JIT-compiled backend)
+//!
+//! Descriptors
+//! ---------------------------
+//!
+//! Descriptors enable providers to configure opaque details on data
+//! when doing repeated computations with the same input(s).
+//! For example:
+//! - Pointer(s) caching to limit data movement between CPU and GPU, FPGAs
+//! - Length of data
+//! - data in layout:
+//!    - canonical or Montgomery fields, unsaturated representation, endianness
+//!    - jacobian or projective coordinates or maybe even Twisted Edwards for faster elliptic curve additions,
+//!    - FFT: canonical or bit-reversed permuted
+//! - data out layout
+//! - Device(s) ID
+//!
+//! They are required to be Plain Old Data (Copy trait), so no custom `Drop` is required.
+//! If a specific resource is needed, it can be stored in the engine in a hashmap for example
+//! and an integer ID or a pointer can be opaquely given as a descriptor.
 
 use crate::msm::best_multiexp;
 use pasta_curves::arithmetic::CurveAffine;
@@ -42,9 +54,7 @@ use pasta_curves::arithmetic::CurveAffine;
 // The ZK Accel Layer API
 // ---------------------------------------------------
 
-pub trait ZalEngine {}
-
-pub trait MsmAccel<C: CurveAffine>: ZalEngine {
+pub trait MsmAccel<C: CurveAffine> {
     fn msm(&self, coeffs: &[C::Scalar], base: &[C]) -> C::Curve;
 
     // Caching API
@@ -65,8 +75,8 @@ pub trait MsmAccel<C: CurveAffine>: ZalEngine {
     // - Converting from Montgomery to Canonical form
     // - Input changed from Projective to Jacobian coordinates or even to a Twisted Edwards curve.
     // - other form of expensive preprocessing
-    type CoeffsDescriptor<'c>;
-    type BaseDescriptor<'b>;
+    type CoeffsDescriptor<'c>: Copy;
+    type BaseDescriptor<'b>: Copy;
 
     fn get_coeffs_descriptor<'c>(&self, coeffs: &'c [C::Scalar]) -> Self::CoeffsDescriptor<'c>;
     fn get_base_descriptor<'b>(&self, base: &'b [C]) -> Self::BaseDescriptor<'b>;
@@ -84,7 +94,11 @@ pub trait MsmAccel<C: CurveAffine>: ZalEngine {
 // ---------------------------------------------------
 
 pub struct H2cEngine;
+
+#[derive(Clone, Copy)]
 pub struct H2cMsmCoeffsDesc<'c, C: CurveAffine> { raw: &'c [C::Scalar]}
+
+#[derive(Clone, Copy)]
 pub struct H2cMsmBaseDesc<'b, C: CurveAffine> { raw: &'b [C]}
 
 impl H2cEngine {
@@ -92,8 +106,6 @@ impl H2cEngine {
         Self {}
     }
 }
-
-impl ZalEngine for H2cEngine {}
 
 impl<C: CurveAffine> MsmAccel<C> for H2cEngine {
     fn msm(&self, coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
