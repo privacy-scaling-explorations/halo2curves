@@ -52,7 +52,7 @@ jobs:
       # We run WASM build (for tests) which compiles the lib allowig us to have
       # `getrandom` as a dev-dependency.
       - name: Build
-        run: cargo build --tests --release --features "bn256-table derive_serde prefetch" --target "${{ matrix.target }}"
+        run: cargo build --tests --release --features "bn256-table derive_serde" --target "${{ matrix.target }}"
   test:
     if: github.event.pull_request.draft == false
     name: Test
