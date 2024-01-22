@@ -92,7 +92,8 @@ impl Secp256r1 {
 }
 
 #[cfg(test)]
-crate::curve_testing_suite!(Secp256r1);
-
-#[cfg(test)]
-crate::curve_testing_suite!(Secp256r1, "ecdsa_example");
+mod test {
+    use super::*;
+    crate::curve_testing_suite!(Secp256r1);
+    crate::curve_testing_suite!(Secp256r1, "ecdsa_example");
+}

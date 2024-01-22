@@ -332,37 +332,33 @@ macro_rules! curve_testing_suite {
             }
         }
 
-        #[cfg(test)]
-        mod tests {
-            use super::*;
-            use crate::ff::Field;
-            use crate::group::prime::PrimeCurveAffine;
-            use crate::{group::GroupEncoding, serde::SerdeObject};
-            use crate::{CurveAffine, CurveExt};
-            use rand_core::OsRng;
+        use crate::ff::Field;
+        use crate::group::prime::PrimeCurveAffine;
+        use crate::{group::GroupEncoding, serde::SerdeObject};
+        use crate::{CurveAffine, CurveExt};
+        use rand_core::OsRng;
 
-            #[test]
-            fn test_curve() {
-                $(
-                    is_on_curve!($curve);
-                    equality!($curve);
-                    projective_affine_roundtrip!($curve);
-                    projective_addition!($curve);
-                    mixed_addition!($curve);
-                    multiplication!($curve);
-                    batch_normalize!($curve);
-                    serdes!($curve);
-                )*
-            }
+        #[test]
+        fn test_curve() {
+            $(
+                is_on_curve!($curve);
+                equality!($curve);
+                projective_affine_roundtrip!($curve);
+                projective_addition!($curve);
+                mixed_addition!($curve);
+                multiplication!($curve);
+                batch_normalize!($curve);
+                serdes!($curve);
+            )*
+        }
 
-            #[test]
-            fn test_serialization() {
-                $(
-                    random_serialization_test!($curve);
-                    #[cfg(feature = "derive_serde")]
-                    random_serde_test!($curve);
-                )*
-            }
+        #[test]
+        fn test_serialization() {
+            $(
+                random_serialization_test!($curve);
+                #[cfg(feature = "derive_serde")]
+                random_serde_test!($curve);
+            )*
         }
     };
 

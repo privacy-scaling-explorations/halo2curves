@@ -243,10 +243,9 @@ new_curve_impl!(
 );
 
 #[cfg(test)]
-crate::curve_testing_suite!(G1, Eris, G2);
-
-#[cfg(test)]
-crate::curve_testing_suite!(G1, Eris, "hash_to_curve");
-
-#[cfg(test)]
-crate::curve_testing_suite!(G1, Eris, "endo_consistency");
+mod test {
+    use super::*;
+    crate::curve_testing_suite!(G1, Eris, G2);
+    crate::curve_testing_suite!(G1, Eris, "hash_to_curve");
+    crate::curve_testing_suite!(G1, Eris, "endo_consistency");
+}

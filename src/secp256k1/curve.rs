@@ -269,10 +269,9 @@ pub(crate) fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
 }
 
 #[cfg(test)]
-crate::curve_testing_suite!(Secp256k1);
-
-#[cfg(test)]
-crate::curve_testing_suite!(Secp256k1, "endo_consistency");
-
-#[cfg(test)]
-crate::curve_testing_suite!(Secp256k1, "ecdsa_example");
+mod test {
+    use super::*;
+    crate::curve_testing_suite!(Secp256k1);
+    crate::curve_testing_suite!(Secp256k1, "endo_consistency");
+    crate::curve_testing_suite!(Secp256k1, "ecdsa_example");
+}

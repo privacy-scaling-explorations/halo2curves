@@ -90,10 +90,9 @@ impl G1 {
 }
 
 #[cfg(test)]
-crate::curve_testing_suite!(G1);
-
-#[cfg(test)]
-crate::curve_testing_suite!(G1, "endo_consistency");
-
-#[cfg(test)]
-crate::curve_testing_suite!(G1, "endo");
+mod test {
+    use super::*;
+    crate::curve_testing_suite!(G1);
+    crate::curve_testing_suite!(G1, "endo_consistency");
+    crate::curve_testing_suite!(G1, "endo");
+}
