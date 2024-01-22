@@ -309,10 +309,7 @@ impl WithSmallOrderMulGroup<3> for Fp {
 extend_field_legendre!(Fp);
 
 #[cfg(test)]
-crate::tests::field::field_testing_suite!(Fp);
-
-#[cfg(test)]
-mod extra_tests {
+mod test {
     use super::*;
     use ff::Field;
     use rand_core::OsRng;
@@ -362,9 +359,26 @@ mod extra_tests {
     }
 
     #[test]
+    fn test_field() {
+        crate::tests::field::random_field_tests::<Fp>("secp256r1 base".to_string());
+    }
+
+    #[test]
+    fn test_conversion() {
+        crate::tests::field::random_conversion_tests::<Fp>("secp256r1 base".to_string());
+    }
+
+    #[test]
     #[cfg(feature = "bits")]
     fn test_bits() {
         crate::tests::field::random_bits_tests::<Fp>("secp256r1 base".to_string());
+    }
+
+    #[test]
+    fn test_serialization() {
+        crate::tests::field::random_serialization_test::<Fp>("secp256r1 base".to_string());
+        #[cfg(feature = "derive_serde")]
+        crate::tests::field::random_serde_test::<Fp>("secp256r1 base".to_string());
     }
 
     #[test]

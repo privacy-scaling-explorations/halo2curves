@@ -13,7 +13,6 @@ pub fn random_field_tests<F: Field>(type_name: String) {
         0xe5,
     ]);
 
-    // normal cases
     random_multiplication_tests::<F, _>(&mut rng, type_name.clone());
     random_addition_tests::<F, _>(&mut rng, type_name.clone());
     random_subtraction_tests::<F, _>(&mut rng, type_name.clone());
@@ -23,9 +22,29 @@ pub fn random_field_tests<F: Field>(type_name: String) {
     random_inversion_tests::<F, _>(&mut rng, type_name.clone());
     random_expansion_tests::<F, _>(&mut rng, type_name);
 
-    // edge cases
-    zero_tests::<F, _>(&mut rng);
-    one_tests::<F, _>(&mut rng);
+    assert_eq!(F::ZERO.is_zero().unwrap_u8(), 1);
+    {
+        let mut z = F::ZERO;
+        z = z.neg();
+        assert_eq!(z.is_zero().unwrap_u8(), 1);
+    }
+
+    assert!(bool::from(F::ZERO.invert().is_none()));
+
+    // Multiplication by zero
+    {
+        let mut a = F::random(&mut rng);
+        a.mul_assign(&F::ZERO);
+        assert_eq!(a.is_zero().unwrap_u8(), 1);
+    }
+
+    // Addition by zero
+    {
+        let mut a = F::random(&mut rng);
+        let copy = a;
+        a.add_assign(&F::ZERO);
+        assert_eq!(a, copy);
+    }
 }
 
 fn random_multiplication_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
@@ -193,52 +212,6 @@ fn random_expansion_tests<F: Field, R: RngCore>(mut rng: R, type_name: String) {
     end_timer!(start);
 }
 
-fn zero_tests<F: Field, R: RngCore>(mut rng: R) {
-    assert_eq!(F::ZERO.is_zero().unwrap_u8(), 1);
-    {
-        let mut z = F::ZERO;
-        z = z.neg();
-        assert_eq!(z.is_zero().unwrap_u8(), 1);
-    }
-
-    assert!(bool::from(F::ZERO.invert().is_none()));
-
-    // Multiplication by zero
-    {
-        let mut a = F::random(&mut rng);
-        a.mul_assign(&F::ZERO);
-        assert_eq!(a.is_zero().unwrap_u8(), 1);
-    }
-
-    // Addition by zero
-    {
-        let mut a = F::random(&mut rng);
-        let copy = a;
-        a.add_assign(&F::ZERO);
-        assert_eq!(a, copy);
-    }
-}
-
-fn one_tests<F: Field, R: RngCore>(mut rng: R) {
-    assert!(bool::from(F::ONE.invert().is_some()));
-
-    // Multiplication by one
-    {
-        let mut a = F::random(&mut rng);
-        let copy = a;
-        a.mul_assign(&F::ONE);
-        assert_eq!(a, copy);
-    }
-
-    // Addition by one
-    {
-        let mut a = F::random(&mut rng);
-        let copy = a;
-        a.add_assign(&F::ONE);
-        assert_eq!(a, copy + F::ONE);
-    }
-}
-
 pub fn random_conversion_tests<F: ff::PrimeField<Repr = [u8; 32]>>(type_name: String) {
     let mut rng = XorShiftRng::from_seed([
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
@@ -334,38 +307,3 @@ pub fn random_quadratic_residue_test<F: Field + Legendre>() {
         assert_eq!(!is_quad_non_res, is_quad_res_or_zero)
     }
 }
-
-macro_rules! field_testing_suite {
-    ($($field: ident),*) => {
-
-        #[cfg(test)]
-        mod tests {
-            use super::*;
-
-            #[test]
-            fn test_field() {
-                $(
-                    crate::tests::field::random_field_tests::<$field>(stringify!($field).to_string());
-                )*
-            }
-
-            #[test]
-            fn test_conversion() {
-                $(
-                    crate::tests::field::random_conversion_tests::<$field>(stringify!($field).to_string());
-                )*
-            }
-
-            #[test]
-            fn test_serialization() {
-                $(
-                    crate::tests::field::random_serialization_test::<$field>(stringify!($field).to_string());
-                    #[cfg(feature = "derive_serde")]
-                    crate::tests::field::random_serde_test::<$field>(stringify!($field).to_string());
-                )*
-            }
-        }
-    };
-}
-
-pub(crate) use field_testing_suite;
