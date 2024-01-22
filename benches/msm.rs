@@ -17,10 +17,10 @@ use ff::Field;
 use group::prime::PrimeCurveAffine;
 use halo2curves::bn256::{Fr as Scalar, G1Affine as Point};
 use halo2curves::msm::{best_multiexp, multiexp_serial};
-use maybe_rayon::current_thread_index;
-use maybe_rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use rand_core::SeedableRng;
 use rand_xorshift::XorShiftRng;
+use rayon::current_thread_index;
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use std::time::SystemTime;
 
 const SAMPLE_SIZE: usize = 10;
