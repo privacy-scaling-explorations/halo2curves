@@ -96,13 +96,4 @@ crate::curve_testing_suite!(G1);
 crate::curve_testing_suite!(G1, "endo_consistency");
 
 #[cfg(test)]
-crate::curve_testing_suite!(
-    G1,
-    "endo",
-    [
-        0xe4bd44e5607cfd48,
-        0xc28f069fbb966e3d,
-        0x5e6dd9e7e0acccb0,
-        0x30644e72e131a029,
-    ]
-);
+crate::curve_testing_suite!(G1, "endo");

@@ -407,16 +407,17 @@ macro_rules! curve_testing_suite {
         }
     };
 
-    ($curve: ident, "endo", $z_other_raw: expr) => {
+    ($curve: ident, "endo" $(, $z_other_raw: expr)*) => {
         #[test]
         fn test_endo() {
             use rand_core::OsRng;
 
             let z_impl = <$curve as CurveExt>::ScalarExt::ZETA;
-            let z_other = <$curve as CurveExt>::ScalarExt::from_raw($z_other_raw as [u64; 4]);
-
             assert_eq!(z_impl * z_impl + z_impl, -<$curve as CurveExt>::ScalarExt::ONE);
-            assert_eq!(z_other * z_other + z_other, -<$curve as CurveExt>::ScalarExt::ONE);
+            $(
+                let z_other = <$curve as CurveExt>::ScalarExt::from_raw($z_other_raw as [u64; 4]);
+                assert_eq!(z_other * z_other + z_other, -<$curve as CurveExt>::ScalarExt::ONE);
+            )*
 
             for _ in 0..100000 {
                 let k = <$curve as CurveExt>::ScalarExt::random(OsRng);

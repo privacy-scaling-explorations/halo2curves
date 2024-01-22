@@ -356,7 +356,7 @@ mod test {
     fn test_conversion() {
         crate::tests::field::random_conversion_tests::<Fq>("secp256k1 scalar".to_string());
     }
-    
+
     #[test]
     #[cfg(feature = "bits")]
     fn test_bits() {
