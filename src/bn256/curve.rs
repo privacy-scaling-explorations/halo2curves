@@ -207,6 +207,8 @@ mod test {
     crate::curve_testing_suite!(
         G1,
         "endo",
+        // Optional `z_other` param. `z_other` is 3-roots of unity, similar to `ZETA`.
+        // Reference: https://github.com/privacy-scaling-explorations/halo2curves/blob/main/src/bn256/fr.rs#L145-L151
         [
             0x8b17ea66b99c90dd,
             0x5bfc41088d8daaa7,

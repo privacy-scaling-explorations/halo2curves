@@ -7,8 +7,6 @@ macro_rules! curve_testing_suite {
             ($c: ident) => {
                 assert!(bool::from($c::identity().is_on_curve()));
                 assert!(bool::from($c::generator().is_on_curve()));
-                assert!(bool::from($c::identity().is_on_curve()));
-                assert!(bool::from($c::generator().is_on_curve()));
 
                 for _ in 0..100 {
                     let point = $c::random(OsRng);
