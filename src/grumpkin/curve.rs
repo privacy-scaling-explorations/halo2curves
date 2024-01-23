@@ -90,58 +90,19 @@ impl G1 {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::arithmetic::CurveEndo;
-    use crate::grumpkin::{Fr, G1};
-    use crate::CurveExt;
-    use ff::{Field, PrimeField, WithSmallOrderMulGroup};
-    use rand_core::OsRng;
-
-    #[test]
-    fn test_hash_to_curve() {
-        crate::tests::curve::hash_to_curve_test::<G1>();
-    }
-
-    #[test]
-    fn test_curve() {
-        crate::tests::curve::curve_tests::<G1>();
-    }
-
-    #[test]
-    fn test_endo() {
-        let z_impl = Fr::ZETA;
-        let z_other = Fr::from_raw([
-            0xe4bd44e5607cfd48,
-            0xc28f069fbb966e3d,
-            0x5e6dd9e7e0acccb0,
-            0x30644e72e131a029,
-        ]);
-
-        assert_eq!(z_impl * z_impl + z_impl, -Fr::ONE);
-        assert_eq!(z_other * z_other + z_other, -Fr::ONE);
-
-        let g = G1::generator();
-        assert_eq!(g * Fr::ZETA, g.endo());
-
-        for _ in 0..100000 {
-            let k = Fr::random(OsRng);
-            let (k1, k1_neg, k2, k2_neg) = G1::decompose_scalar(&k);
-            if k1_neg & k2_neg {
-                assert_eq!(k, -Fr::from_u128(k1) + Fr::ZETA * Fr::from_u128(k2))
-            } else if k1_neg {
-                assert_eq!(k, -Fr::from_u128(k1) - Fr::ZETA * Fr::from_u128(k2))
-            } else if k2_neg {
-                assert_eq!(k, Fr::from_u128(k1) + Fr::ZETA * Fr::from_u128(k2))
-            } else {
-                assert_eq!(k, Fr::from_u128(k1) - Fr::ZETA * Fr::from_u128(k2))
-            }
-        }
-    }
-
-    #[test]
-    fn test_serialization() {
-        crate::tests::curve::random_serialization_test::<G1>();
-        #[cfg(feature = "derive_serde")]
-        crate::tests::curve::random_serde_test::<G1>();
-    }
+mod test {
+    use super::*;
+    crate::curve_testing_suite!(G1);
+    crate::curve_testing_suite!(G1, "endo_consistency");
+    crate::curve_testing_suite!(G1, "endo");
+    crate::curve_testing_suite!(
+        G1,
+        "constants",
+        Fq::MODULUS,
+        G1_A,
+        G1_B,
+        G1_GENERATOR_X,
+        G1_GENERATOR_Y,
+        Fr::MODULUS
+    );
 }

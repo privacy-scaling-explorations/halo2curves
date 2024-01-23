@@ -72,33 +72,18 @@ impl Secq256k1 {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::secq256k1::Fq;
-    use crate::CurveExt;
-    use ff::WithSmallOrderMulGroup;
-
-    use super::Secq256k1;
-
-    #[test]
-    fn test_hash_to_curve() {
-        crate::tests::curve::hash_to_curve_test::<Secq256k1>();
-    }
-
-    #[test]
-    fn test_curve() {
-        crate::tests::curve::curve_tests::<Secq256k1>();
-    }
-
-    #[test]
-    fn test_endo_consistency() {
-        let g = Secq256k1::generator();
-        assert_eq!(g * Fq::ZETA, g.endo());
-    }
-
-    #[test]
-    fn test_serialization() {
-        crate::tests::curve::random_serialization_test::<Secq256k1>();
-        #[cfg(feature = "derive_serde")]
-        crate::tests::curve::random_serde_test::<Secq256k1>();
-    }
+mod test {
+    use super::*;
+    crate::curve_testing_suite!(Secq256k1);
+    crate::curve_testing_suite!(Secq256k1, "endo_consistency");
+    crate::curve_testing_suite!(
+        Secq256k1,
+        "constants",
+        Fq::MODULUS,
+        SECQ_A,
+        SECQ_B,
+        SECQ_GENERATOR_X,
+        SECQ_GENERATOR_Y,
+        Fp::MODULUS
+    );
 }

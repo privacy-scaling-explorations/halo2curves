@@ -199,23 +199,27 @@ impl G1 {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::arithmetic::CurveEndo;
-    use crate::bn256::{Fr, G1, G2};
-    use crate::CurveExt;
-    use ff::Field;
-    use ff::{PrimeField, WithSmallOrderMulGroup};
-    use rand_core::OsRng;
-
-    #[test]
-    fn test_hash_to_curve() {
-        crate::tests::curve::hash_to_curve_test::<G1>();
-    }
-
-    #[test]
-    fn test_map_to_curve() {
-        crate::tests::curve::svdw_map_to_curve_test::<G1>(
-            G1::SVDW_Z,
+mod test {
+    use super::*;
+    crate::curve_testing_suite!(G1, G2);
+    crate::curve_testing_suite!(G1, "hash_to_curve");
+    crate::curve_testing_suite!(G1, "endo_consistency");
+    crate::curve_testing_suite!(
+        G1,
+        "endo",
+        // Optional `z_other` param. `z_other` is 3-roots of unity, similar to `ZETA`.
+        // Reference: https://github.com/privacy-scaling-explorations/halo2curves/blob/main/src/bn256/fr.rs#L145-L151
+        [
+            0x8b17ea66b99c90dd,
+            0x5bfc41088d8daaa7,
+            0xb3c4d79d41a91758,
+            0x00,
+        ]
+    );
+    crate::curve_testing_suite!(
+        G1,
+        "svdw_map_to_curve",
+        (
             // Precomputed constants taken from https://github.com/ConsenSys/gnark-crypto/blob/441dc0ffe639294b8d09e394f24ba7575577229c/internal/generator/config/bn254.go#L26-L32.
             [
                 "4",
@@ -260,55 +264,27 @@ mod tests {
                         "0x1ac201a542feca15e77f30370da183514dc99d8a0b2c136d64ede35cd0b51dc0",
                     ),
                 ),
-            ],
-        );
-    }
-
-    #[test]
-    fn test_curve() {
-        crate::tests::curve::curve_tests::<G1>();
-        crate::tests::curve::curve_tests::<G2>();
-    }
-
-    #[test]
-    fn test_endo() {
-        let z_impl = Fr::ZETA;
-        let z_other = Fr::from_raw([
-            0x8b17ea66b99c90dd,
-            0x5bfc41088d8daaa7,
-            0xb3c4d79d41a91758,
-            0x00,
-        ]);
-        assert_eq!(z_impl * z_impl + z_impl, -Fr::ONE);
-        assert_eq!(z_other * z_other + z_other, -Fr::ONE);
-
-        let g = G1::generator();
-        assert_eq!(g * Fr::ZETA, g.endo());
-        let g = G2::generator();
-        assert_eq!(g * Fr::ZETA, g.endo());
-        for _ in 0..100000 {
-            let k = Fr::random(OsRng);
-            let (k1, k1_neg, k2, k2_neg) = G1::decompose_scalar(&k);
-            if k1_neg & k2_neg {
-                assert_eq!(k, -Fr::from_u128(k1) + Fr::ZETA * Fr::from_u128(k2))
-            } else if k1_neg {
-                assert_eq!(k, -Fr::from_u128(k1) - Fr::ZETA * Fr::from_u128(k2))
-            } else if k2_neg {
-                assert_eq!(k, Fr::from_u128(k1) + Fr::ZETA * Fr::from_u128(k2))
-            } else {
-                assert_eq!(k, Fr::from_u128(k1) - Fr::ZETA * Fr::from_u128(k2))
-            }
-        }
-    }
-
-    #[test]
-    fn test_serialization() {
-        crate::tests::curve::random_serialization_test::<G1>();
-        crate::tests::curve::random_serialization_test::<G2>();
-        #[cfg(feature = "derive_serde")]
-        {
-            crate::tests::curve::random_serde_test::<G1>();
-            crate::tests::curve::random_serde_test::<G2>();
-        }
-    }
+            ]
+        )
+    );
+    crate::curve_testing_suite!(
+        G1,
+        "constants",
+        Fq::MODULUS,
+        G1_A,
+        G1_B,
+        G1_GENERATOR_X,
+        G1_GENERATOR_Y,
+        Fr::MODULUS
+    );
+    crate::curve_testing_suite!(
+        G2,
+        "constants",
+        Fq2::MODULUS,
+        G2_A,
+        G2_B,
+        G2_GENERATOR_X,
+        G2_GENERATOR_Y,
+        Fr::MODULUS
+    );
 }
