@@ -251,10 +251,7 @@ impl<C: CurveAffine> Schedule<C> {
     }
 
     fn contains(&self, buck_idx: usize) -> bool {
-        self.set
-            .iter()
-            .position(|sch| sch.buck_idx == buck_idx)
-            .is_some()
+        self.set.iter().any(|sch| sch.buck_idx == buck_idx)
     }
 
     fn execute(&mut self, bases: &[Affine<C>]) {
@@ -279,6 +276,79 @@ impl<C: CurveAffine> Schedule<C> {
     }
 }
 
+pub fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C::Curve) {
+    let coeffs: Vec<_> = coeffs.iter().map(|a| a.to_repr()).collect();
+
+    let c = if bases.len() < 4 {
+        1
+    } else if bases.len() < 32 {
+        3
+    } else {
+        (f64::from(bases.len() as u32)).ln().ceil() as usize
+    };
+
+    let number_of_windows = C::Scalar::NUM_BITS as usize / c + 1;
+
+    for current_window in (0..number_of_windows).rev() {
+        for _ in 0..c {
+            *acc = acc.double();
+        }
+
+        #[derive(Clone, Copy)]
+        enum Bucket<C: CurveAffine> {
+            None,
+            Affine(C),
+            Projective(C::Curve),
+        }
+
+        impl<C: CurveAffine> Bucket<C> {
+            fn add_assign(&mut self, other: &C) {
+                *self = match *self {
+                    Bucket::None => Bucket::Affine(*other),
+                    Bucket::Affine(a) => Bucket::Projective(a + *other),
+                    Bucket::Projective(mut a) => {
+                        a += *other;
+                        Bucket::Projective(a)
+                    }
+                }
+            }
+
+            fn add(self, mut other: C::Curve) -> C::Curve {
+                match self {
+                    Bucket::None => other,
+                    Bucket::Affine(a) => {
+                        other += a;
+                        other
+                    }
+                    Bucket::Projective(a) => other + a,
+                }
+            }
+        }
+
+        let mut buckets: Vec<Bucket<C>> = vec![Bucket::None; 1 << (c - 1)];
+
+        for (coeff, base) in coeffs.iter().zip(bases.iter()) {
+            let coeff = get_booth_index(current_window, c, coeff.as_ref());
+            if coeff.is_positive() {
+                buckets[coeff as usize - 1].add_assign(base);
+            }
+            if coeff.is_negative() {
+                buckets[coeff.unsigned_abs() as usize - 1].add_assign(&base.neg());
+            }
+        }
+
+        // Summation by parts
+        // e.g. 3a + 2b + 1c = a +
+        //                    (a) + b +
+        //                    ((a) + b) + c
+        let mut running_sum = C::Curve::identity();
+        for exp in buckets.into_iter().rev() {
+            running_sum = exp.add(running_sum);
+            *acc += &running_sum;
+        }
+    }
+}
+
 pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
     // TODO: consider adjusting it with emprical data?
     let batch_size = 64;
@@ -298,7 +368,7 @@ pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Cu
     let bases_local: Vec<_> = bases.iter().map(Affine::from).collect();
 
     // number of windows
-    let number_of_windows = (256 / c) + 1;
+    let number_of_windows = C::Scalar::NUM_BITS as usize / c + 1;
     // accumumator for each window
     let mut acc = vec![C::Curve::identity(); number_of_windows];
     acc.par_iter_mut().enumerate().rev().for_each(|(w, acc)| {
@@ -361,80 +431,6 @@ mod test {
     use rand_core::OsRng;
 
     // keeping older implementation here for benchmarking and testing
-    pub fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C::Curve) {
-        let coeffs: Vec<_> = coeffs.iter().map(|a| a.to_repr()).collect();
-
-        let c = if bases.len() < 4 {
-            1
-        } else if bases.len() < 32 {
-            3
-        } else {
-            (f64::from(bases.len() as u32)).ln().ceil() as usize
-        };
-
-        let number_of_windows = C::Scalar::NUM_BITS as usize / c + 1;
-
-        for current_window in (0..number_of_windows).rev() {
-            for _ in 0..c {
-                *acc = acc.double();
-            }
-
-            #[derive(Clone, Copy)]
-            enum Bucket<C: CurveAffine> {
-                None,
-                Affine(C),
-                Projective(C::Curve),
-            }
-
-            impl<C: CurveAffine> Bucket<C> {
-                fn add_assign(&mut self, other: &C) {
-                    *self = match *self {
-                        Bucket::None => Bucket::Affine(*other),
-                        Bucket::Affine(a) => Bucket::Projective(a + *other),
-                        Bucket::Projective(mut a) => {
-                            a += *other;
-                            Bucket::Projective(a)
-                        }
-                    }
-                }
-
-                fn add(self, mut other: C::Curve) -> C::Curve {
-                    match self {
-                        Bucket::None => other,
-                        Bucket::Affine(a) => {
-                            other += a;
-                            other
-                        }
-                        Bucket::Projective(a) => other + a,
-                    }
-                }
-            }
-
-            let mut buckets: Vec<Bucket<C>> = vec![Bucket::None; 1 << (c - 1)];
-
-            for (coeff, base) in coeffs.iter().zip(bases.iter()) {
-                let coeff = super::get_booth_index(current_window, c, coeff.as_ref());
-                if coeff.is_positive() {
-                    buckets[coeff as usize - 1].add_assign(base);
-                }
-                if coeff.is_negative() {
-                    buckets[coeff.unsigned_abs() as usize - 1].add_assign(&base.neg());
-                }
-            }
-
-            // Summation by parts
-            // e.g. 3a + 2b + 1c = a +
-            //                    (a) + b +
-            //                    ((a) + b) + c
-            let mut running_sum = C::Curve::identity();
-            for exp in buckets.into_iter().rev() {
-                running_sum = exp.add(running_sum);
-                *acc += &running_sum;
-            }
-        }
-    }
-
-    // keeping older implementation here for benchmarking and testing
     pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
         assert_eq!(coeffs.len(), bases.len());
 
@@ -452,14 +448,14 @@ mod test {
                     .zip(results.iter_mut())
                 {
                     scope.spawn(move |_| {
-                        multiexp_serial(coeffs, bases, acc);
+                        super::multiexp_serial(coeffs, bases, acc);
                     });
                 }
             });
             results.iter().fold(C::Curve::identity(), |a, b| a + b)
         } else {
             let mut acc = C::Curve::identity();
-            multiexp_serial(coeffs, bases, &mut acc);
+            super::multiexp_serial(coeffs, bases, &mut acc);
             acc
         }
     }
