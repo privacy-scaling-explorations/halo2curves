@@ -96,4 +96,14 @@ mod test {
     use super::*;
     crate::curve_testing_suite!(Secp256r1);
     crate::curve_testing_suite!(Secp256r1, "ecdsa_example");
+    crate::curve_testing_suite!(
+        Secp256r1,
+        "constants",
+        Fp::MODULUS,
+        SECP_A,
+        SECP_B,
+        SECP_GENERATOR_X,
+        SECP_GENERATOR_Y,
+        Fq::MODULUS
+    );
 }

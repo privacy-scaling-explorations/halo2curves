@@ -528,5 +528,25 @@ macro_rules! curve_testing_suite {
 
             svdw_map_to_curve_test::<$curve>($curve::SVDW_Z, $precomputed_constants, $test_vector);
         }
-    }
+    };
+
+    ($curve: ident, "constants", $p: expr, $a: expr, $b: expr, $gen_x: expr, $gen_y: expr, $order: expr) => {
+        #[test]
+        #[allow(non_snake_case)]
+        fn $curve() {
+            assert!($p == <$curve as CurveExt>::Base::MODULUS);
+
+            let a = $curve::a();
+            let b = $curve::b();
+            assert!(a == $a);
+            assert!(b == $b);
+
+            let generator = $curve::generator();
+            let generator_affine: <$curve as CurveExt>::AffineExt = generator.into();
+            assert!(generator_affine.x == $gen_x);
+            assert!(generator_affine.y == $gen_y);
+
+            assert!($order == <$curve as CurveExt>::ScalarExt::MODULUS);
+        }
+    };
 }

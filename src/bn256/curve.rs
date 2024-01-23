@@ -267,4 +267,24 @@ mod test {
             ]
         )
     );
+    crate::curve_testing_suite!(
+        G1,
+        "constants",
+        Fq::MODULUS,
+        G1_A,
+        G1_B,
+        G1_GENERATOR_X,
+        G1_GENERATOR_Y,
+        Fr::MODULUS
+    );
+    crate::curve_testing_suite!(
+        G2,
+        "constants",
+        Fq2::MODULUS,
+        G2_A,
+        G2_B,
+        G2_GENERATOR_X,
+        G2_GENERATOR_Y,
+        Fr::MODULUS
+    );
 }

@@ -76,4 +76,14 @@ mod test {
     use super::*;
     crate::curve_testing_suite!(Secq256k1);
     crate::curve_testing_suite!(Secq256k1, "endo_consistency");
+    crate::curve_testing_suite!(
+        Secq256k1,
+        "constants",
+        Fq::MODULUS,
+        SECQ_A,
+        SECQ_B,
+        SECQ_GENERATOR_X,
+        SECQ_GENERATOR_Y,
+        Fp::MODULUS
+    );
 }

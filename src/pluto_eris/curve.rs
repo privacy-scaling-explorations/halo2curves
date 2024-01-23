@@ -248,4 +248,34 @@ mod test {
     crate::curve_testing_suite!(G1, Eris, G2);
     crate::curve_testing_suite!(G1, Eris, "hash_to_curve");
     crate::curve_testing_suite!(G1, Eris, "endo_consistency");
+    crate::curve_testing_suite!(
+        G1,
+        "constants",
+        Fp::MODULUS,
+        PLUTO_A,
+        PLUTO_B,
+        G1_GENERATOR_X,
+        G1_GENERATOR_Y,
+        Fq::MODULUS
+    );
+    crate::curve_testing_suite!(
+        Eris,
+        "constants",
+        Fq::MODULUS,
+        ERIS_A,
+        ERIS_B,
+        ERIS_GENERATOR_X,
+        ERIS_GENERATOR_Y,
+        Fp::MODULUS
+    );
+    crate::curve_testing_suite!(
+        G2,
+        "constants",
+        Fp2::MODULUS,
+        TRITON_A,
+        TRITON_B,
+        G2_GENERATOR_X,
+        G2_GENERATOR_Y,
+        Fq::MODULUS
+    );
 }

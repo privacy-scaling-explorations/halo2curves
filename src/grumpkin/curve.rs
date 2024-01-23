@@ -95,4 +95,14 @@ mod test {
     crate::curve_testing_suite!(G1);
     crate::curve_testing_suite!(G1, "endo_consistency");
     crate::curve_testing_suite!(G1, "endo");
+    crate::curve_testing_suite!(
+        G1,
+        "constants",
+        Fq::MODULUS,
+        G1_A,
+        G1_B,
+        G1_GENERATOR_X,
+        G1_GENERATOR_Y,
+        Fr::MODULUS
+    );
 }
