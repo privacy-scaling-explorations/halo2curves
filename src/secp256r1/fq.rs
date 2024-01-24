@@ -304,12 +304,8 @@ mod test {
     crate::field_testing_suite!(Fq, "conversion");
     crate::field_testing_suite!(Fq, "serialization");
     crate::field_testing_suite!(Fq, "quadratic_residue");
-}
+    // crate::field_testing_suite!(Fq, "bits");
 
-#[cfg(test)]
-mod extra_tests {
-    use super::*;
-    use ff::Field;
     use rand_core::OsRng;
 
     #[test]

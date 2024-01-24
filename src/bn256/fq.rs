@@ -289,13 +289,9 @@ mod test {
     crate::field_testing_suite!(Fq, "conversion");
     crate::field_testing_suite!(Fq, "serialization");
     crate::field_testing_suite!(Fq, "quadratic_residue");
-}
+    crate::field_testing_suite!(Fq, "bits");
 
-#[cfg(test)]
-mod tests {
-    use super::*;
     use crate::ff_ext::Legendre;
-    use ff::Field;
     use rand_core::OsRng;
 
     #[test]
@@ -354,11 +350,5 @@ mod tests {
                 0xaaaaaaaaaaaaaaaa
             ])
         );
-    }
-
-    #[test]
-    #[cfg(feature = "bits")]
-    fn test_bits() {
-        crate::tests::field::random_bits_tests::<Fq>("fq".to_string());
     }
 }

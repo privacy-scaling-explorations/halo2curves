@@ -337,18 +337,10 @@ mod test {
     crate::field_testing_suite!(Fr, "conversion");
     crate::field_testing_suite!(Fr, "serialization");
     crate::field_testing_suite!(Fr, "quadratic_residue");
-}
+    crate::field_testing_suite!(Fr, "bits");
 
-#[cfg(test)]
-mod tests {
     use crate::serde::SerdeObject;
-
-    use super::*;
-    use ark_std::{end_timer, start_timer};
-    use ff::Field;
-    use rand::SeedableRng;
     use rand_core::OsRng;
-    use rand_xorshift::XorShiftRng;
 
     #[test]
     fn test_sqrt() {
@@ -394,12 +386,6 @@ mod tests {
                 0xaaaaaaaaaaaaaaaa
             ])
         );
-    }
-
-    #[test]
-    #[cfg(feature = "bits")]
-    fn test_bits() {
-        crate::tests::field::random_bits_tests::<Fr>("fr".to_string());
     }
 
     fn is_less_than(x: &[u64; 4], y: &[u64; 4]) -> bool {

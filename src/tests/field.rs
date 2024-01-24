@@ -1,26 +1,3 @@
-use ark_std::{end_timer, start_timer};
-use rand::SeedableRng;
-use rand_xorshift::XorShiftRng;
-
-#[cfg(feature = "bits")]
-pub fn random_bits_tests<F: ff::PrimeFieldBits>(type_name: String) {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-    let _message = format!("to_le_bits {type_name}");
-    let start = start_timer!(|| _message);
-    for _ in 0..1000000 {
-        let a = F::random(&mut rng);
-        let bytes = a.to_repr();
-        let bits = a.to_le_bits();
-        for idx in 0..bits.len() {
-            assert_eq!(bits[idx], ((bytes.as_ref()[idx / 8] >> (idx % 8)) & 1) == 1);
-        }
-    }
-    end_timer!(start);
-}
-
 #[macro_export]
 macro_rules! field_testing_suite {
     ($field: ident, "field") => {
@@ -391,6 +368,36 @@ macro_rules! field_testing_suite {
             use rand_core::SeedableRng;
             use rand_xorshift::XorShiftRng;
             random_quadratic_residue_test!($field);
+        }
+    };
+
+    ($field: ident, "bits") => {
+        #[cfg(feature = "bits")]
+        macro_rules! random_bits_tests {
+            ($f: ident) => {
+                let mut rng = XorShiftRng::from_seed([
+                    0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54,
+                    0x06, 0xbc, 0xe5,
+                ]);
+                let _message = format!("to_le_bits {}", stringify!($f));
+                let start = start_timer!(|| _message);
+                for _ in 0..1000000 {
+                    let a = $f::random(&mut rng);
+                    let bytes = a.to_repr();
+                    let bits = a.to_le_bits();
+                    for idx in 0..bits.len() {
+                        assert_eq!(bits[idx], ((bytes.as_ref()[idx / 8] >> (idx % 8)) & 1) == 1);
+                    }
+                }
+                end_timer!(start);
+            };
+        }
+
+        #[test]
+        #[cfg(feature = "bits")]
+        fn test_bits() {
+            use ff::PrimeFieldBits;
+            random_bits_tests!($field);
         }
     };
 }

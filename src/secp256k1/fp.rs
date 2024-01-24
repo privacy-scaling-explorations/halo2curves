@@ -297,12 +297,8 @@ mod test {
     crate::field_testing_suite!(Fp, "conversion");
     crate::field_testing_suite!(Fp, "serialization");
     crate::field_testing_suite!(Fp, "quadratic_residue");
-}
+    crate::field_testing_suite!(Fp, "bits");
 
-#[cfg(test)]
-mod extra_tests {
-    use super::*;
-    use ff::Field;
     use rand_core::OsRng;
 
     #[test]
@@ -347,11 +343,5 @@ mod extra_tests {
     #[test]
     fn test_inv_root_of_unity() {
         assert_eq!(Fp::ROOT_OF_UNITY_INV, Fp::ROOT_OF_UNITY.invert().unwrap());
-    }
-
-    #[test]
-    #[cfg(feature = "bits")]
-    fn test_bits() {
-        crate::tests::field::random_bits_tests::<Fp>("secp256k1 base".to_string());
     }
 }
