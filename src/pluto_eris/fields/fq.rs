@@ -398,8 +398,8 @@ mod test {
     crate::field_testing_suite!(Fq, "serialization");
     crate::field_testing_suite!(Fq, "quadratic_residue");
     crate::field_testing_suite!(Fq, "bits");
+    crate::field_testing_suite!(Fq, "serialization_check");
 
-    use crate::serde::SerdeObject;
     use rand_core::OsRng;
 
     #[test]
@@ -541,63 +541,5 @@ mod test {
             let q = Fq::from_uniform_bytes(&uniform_bytes[i]);
             assert_eq!(expected_results[i], q);
         }
-    }
-
-    fn is_less_than(x: &[u64; 7], y: &[u64; 7]) -> bool {
-        match x[6].cmp(&y[6]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        match x[5].cmp(&y[5]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        match x[4].cmp(&y[4]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        match x[3].cmp(&y[3]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        match x[2].cmp(&y[2]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        match x[1].cmp(&y[1]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        x[0].lt(&y[0])
-    }
-
-    #[test]
-    fn test_serialization_check() {
-        let mut rng = XorShiftRng::from_seed([
-            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
-            0xbc, 0xe5,
-        ]);
-        let start = start_timer!(|| "serialize Fq");
-        // failure check
-        for _ in 0..1000000 {
-            let rand_word = [(); 7].map(|_| rng.next_u64());
-            let a = Fq(rand_word);
-            let rand_bytes = a.to_raw_bytes();
-            match is_less_than(&rand_word, &MODULUS.0) {
-                false => {
-                    assert!(Fq::from_raw_bytes(&rand_bytes).is_none());
-                }
-                _ => {
-                    assert_eq!(Fq::from_raw_bytes(&rand_bytes), Some(a));
-                }
-            }
-        }
-        end_timer!(start);
     }
 }

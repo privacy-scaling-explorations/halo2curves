@@ -400,4 +400,43 @@ macro_rules! field_testing_suite {
             random_bits_tests!($field);
         }
     };
+
+    ($field: ident, "serialization_check") => {
+        fn is_less_than<const N: usize>(x: &[u64; N], y: &[u64; N]) -> bool {
+            for i in (1..N).rev() {
+                match x[i].cmp(&y[i]) {
+                    core::cmp::Ordering::Less => return true,
+                    core::cmp::Ordering::Greater => return false,
+                    _ => {}
+                }
+            }
+            x[0].lt(&y[0])
+        }
+
+        #[test]
+        fn test_serialization_check() {
+            use crate::serde::SerdeObject;
+            let mut rng = XorShiftRng::from_seed([
+                0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+                0xbc, 0xe5,
+            ]);
+            let start = start_timer!(|| format!("serialize {}", stringify!($field)));
+            const LIMBS: usize = $field::size() / 8;
+            // failure check
+            for _ in 0..1000000 {
+                let rand_word = [(); LIMBS].map(|_| rng.next_u64());
+                let a = $field(rand_word);
+                let rand_bytes = a.to_raw_bytes();
+                match is_less_than::<LIMBS>(&rand_word, &MODULUS.0) {
+                    false => {
+                        assert!($field::from_raw_bytes(&rand_bytes).is_none());
+                    }
+                    _ => {
+                        assert_eq!($field::from_raw_bytes(&rand_bytes), Some(a));
+                    }
+                }
+            }
+            end_timer!(start);
+        }
+    };
 }

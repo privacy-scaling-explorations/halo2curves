@@ -305,6 +305,7 @@ mod test {
     crate::field_testing_suite!(Fq, "serialization");
     crate::field_testing_suite!(Fq, "quadratic_residue");
     crate::field_testing_suite!(Fq, "bits");
+    crate::field_testing_suite!(Fq, "serialization_check");
 
     use rand_core::OsRng;
 

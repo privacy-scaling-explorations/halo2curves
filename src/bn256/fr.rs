@@ -338,8 +338,8 @@ mod test {
     crate::field_testing_suite!(Fr, "serialization");
     crate::field_testing_suite!(Fr, "quadratic_residue");
     crate::field_testing_suite!(Fr, "bits");
+    crate::field_testing_suite!(Fr, "serialization_check");
 
-    use crate::serde::SerdeObject;
     use rand_core::OsRng;
 
     #[test]
@@ -386,49 +386,6 @@ mod test {
                 0xaaaaaaaaaaaaaaaa
             ])
         );
-    }
-
-    fn is_less_than(x: &[u64; 4], y: &[u64; 4]) -> bool {
-        match x[3].cmp(&y[3]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        match x[2].cmp(&y[2]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        match x[1].cmp(&y[1]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        x[0].lt(&y[0])
-    }
-
-    #[test]
-    fn test_serialization_check() {
-        let mut rng = XorShiftRng::from_seed([
-            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
-            0xbc, 0xe5,
-        ]);
-        let start = start_timer!(|| "serialize fr");
-        // failure check
-        for _ in 0..1000000 {
-            let rand_word = [(); 4].map(|_| rng.next_u64());
-            let a = Fr(rand_word);
-            let rand_bytes = a.to_raw_bytes();
-            match is_less_than(&rand_word, &MODULUS.0) {
-                false => {
-                    assert!(Fr::from_raw_bytes(&rand_bytes).is_none());
-                }
-                _ => {
-                    assert_eq!(Fr::from_raw_bytes(&rand_bytes), Some(a));
-                }
-            }
-        }
-        end_timer!(start);
     }
 
     #[test]
