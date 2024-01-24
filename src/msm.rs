@@ -363,7 +363,7 @@ pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Cu
     };
 
     // coeffs to byte representation
-    let coeffs: Vec<_> = coeffs.iter().map(|a| a.to_repr()).collect();
+    let coeffs: Vec<_> = coeffs.par_iter().map(|a| a.to_repr()).collect();
     // copy bases into `Affine` to skip in on curve check for every access
     let bases_local: Vec<_> = bases.iter().map(Affine::from).collect();
 
