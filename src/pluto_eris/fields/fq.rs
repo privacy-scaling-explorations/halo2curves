@@ -392,6 +392,15 @@ impl WithSmallOrderMulGroup<3> for Fq {
 
 #[cfg(test)]
 mod test {
+    use super::*;
+    crate::field_testing_suite!(Fq, "field");
+    // crate::field_testing_suite!(Fq, "conversion");
+    crate::field_testing_suite!(Fq, "serialization");
+    // crate::field_testing_suite!(Fq, "quadratic_residue");
+}
+
+#[cfg(test)]
+mod tests {
     use crate::serde::SerdeObject;
 
     use super::*;
@@ -417,11 +426,6 @@ mod test {
 
             assert!(a == b || a == negb);
         }
-    }
-
-    #[test]
-    fn test_field() {
-        crate::tests::field::random_field_tests::<Fq>("Pluto scalar".to_string());
     }
 
     #[test]
@@ -551,13 +555,6 @@ mod test {
     #[cfg(feature = "bits")]
     fn test_bits() {
         crate::tests::field::random_bits_tests::<Fq>("Fq".to_string());
-    }
-
-    #[test]
-    fn test_serialization() {
-        crate::tests::field::random_serialization_test::<Fq>("Fq".to_string());
-        #[cfg(feature = "derive_serde")]
-        crate::tests::field::random_serde_test::<Fq>("Fq".to_string());
     }
 
     fn is_less_than(x: &[u64; 7], y: &[u64; 7]) -> bool {

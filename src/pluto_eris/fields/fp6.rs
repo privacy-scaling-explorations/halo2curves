@@ -780,7 +780,11 @@ fn test_frobenius() {
     }
 }
 
-#[test]
-fn test_field() {
-    crate::tests::field::random_field_tests::<Fp6>("fp6".to_string());
+#[cfg(test)]
+mod test {
+    use super::*;
+    crate::field_testing_suite!(Fp6, "field");
+    // crate::field_testing_suite!(Fp6, "conversion");
+    // crate::field_testing_suite!(Fp6, "serialization");
+    // crate::field_testing_suite!(Fp6, "quadratic_residue");
 }

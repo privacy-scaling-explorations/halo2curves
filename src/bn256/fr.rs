@@ -332,6 +332,15 @@ impl WithSmallOrderMulGroup<3> for Fr {
 
 #[cfg(test)]
 mod test {
+    use super::*;
+    crate::field_testing_suite!(Fr, "field");
+    crate::field_testing_suite!(Fr, "conversion");
+    crate::field_testing_suite!(Fr, "serialization");
+    crate::field_testing_suite!(Fr, "quadratic_residue");
+}
+
+#[cfg(test)]
+mod tests {
     use crate::serde::SerdeObject;
 
     use super::*;
@@ -357,11 +366,6 @@ mod test {
 
             assert!(a == b || a == negb);
         }
-    }
-
-    #[test]
-    fn test_field() {
-        crate::tests::field::random_field_tests::<Fr>("bn256 scalar".to_string());
     }
 
     #[test]
@@ -393,21 +397,9 @@ mod test {
     }
 
     #[test]
-    fn test_conversion() {
-        crate::tests::field::random_conversion_tests::<Fr>("fr".to_string());
-    }
-
-    #[test]
     #[cfg(feature = "bits")]
     fn test_bits() {
         crate::tests::field::random_bits_tests::<Fr>("fr".to_string());
-    }
-
-    #[test]
-    fn test_serialization() {
-        crate::tests::field::random_serialization_test::<Fr>("fr".to_string());
-        #[cfg(feature = "derive_serde")]
-        crate::tests::field::random_serde_test::<Fr>("fr".to_string());
     }
 
     fn is_less_than(x: &[u64; 4], y: &[u64; 4]) -> bool {
@@ -463,10 +455,5 @@ mod test {
         let _res: Vec<_> = base.map(Fr::from).collect();
 
         end_timer!(timer);
-    }
-
-    #[test]
-    fn test_quadratic_residue() {
-        crate::tests::field::random_quadratic_residue_test::<Fr>();
     }
 }

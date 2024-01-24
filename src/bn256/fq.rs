@@ -285,6 +285,15 @@ impl WithSmallOrderMulGroup<3> for Fq {
 #[cfg(test)]
 mod test {
     use super::*;
+    crate::field_testing_suite!(Fq, "field");
+    crate::field_testing_suite!(Fq, "conversion");
+    crate::field_testing_suite!(Fq, "serialization");
+    // crate::field_testing_suite!(Fq, "quadratic_residue");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
     use crate::ff_ext::Legendre;
     use ff::Field;
     use rand_core::OsRng;
@@ -348,25 +357,8 @@ mod test {
     }
 
     #[test]
-    fn test_field() {
-        crate::tests::field::random_field_tests::<Fq>("fq".to_string());
-    }
-
-    #[test]
-    fn test_conversion() {
-        crate::tests::field::random_conversion_tests::<Fq>("fq".to_string());
-    }
-
-    #[test]
     #[cfg(feature = "bits")]
     fn test_bits() {
         crate::tests::field::random_bits_tests::<Fq>("fq".to_string());
-    }
-
-    #[test]
-    fn test_serialization() {
-        crate::tests::field::random_serialization_test::<Fq>("fq".to_string());
-        #[cfg(feature = "derive_serde")]
-        crate::tests::field::random_serde_test::<Fq>("fq".to_string());
     }
 }

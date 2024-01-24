@@ -740,14 +740,11 @@ fn test_zeta() {
     assert_eq!(zeta, Fq2::ZETA);
 }
 
-#[test]
-fn test_field() {
-    crate::tests::field::random_field_tests::<Fq2>("fq2".to_string());
-}
-
-#[test]
-fn test_serialization() {
-    crate::tests::field::random_serialization_test::<Fq2>("fq2".to_string());
-    #[cfg(feature = "derive_serde")]
-    crate::tests::field::random_serde_test::<Fq2>("fq2".to_string());
+#[cfg(test)]
+mod test {
+    use super::*;
+    crate::field_testing_suite!(Fq2, "field");
+    // crate::field_testing_suite!(Fq, "conversion");
+    crate::field_testing_suite!(Fq2, "serialization");
+    // crate::field_testing_suite!(Fq, "quadratic_residue");
 }

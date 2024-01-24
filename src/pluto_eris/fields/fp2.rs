@@ -764,14 +764,11 @@ fn test_frobenius() {
     }
 }
 
-#[test]
-fn test_field() {
-    crate::tests::field::random_field_tests::<Fp2>("fp2".to_string());
-}
-
-#[test]
-fn test_serialization() {
-    crate::tests::field::random_serialization_test::<Fp2>("fp2".to_string());
-    #[cfg(feature = "derive_serde")]
-    crate::tests::field::random_serde_test::<Fp2>("fp2".to_string());
+#[cfg(test)]
+mod test {
+    use super::*;
+    crate::field_testing_suite!(Fp2, "field");
+    // crate::field_testing_suite!(Fp2, "conversion");
+    crate::field_testing_suite!(Fp2, "serialization");
+    // crate::field_testing_suite!(Fp2, "quadratic_residue");
 }
