@@ -4,7 +4,9 @@ use crate::CurveAffine;
 use ff::Field;
 use ff::PrimeField;
 use group::Group;
-use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
+};
 
 fn get_booth_index(window_index: usize, window_size: usize, el: &[u8]) -> i32 {
     // Booth encoding:
@@ -81,7 +83,7 @@ fn batch_add<C: CurveAffine>(
         acc *= *z;
     }
 
-    acc = acc.invert().expect(":(");
+    acc = acc.invert().unwrap();
 
     for (
         (
