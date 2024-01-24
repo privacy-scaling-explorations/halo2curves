@@ -288,7 +288,7 @@ mod test {
     crate::field_testing_suite!(Fq, "field");
     crate::field_testing_suite!(Fq, "conversion");
     crate::field_testing_suite!(Fq, "serialization");
-    // crate::field_testing_suite!(Fq, "quadratic_residue");
+    crate::field_testing_suite!(Fq, "quadratic_residue");
 }
 
 #[cfg(test)]

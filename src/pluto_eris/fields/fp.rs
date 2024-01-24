@@ -403,9 +403,9 @@ impl WithSmallOrderMulGroup<3> for Fp {
 mod test {
     use super::*;
     crate::field_testing_suite!(Fp, "field");
-    // crate::field_testing_suite!(Fp, "conversion");
+    crate::field_testing_suite!(Fp, "conversion");
     crate::field_testing_suite!(Fp, "serialization");
-    // crate::field_testing_suite!(Fp, "quadratic_residue");
+    crate::field_testing_suite!(Fp, "quadratic_residue");
 }
 
 #[cfg(test)]

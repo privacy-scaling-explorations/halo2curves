@@ -744,7 +744,7 @@ fn test_zeta() {
 mod test {
     use super::*;
     crate::field_testing_suite!(Fq2, "field");
-    // crate::field_testing_suite!(Fq, "conversion");
+    crate::field_testing_suite!(Fq2, "conversion");
     crate::field_testing_suite!(Fq2, "serialization");
-    // crate::field_testing_suite!(Fq, "quadratic_residue");
+    crate::field_testing_suite!(Fq2, "quadratic_residue");
 }

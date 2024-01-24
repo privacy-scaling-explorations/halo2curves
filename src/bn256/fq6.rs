@@ -707,7 +707,7 @@ fn test_frobenius() {
 mod test {
     use super::*;
     crate::field_testing_suite!(Fq6, "field");
-    // crate::field_testing_suite!(Fq, "conversion");
-    // crate::field_testing_suite!(Fq, "serialization");
-    // crate::field_testing_suite!(Fq, "quadratic_residue");
+    // crate::field_testing_suite!(Fq6, "conversion");
+    // crate::field_testing_suite!(Fq6, "serialization");
+    // crate::field_testing_suite!(Fq6, "quadratic_residue");
 }
