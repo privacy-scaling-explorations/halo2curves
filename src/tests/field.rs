@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! field_testing_suite {
-    ($field: ident, "field") => {
+    ($field: ident, "field_arithmetic") => {
         macro_rules! random_multiplication_tests {
             ($f: ident, $rng: expr) => {
                 let _message = format!("multiplication {}", stringify!($f));

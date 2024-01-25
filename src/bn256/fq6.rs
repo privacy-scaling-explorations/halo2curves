@@ -706,7 +706,7 @@ fn test_frobenius() {
 #[cfg(test)]
 mod test {
     use super::*;
-    crate::field_testing_suite!(Fq6, "field");
+    crate::field_testing_suite!(Fq6, "field_arithmetic");
     // crate::field_testing_suite!(Fq6, "conversion");
     // crate::field_testing_suite!(Fq6, "serialization");
     // crate::field_testing_suite!(Fq6, "quadratic_residue");

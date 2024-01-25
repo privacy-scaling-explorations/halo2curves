@@ -333,7 +333,7 @@ impl WithSmallOrderMulGroup<3> for Fr {
 #[cfg(test)]
 mod test {
     use super::*;
-    crate::field_testing_suite!(Fr, "field");
+    crate::field_testing_suite!(Fr, "field_arithmetic");
     crate::field_testing_suite!(Fr, "conversion");
     crate::field_testing_suite!(Fr, "serialization");
     crate::field_testing_suite!(Fr, "quadratic_residue");

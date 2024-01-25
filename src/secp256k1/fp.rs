@@ -293,7 +293,7 @@ extend_field_legendre!(Fp);
 #[cfg(test)]
 mod test {
     use super::*;
-    crate::field_testing_suite!(Fp, "field");
+    crate::field_testing_suite!(Fp, "field_arithmetic");
     crate::field_testing_suite!(Fp, "conversion");
     crate::field_testing_suite!(Fp, "serialization");
     crate::field_testing_suite!(Fp, "quadratic_residue");
