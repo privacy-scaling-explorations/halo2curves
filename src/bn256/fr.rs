@@ -340,26 +340,7 @@ mod test {
     crate::field_testing_suite!(Fr, "bits");
     crate::field_testing_suite!(Fr, "serialization_check");
     crate::field_testing_suite!(Fr, "constants", MODULUS_STR);
-
-    use rand_core::OsRng;
-
-    #[test]
-    fn test_sqrt() {
-        let v = (Fr::TWO_INV).square().sqrt().unwrap();
-        assert!(v == Fr::TWO_INV || (-v) == Fr::TWO_INV);
-
-        for _ in 0..10000 {
-            let a = Fr::random(OsRng);
-            let mut b = a;
-            b = b.square();
-
-            let b = b.sqrt().unwrap();
-            let mut negb = b;
-            negb = negb.neg();
-
-            assert!(a == b || a == negb);
-        }
-    }
+    crate::field_testing_suite!(Fr, "sqrt");
 
     #[test]
     fn test_from_u512() {

@@ -292,45 +292,7 @@ mod test {
     crate::field_testing_suite!(Fq, "bits");
     crate::field_testing_suite!(Fq, "serialization_check");
     crate::field_testing_suite!(Fq, "constants", MODULUS_STR);
-
-    use crate::ff_ext::Legendre;
-    use rand_core::OsRng;
-
-    #[test]
-    fn test_sqrt_fq() {
-        let v = (Fq::TWO_INV).square().sqrt().unwrap();
-        assert!(v == Fq::TWO_INV || (-v) == Fq::TWO_INV);
-
-        for _ in 0..10000 {
-            let a = Fq::random(OsRng);
-            let mut b = a;
-            b = b.square();
-            assert_eq!(b.legendre(), 1);
-
-            let b = b.sqrt().unwrap();
-            let mut negb = b;
-            negb = negb.neg();
-
-            assert!(a == b || a == negb);
-        }
-
-        let mut c = Fq::one();
-        for _ in 0..10000 {
-            let mut b = c;
-            b = b.square();
-            assert_eq!(b.legendre(), 1);
-
-            b = b.sqrt().unwrap();
-
-            if b != c {
-                b = b.neg();
-            }
-
-            assert_eq!(b, c);
-
-            c += &Fq::one();
-        }
-    }
+    crate::field_testing_suite!(Fq, "sqrt");
 
     #[test]
     fn test_from_u512() {

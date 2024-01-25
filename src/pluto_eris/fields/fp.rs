@@ -409,26 +409,7 @@ mod test {
     crate::field_testing_suite!(Fp, "bits");
     crate::field_testing_suite!(Fp, "serialization_check");
     crate::field_testing_suite!(Fp, "constants", MODULUS_STR);
-
-    use rand_core::OsRng;
-
-    #[test]
-    fn test_sqrt() {
-        let v = (Fp::TWO_INV).square().sqrt().unwrap();
-        assert!(v == Fp::TWO_INV || (-v) == Fp::TWO_INV);
-
-        for _ in 0..10000 {
-            let a = Fp::random(OsRng);
-            let mut b = a;
-            b = b.square();
-
-            let b = b.sqrt().unwrap();
-            let mut negb = b;
-            negb = negb.neg();
-
-            assert!(a == b || a == negb);
-        }
-    }
+    crate::field_testing_suite!(Fp, "sqrt");
 
     #[test]
     fn test_zeta() {

@@ -461,4 +461,52 @@ macro_rules! field_testing_suite {
             }
         }
     };
+
+    ($field: ident, "sqrt") => {
+        #[test]
+        fn test_sqrt() {
+            use crate::ff_ext::Legendre;
+            use rand_core::OsRng;
+
+            let v = ($field::TWO_INV).square().sqrt().unwrap();
+            assert!(v == $field::TWO_INV || (-v) == $field::TWO_INV);
+
+            for _ in 0..10000 {
+                let a = $field::random(OsRng);
+                if a.legendre() == -1 {
+                    assert!(bool::from(a.sqrt().is_none()));
+                }
+            }
+
+            for _ in 0..10000 {
+                let a = $field::random(OsRng);
+                let mut b = a;
+                b = b.square();
+                assert_eq!(b.legendre(), 1);
+
+                let b = b.sqrt().unwrap();
+                let mut negb = b;
+                negb = negb.neg();
+
+                assert!(a == b || a == negb);
+            }
+
+            let mut c = $field::one();
+            for _ in 0..10000 {
+                let mut b = c;
+                b = b.square();
+                assert_eq!(b.legendre(), 1);
+
+                b = b.sqrt().unwrap();
+
+                if b != c {
+                    b = b.neg();
+                }
+
+                assert_eq!(b, c);
+
+                c += &$field::one();
+            }
+        }
+    };
 }

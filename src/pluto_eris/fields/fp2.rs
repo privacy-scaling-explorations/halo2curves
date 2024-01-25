@@ -690,51 +690,6 @@ fn test_fp2_mul_nonresidue() {
 }
 
 #[test]
-pub fn test_sqrt() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-    const N_ITER: usize = 1000;
-    for _ in 0..N_ITER {
-        let a = Fp2::random(&mut rng);
-        if a.legendre() == -1 {
-            assert!(bool::from(a.sqrt().is_none()));
-        }
-    }
-
-    for _ in 0..N_ITER {
-        let a = Fp2::random(&mut rng);
-        let mut b = a;
-        b.square_assign();
-        assert_eq!(b.legendre(), 1);
-
-        let b = b.sqrt().unwrap();
-        let mut negb = b;
-        negb = negb.neg();
-
-        assert!(a == b || a == negb);
-    }
-
-    let mut c = Fp2::ONE;
-    for _ in 0..N_ITER {
-        let mut b = c;
-        b.square_assign();
-        assert_eq!(b.legendre(), 1);
-
-        b = b.sqrt().unwrap();
-
-        if b != c {
-            b = b.neg();
-        }
-
-        assert_eq!(b, c);
-
-        c += &Fp2::ONE;
-    }
-}
-
-#[test]
 fn test_frobenius() {
     let mut rng = XorShiftRng::from_seed([
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
@@ -771,4 +726,5 @@ mod test {
     crate::field_testing_suite!(Fp2, "conversion");
     crate::field_testing_suite!(Fp2, "serialization");
     crate::field_testing_suite!(Fp2, "quadratic_residue");
+    crate::field_testing_suite!(Fp2, "sqrt");
 }
