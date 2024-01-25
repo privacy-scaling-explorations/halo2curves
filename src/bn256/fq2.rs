@@ -547,72 +547,6 @@ use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
 
 #[test]
-fn test_ser() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    let a0 = Fq2::random(&mut rng);
-    let a_bytes = a0.to_bytes();
-    let a1 = Fq2::from_bytes(&a_bytes).unwrap();
-    assert_eq!(a0, a1);
-}
-
-#[test]
-fn test_fq2_ordering() {
-    let mut a = Fq2 {
-        c0: Fq::zero(),
-        c1: Fq::zero(),
-    };
-
-    let mut b = a;
-
-    assert!(a.cmp(&b) == Ordering::Equal);
-    b.c0 += &Fq::one();
-    assert!(a.cmp(&b) == Ordering::Less);
-    a.c0 += &Fq::one();
-    assert!(a.cmp(&b) == Ordering::Equal);
-    b.c1 += &Fq::one();
-    assert!(a.cmp(&b) == Ordering::Less);
-    a.c0 += &Fq::one();
-    assert!(a.cmp(&b) == Ordering::Less);
-    a.c1 += &Fq::one();
-    assert!(a.cmp(&b) == Ordering::Greater);
-    b.c0 += &Fq::one();
-    assert!(a.cmp(&b) == Ordering::Equal);
-}
-
-#[test]
-fn test_fq2_basics() {
-    assert_eq!(
-        Fq2 {
-            c0: Fq::zero(),
-            c1: Fq::zero(),
-        },
-        Fq2::ZERO
-    );
-    assert_eq!(
-        Fq2 {
-            c0: Fq::one(),
-            c1: Fq::zero(),
-        },
-        Fq2::ONE
-    );
-    assert_eq!(Fq2::ZERO.is_zero().unwrap_u8(), 1);
-    assert_eq!(Fq2::ONE.is_zero().unwrap_u8(), 0);
-    assert_eq!(
-        Fq2 {
-            c0: Fq::zero(),
-            c1: Fq::one(),
-        }
-        .is_zero()
-        .unwrap_u8(),
-        0
-    );
-}
-
-#[test]
 fn test_fq2_squaring() {
     let mut a = Fq2 {
         c0: Fq::one(),
@@ -673,6 +607,7 @@ mod test {
     crate::field_testing_suite!(Fq2, "sqrt");
     crate::field_testing_suite!(Fq2, "zeta", Fq);
     // extension field-specific
+    crate::field_testing_suite!(Fq2, "f2_tests", Fq);
     crate::field_testing_suite!(
         Fq2,
         "frobenius",

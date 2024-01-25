@@ -522,6 +522,74 @@ macro_rules! field_testing_suite {
         }
     };
 
+    ($ext_field: ident, "f2_tests", $base_field: ident) => {
+        #[test]
+        fn test_ser() {
+            let mut rng = XorShiftRng::from_seed([
+                0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+                0xe5,
+            ]);
+
+            let a0 = $ext_field::random(&mut rng);
+            let a_bytes = a0.to_bytes();
+            let a1 = $ext_field::from_bytes(&a_bytes).unwrap();
+            assert_eq!(a0, a1);
+        }
+
+        #[test]
+        fn test_f2_ordering() {
+            let mut a = $ext_field {
+                c0: $base_field::zero(),
+                c1: $base_field::zero(),
+            };
+
+            let mut b = a;
+
+            assert!(a.cmp(&b) == Ordering::Equal);
+            b.c0 += &$base_field::one();
+            assert!(a.cmp(&b) == Ordering::Less);
+            a.c0 += &$base_field::one();
+            assert!(a.cmp(&b) == Ordering::Equal);
+            b.c1 += &$base_field::one();
+            assert!(a.cmp(&b) == Ordering::Less);
+            a.c0 += &$base_field::one();
+            assert!(a.cmp(&b) == Ordering::Less);
+            a.c1 += &$base_field::one();
+            assert!(a.cmp(&b) == Ordering::Greater);
+            b.c0 += &$base_field::one();
+            assert!(a.cmp(&b) == Ordering::Equal);
+        }
+
+        #[test]
+        fn test_f2_basics() {
+            assert_eq!(
+                $ext_field {
+                    c0: $base_field::zero(),
+                    c1: $base_field::zero(),
+                },
+                $ext_field::ZERO
+            );
+            assert_eq!(
+                $ext_field {
+                    c0: $base_field::one(),
+                    c1: $base_field::zero(),
+                },
+                $ext_field::ONE
+            );
+            assert_eq!($ext_field::ZERO.is_zero().unwrap_u8(), 1);
+            assert_eq!($ext_field::ONE.is_zero().unwrap_u8(), 0);
+            assert_eq!(
+                $ext_field {
+                    c0: $base_field::zero(),
+                    c1: $base_field::one(),
+                }
+                .is_zero()
+                .unwrap_u8(),
+                0
+            );
+        }
+    };
+
     ($ext_field: ident, "frobenius", $frobenius_param: expr) => {
         #[test]
         fn test_frobenius() {
