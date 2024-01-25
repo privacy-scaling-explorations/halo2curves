@@ -727,4 +727,5 @@ mod test {
     crate::field_testing_suite!(Fp2, "serialization");
     crate::field_testing_suite!(Fp2, "quadratic_residue");
     crate::field_testing_suite!(Fp2, "sqrt");
+    crate::field_testing_suite!(Fp2, "zeta", Fp);
 }

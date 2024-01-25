@@ -341,6 +341,7 @@ mod test {
     crate::field_testing_suite!(Fr, "serialization_check");
     crate::field_testing_suite!(Fr, "constants", MODULUS_STR);
     crate::field_testing_suite!(Fr, "sqrt");
+    crate::field_testing_suite!(Fr, "zeta");
 
     #[test]
     fn test_from_u512() {

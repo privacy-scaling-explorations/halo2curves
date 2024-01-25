@@ -308,10 +308,5 @@ mod test {
     crate::field_testing_suite!(Fq, "serialization_check");
     crate::field_testing_suite!(Fq, "constants", MODULUS_STR);
     crate::field_testing_suite!(Fq, "sqrt");
-
-    #[test]
-    fn test_zeta() {
-        assert_eq!(Fq::ZETA * Fq::ZETA * Fq::ZETA, Fq::ONE);
-        assert_ne!(Fq::ZETA * Fq::ZETA, Fq::ONE);
-    }
+    crate::field_testing_suite!(Fq, "zeta");
 }

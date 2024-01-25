@@ -509,4 +509,16 @@ macro_rules! field_testing_suite {
             }
         }
     };
+
+    ($field: ident, "zeta" $(, $prime_field: ident)*) => {
+        #[test]
+        fn test_zeta() {
+            assert_eq!($field::ZETA * $field::ZETA * $field::ZETA, $field::ONE);
+            assert_ne!($field::ZETA * $field::ZETA, $field::ONE);
+            $(
+                let zeta = $field::new($prime_field::ZETA.square(), $prime_field::zero());
+                assert_eq!(zeta, $field::ZETA);
+            )*
+        }
+    }
 }

@@ -690,12 +690,6 @@ fn test_frobenius() {
     }
 }
 
-#[test]
-fn test_zeta() {
-    let zeta = Fq2::new(Fq::ZETA.square(), Fq::zero());
-    assert_eq!(zeta, Fq2::ZETA);
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -703,5 +697,6 @@ mod test {
     crate::field_testing_suite!(Fq2, "conversion");
     crate::field_testing_suite!(Fq2, "serialization");
     crate::field_testing_suite!(Fq2, "quadratic_residue");
-    crate::field_testing_suite!(Fq, "sqrt");
+    crate::field_testing_suite!(Fq2, "sqrt");
+    crate::field_testing_suite!(Fq2, "zeta", Fq);
 }

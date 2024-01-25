@@ -410,12 +410,7 @@ mod test {
     crate::field_testing_suite!(Fp, "serialization_check");
     crate::field_testing_suite!(Fp, "constants", MODULUS_STR);
     crate::field_testing_suite!(Fp, "sqrt");
-
-    #[test]
-    fn test_zeta() {
-        assert_eq!(Fp::ZETA * Fp::ZETA * Fp::ZETA, Fp::ONE);
-        assert_ne!(Fp::ZETA * Fp::ZETA, Fp::ONE);
-    }
+    crate::field_testing_suite!(Fp, "zeta");
 
     #[test]
     fn test_from_u512() {
