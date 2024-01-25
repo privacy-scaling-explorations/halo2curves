@@ -510,15 +510,39 @@ macro_rules! field_testing_suite {
         }
     };
 
-    ($field: ident, "zeta" $(, $prime_field: ident)*) => {
+    ($field: ident, "zeta" $(, $base_field: ident)*) => {
         #[test]
         fn test_zeta() {
             assert_eq!($field::ZETA * $field::ZETA * $field::ZETA, $field::ONE);
             assert_ne!($field::ZETA * $field::ZETA, $field::ONE);
             $(
-                let zeta = $field::new($prime_field::ZETA.square(), $prime_field::zero());
+                let zeta = $field::new($base_field::ZETA.square(), $base_field::zero());
                 assert_eq!(zeta, $field::ZETA);
             )*
         }
-    }
+    };
+
+    ($ext_field: ident, "frobenius", $frobenius_param: expr) => {
+        #[test]
+        fn test_frobenius() {
+            let mut rng = XorShiftRng::from_seed([
+                0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+                0xe5,
+            ]);
+
+            for _ in 0..50 {
+                for i in 0..8 {
+                    let mut a = $ext_field::random(&mut rng);
+                    let mut b = a;
+
+                    for _ in 0..i {
+                        a = a.pow($frobenius_param);
+                    }
+                    b.frobenius_map(i);
+
+                    assert_eq!(a, b);
+                }
+            }
+        }
+    };
 }

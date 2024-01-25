@@ -749,42 +749,22 @@ fn test_squaring() {
     }
 }
 
-#[test]
-fn test_frobenius() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..50 {
-        for i in 0..8 {
-            let mut a = Fp6::random(&mut rng);
-            let mut b = a;
-
-            for _ in 0..i {
-                a = a.pow_vartime([
-                    // p
-                    0x9ffffcd300000001,
-                    0xa2a7e8c30006b945,
-                    0xe4a7a5fe8fadffd6,
-                    0x443f9a5cda8a6c7b,
-                    0xa803ca76f439266f,
-                    0x0130e0000d7f70e4,
-                    0x2400000000002400,
-                ]);
-            }
-            b.frobenius_map(i);
-
-            assert_eq!(a, b);
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
     crate::field_testing_suite!(Fp6, "field_arithmetic");
-    // crate::field_testing_suite!(Fp6, "conversion");
-    // crate::field_testing_suite!(Fp6, "serialization");
-    // crate::field_testing_suite!(Fp6, "quadratic_residue");
+    // extension field-specific
+    crate::field_testing_suite!(
+        Fp6,
+        "frobenius",
+        [
+            0x9ffffcd300000001,
+            0xa2a7e8c30006b945,
+            0xe4a7a5fe8fadffd6,
+            0x443f9a5cda8a6c7b,
+            0xa803ca76f439266f,
+            0x0130e0000d7f70e4,
+            0x2400000000002400,
+        ]
+    );
 }
