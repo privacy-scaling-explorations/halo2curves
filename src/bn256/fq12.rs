@@ -490,95 +490,11 @@ pub const FROBENIUS_COEFF_FQ12_C1: [Fq2; 12] = [
 ];
 
 #[cfg(test)]
-use rand::SeedableRng;
-#[cfg(test)]
-use rand_xorshift::XorShiftRng;
-
-#[test]
-fn test_fq12_mul_by_014() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..1000 {
-        let c0 = Fq2::random(&mut rng);
-        let c1 = Fq2::random(&mut rng);
-        let c5 = Fq2::random(&mut rng);
-        let mut a = Fq12::random(&mut rng);
-        let mut b = a;
-
-        a.mul_by_014(&c0, &c1, &c5);
-        b.mul_assign(&Fq12 {
-            c0: Fq6 {
-                c0,
-                c1,
-                c2: Fq2::zero(),
-            },
-            c1: Fq6 {
-                c0: Fq2::zero(),
-                c1: c5,
-                c2: Fq2::zero(),
-            },
-        });
-
-        assert_eq!(a, b);
-    }
-}
-
-#[test]
-fn test_fq12_mul_by_034() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..1000 {
-        let c0 = Fq2::random(&mut rng);
-        let c3 = Fq2::random(&mut rng);
-        let c4 = Fq2::random(&mut rng);
-        let mut a = Fq12::random(&mut rng);
-        let mut b = a;
-
-        a.mul_by_034(&c0, &c3, &c4);
-        b.mul_assign(&Fq12 {
-            c0: Fq6 {
-                c0,
-                c1: Fq2::zero(),
-                c2: Fq2::zero(),
-            },
-            c1: Fq6 {
-                c0: c3,
-                c1: c4,
-                c2: Fq2::zero(),
-            },
-        });
-
-        assert_eq!(a, b);
-    }
-}
-
-#[test]
-fn test_squaring() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..1000 {
-        let mut a = Fq12::random(&mut rng);
-        let mut b = a;
-        b.mul_assign(&a);
-        a.square_assign();
-        assert_eq!(a, b);
-    }
-}
-
-#[cfg(test)]
 mod test {
     use super::*;
     crate::field_testing_suite!(Fq12, "field_arithmetic");
     // extension field-specific
+    crate::field_testing_suite!(Fq12, "f12_tests", Fq6, Fq2);
     crate::field_testing_suite!(
         Fq12,
         "frobenius",
