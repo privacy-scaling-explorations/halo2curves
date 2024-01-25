@@ -439,4 +439,26 @@ macro_rules! field_testing_suite {
             end_timer!(start);
         }
     };
+
+    ($field: ident, "constants", $modulus_str: expr) => {
+        #[test]
+        fn test_primefield_constants() {
+            assert_eq!($field::MODULUS, $modulus_str);
+            assert_eq!(
+                $field::ROOT_OF_UNITY_INV,
+                $field::ROOT_OF_UNITY.invert().unwrap()
+            );
+            assert_eq!($field::from(2) * $field::TWO_INV, $field::ONE);
+            if $field::S != 0 {
+                assert_eq!(
+                    $field::ROOT_OF_UNITY.pow_vartime([1 << $field::S]),
+                    $field::one()
+                );
+                assert_eq!(
+                    $field::DELTA,
+                    $field::MULTIPLICATIVE_GENERATOR.pow([1u64 << $field::S])
+                );
+            }
+        }
+    };
 }

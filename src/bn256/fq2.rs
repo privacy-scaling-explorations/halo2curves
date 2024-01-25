@@ -418,6 +418,7 @@ impl From<u64> for Fq2 {
     }
 }
 
+// This trait is only implemented to satisfy the requirement of CurveExt
 impl PrimeField for Fq2 {
     type Repr = Fq2Bytes;
 

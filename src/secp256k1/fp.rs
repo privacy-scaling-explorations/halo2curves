@@ -299,6 +299,7 @@ mod test {
     crate::field_testing_suite!(Fp, "quadratic_residue");
     crate::field_testing_suite!(Fp, "bits");
     crate::field_testing_suite!(Fp, "serialization_check");
+    crate::field_testing_suite!(Fp, "constants", MODULUS_STR);
 
     use rand_core::OsRng;
 
@@ -319,30 +320,5 @@ mod test {
 
             assert!(a == b || a == negb);
         }
-    }
-
-    #[test]
-    fn test_constants() {
-        assert_eq!(
-            Fp::MODULUS,
-            "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f",
-        );
-
-        assert_eq!(Fp::from(2) * Fp::TWO_INV, Fp::ONE);
-    }
-
-    #[test]
-    fn test_delta() {
-        assert_eq!(Fp::DELTA, MULTIPLICATIVE_GENERATOR.pow([1u64 << Fp::S]));
-    }
-
-    #[test]
-    fn test_root_of_unity() {
-        assert_eq!(Fp::ROOT_OF_UNITY.pow_vartime([1 << Fp::S]), Fp::one());
-    }
-
-    #[test]
-    fn test_inv_root_of_unity() {
-        assert_eq!(Fp::ROOT_OF_UNITY_INV, Fp::ROOT_OF_UNITY.invert().unwrap());
     }
 }

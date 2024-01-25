@@ -399,6 +399,7 @@ mod test {
     crate::field_testing_suite!(Fq, "quadratic_residue");
     crate::field_testing_suite!(Fq, "bits");
     crate::field_testing_suite!(Fq, "serialization_check");
+    crate::field_testing_suite!(Fq, "constants", MODULUS_STR);
 
     use rand_core::OsRng;
 
@@ -424,12 +425,6 @@ mod test {
     fn test_zeta() {
         assert_eq!(Fq::ZETA * Fq::ZETA * Fq::ZETA, Fq::ONE);
         assert_ne!(Fq::ZETA * Fq::ZETA, Fq::ONE);
-    }
-
-    #[test]
-    fn test_delta() {
-        assert_eq!(Fq::DELTA, GENERATOR.pow([1u64 << Fq::S]));
-        assert_eq!(Fq::DELTA, Fq::MULTIPLICATIVE_GENERATOR.pow([1u64 << Fq::S]));
     }
 
     #[test]
