@@ -522,6 +522,28 @@ macro_rules! field_testing_suite {
         }
     };
 
+    ($field: ident, "from_uniform_bytes", $test_vectors: expr) => {
+        #[test]
+        fn test_from_uniform_bytes() {
+            const N_VECS: usize = 10;
+            assert!($test_vectors.len() == N_VECS);
+
+            let mut seeded_rng = XorShiftRng::seed_from_u64(0u64);
+            let uniform_bytes = std::iter::from_fn(|| {
+                let mut bytes = [0u8; 64];
+                seeded_rng.fill_bytes(&mut bytes);
+                Some(bytes)
+            })
+            .take(N_VECS)
+            .collect::<Vec<_>>();
+
+            for i in 0..N_VECS {
+                let q = $field::from_uniform_bytes(&uniform_bytes[i]);
+                assert_eq!($test_vectors[i], q);
+            }
+        }
+    };
+
     ($ext_field: ident, "f2_tests", $base_field: ident) => {
         #[test]
         fn test_ser() {

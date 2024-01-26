@@ -411,11 +411,10 @@ mod test {
     crate::field_testing_suite!(Fp, "constants", MODULUS_STR);
     crate::field_testing_suite!(Fp, "sqrt");
     crate::field_testing_suite!(Fp, "zeta");
-
-    #[test]
-    fn test_from_u512() {
-        const N_VECS: usize = 10;
-        let expected_results = [
+    crate::field_testing_suite!(
+        Fp,
+        "from_uniform_bytes",
+        [
             Fp::from_raw([
                 0x93638251ffeffed3,
                 0x4d32f4d20020be11,
@@ -506,20 +505,6 @@ mod test {
                 0xd7d5d8bc4497465a,
                 0x08ce8bee1323d4f9,
             ]),
-        ];
-
-        let mut seeded_rng = XorShiftRng::seed_from_u64(0u64);
-        let uniform_bytes = std::iter::from_fn(|| {
-            let mut bytes = [0u8; 64];
-            seeded_rng.fill_bytes(&mut bytes);
-            Some(bytes)
-        })
-        .take(N_VECS)
-        .collect::<Vec<_>>();
-
-        for i in 0..N_VECS {
-            let p = Fp::from_uniform_bytes(&uniform_bytes[i]);
-            assert_eq!(expected_results[i], p);
-        }
-    }
+        ]
+    );
 }
