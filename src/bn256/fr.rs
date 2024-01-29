@@ -411,7 +411,7 @@ mod test {
 
     #[test]
     fn bench_fr_from_u16() {
-        use ark_std::{start_timer, end_timer};
+        use ark_std::{end_timer, start_timer};
 
         let repeat = 10000000;
         let mut rng = ark_std::test_rng();
