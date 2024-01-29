@@ -3,8 +3,6 @@ macro_rules! field_testing_suite {
     ($field: ident, "field_arithmetic") => {
         macro_rules! random_multiplication_tests {
             ($f: ident, $rng: expr) => {
-                let _message = format!("multiplication {}", stringify!($f));
-                let start = start_timer!(|| _message);
                 for _ in 0..1000000 {
                     let a = $f::random(&mut $rng);
                     let b = $f::random(&mut $rng);
@@ -25,14 +23,11 @@ macro_rules! field_testing_suite {
                     assert_eq!(t0, t1);
                     assert_eq!(t1, t2);
                 }
-                end_timer!(start);
             };
         }
 
         macro_rules! random_addition_tests {
             ($f: ident, $rng: expr) => {
-                let _message = format!("addition {}", stringify!($f));
-                let start = start_timer!(|| _message);
                 for _ in 0..1000000 {
                     let a = $f::random(&mut $rng);
                     let b = $f::random(&mut $rng);
@@ -53,14 +48,11 @@ macro_rules! field_testing_suite {
                     assert_eq!(t0, t1);
                     assert_eq!(t1, t2);
                 }
-                end_timer!(start);
             };
         }
 
         macro_rules! random_subtraction_tests {
             ($f: ident, $rng: expr) => {
-                let _message = format!("subtraction {}", stringify!($f));
-                let start = start_timer!(|| _message);
                 for _ in 0..1000000 {
                     let a = $f::random(&mut $rng);
                     let b = $f::random(&mut $rng);
@@ -76,14 +68,11 @@ macro_rules! field_testing_suite {
 
                     assert_eq!(t2.is_zero().unwrap_u8(), 1);
                 }
-                end_timer!(start);
             };
         }
 
         macro_rules! random_negation_tests {
             ($f: ident, $rng: expr) => {
-                let _message = format!("negation {}", stringify!($f));
-                let start = start_timer!(|| _message);
                 for _ in 0..1000000 {
                     let a = $f::random(&mut $rng);
                     let mut b = a;
@@ -92,14 +81,11 @@ macro_rules! field_testing_suite {
 
                     assert_eq!(b.is_zero().unwrap_u8(), 1);
                 }
-                end_timer!(start);
             };
         }
 
         macro_rules! random_doubling_tests {
             ($f: ident, $rng: expr) => {
-                let _message = format!("doubling {}", stringify!($f));
-                let start = start_timer!(|| _message);
                 for _ in 0..1000000 {
                     let mut a = $f::random(&mut $rng);
                     let mut b = a;
@@ -108,14 +94,11 @@ macro_rules! field_testing_suite {
 
                     assert_eq!(a, b);
                 }
-                end_timer!(start);
             };
         }
 
         macro_rules! random_squaring_tests {
             ($f: ident, $rng: expr) => {
-                let _message = format!("squaring {}", stringify!($f));
-                let start = start_timer!(|| _message);
                 for _ in 0..1000000 {
                     let mut a = $f::random(&mut $rng);
                     let mut b = a;
@@ -124,7 +107,6 @@ macro_rules! field_testing_suite {
 
                     assert_eq!(a, b);
                 }
-                end_timer!(start);
             };
         }
 
@@ -132,8 +114,6 @@ macro_rules! field_testing_suite {
             ($f: ident, $rng: expr) => {
                 assert!(bool::from($f::ZERO.invert().is_none()));
 
-                let _message = format!("inversion {}", stringify!($f));
-                let start = start_timer!(|| _message);
                 for _ in 0..1000000 {
                     let mut a = $f::random(&mut $rng);
                     let b = a.invert().unwrap(); // probablistically nonzero
@@ -141,14 +121,11 @@ macro_rules! field_testing_suite {
 
                     assert_eq!(a, $f::ONE);
                 }
-                end_timer!(start);
             };
         }
 
         macro_rules! random_expansion_tests {
             ($f: ident, $rng: expr) => {
-                let _message = format!("expansion {}", stringify!($f));
-                let start = start_timer!(|| _message);
                 for _ in 0..1000000 {
                     // Compare (a + b)(c + d) and (a*c + b*c + a*d + b*d)
 
@@ -178,7 +155,6 @@ macro_rules! field_testing_suite {
 
                     assert_eq!(t0, t2);
                 }
-                end_timer!(start);
             };
         }
 
@@ -232,7 +208,6 @@ macro_rules! field_testing_suite {
             };
         }
 
-        use ark_std::{end_timer, start_timer};
         use ff::Field;
         use rand::SeedableRng;
         use rand_xorshift::XorShiftRng;
@@ -268,15 +243,12 @@ macro_rules! field_testing_suite {
                     0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54,
                     0x06, 0xbc, 0xe5,
                 ]);
-                let _message = format!("conversion {}", stringify!($f));
-                let start = start_timer!(|| _message);
                 for _ in 0..1000000 {
                     let a = $f::random(&mut rng);
                     let bytes = a.to_repr();
                     let b = $f::from_repr(bytes).unwrap();
                     assert_eq!(a, b);
                 }
-                end_timer!(start);
             };
         }
 
@@ -293,8 +265,6 @@ macro_rules! field_testing_suite {
                     0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54,
                     0x06, 0xbc, 0xe5,
                 ]);
-                let _message = format!("serialization with SerdeObject {}", stringify!($f));
-                let start = start_timer!(|| _message);
                 for _ in 0..1000000 {
                     let a = $f::random(&mut rng);
                     let bytes = a.to_raw_bytes();
@@ -305,7 +275,6 @@ macro_rules! field_testing_suite {
                     let b = $f::read_raw(&mut &buf[..]).unwrap();
                     assert_eq!(a, b);
                 }
-                end_timer!(start);
             };
         }
 
@@ -316,8 +285,6 @@ macro_rules! field_testing_suite {
                     0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54,
                     0x06, 0xbc, 0xe5,
                 ]);
-                let _message = format!("serialization with serde {}", stringify!($f));
-                let start = start_timer!(|| _message);
                 for _ in 0..1000000 {
                     // byte serialization
                     let a = $f::random(&mut rng);
@@ -332,7 +299,6 @@ macro_rules! field_testing_suite {
                     let b: $f = serde_json::from_reader(reader).unwrap();
                     assert_eq!(a, b);
                 }
-                end_timer!(start);
             };
         }
 
@@ -379,8 +345,6 @@ macro_rules! field_testing_suite {
                     0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54,
                     0x06, 0xbc, 0xe5,
                 ]);
-                let _message = format!("to_le_bits {}", stringify!($f));
-                let start = start_timer!(|| _message);
                 for _ in 0..1000000 {
                     let a = $f::random(&mut rng);
                     let bytes = a.to_repr();
@@ -389,7 +353,6 @@ macro_rules! field_testing_suite {
                         assert_eq!(bits[idx], ((bytes.as_ref()[idx / 8] >> (idx % 8)) & 1) == 1);
                     }
                 }
-                end_timer!(start);
             };
         }
 
@@ -420,7 +383,6 @@ macro_rules! field_testing_suite {
                 0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
                 0xbc, 0xe5,
             ]);
-            let start = start_timer!(|| format!("serialize {}", stringify!($field)));
             const LIMBS: usize = $field::size() / 8;
             // failure check
             for _ in 0..1000000 {
@@ -436,7 +398,6 @@ macro_rules! field_testing_suite {
                     }
                 }
             }
-            end_timer!(start);
         }
     };
 

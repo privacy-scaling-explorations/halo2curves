@@ -411,6 +411,8 @@ mod test {
 
     #[test]
     fn bench_fr_from_u16() {
+        use ark_std::{start_timer, end_timer};
+
         let repeat = 10000000;
         let mut rng = ark_std::test_rng();
         let base = (0..repeat).map(|_| (rng.next_u32() % (1 << 16)) as u64);
