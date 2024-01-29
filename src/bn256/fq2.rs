@@ -542,62 +542,6 @@ impl WithSmallOrderMulGroup<3> for Fq2 {
 }
 
 #[cfg(test)]
-use rand::SeedableRng;
-#[cfg(test)]
-use rand_xorshift::XorShiftRng;
-
-#[test]
-fn test_fq2_squaring() {
-    let mut a = Fq2 {
-        c0: Fq::one(),
-        c1: Fq::one(),
-    }; // u + 1
-    a.square_assign();
-    assert_eq!(
-        a,
-        Fq2 {
-            c0: Fq::zero(),
-            c1: Fq::one() + Fq::one(),
-        }
-    ); // 2u
-
-    let mut a = Fq2 {
-        c0: Fq::zero(),
-        c1: Fq::one(),
-    }; // u
-    a.square_assign();
-    assert_eq!(a, {
-        let neg1 = -Fq::one();
-        Fq2 {
-            c0: neg1,
-            c1: Fq::zero(),
-        }
-    }); // -1
-}
-
-#[test]
-fn test_fq2_mul_nonresidue() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-    let nine = Fq::one().double().double().double() + Fq::one();
-    let nqr = Fq2 {
-        c0: nine,
-        c1: Fq::one(),
-    };
-
-    for _ in 0..1000 {
-        let mut a = Fq2::random(&mut rng);
-        let mut b = a;
-        a.mul_by_nonresidue();
-        b.mul_assign(&nqr);
-
-        assert_eq!(a, b);
-    }
-}
-
-#[cfg(test)]
 mod test {
     use super::*;
     crate::field_testing_suite!(Fq2, "field_arithmetic");
@@ -618,4 +562,55 @@ mod test {
             0x30644e72e131a029,
         ]
     );
+
+    #[test]
+    fn test_fq2_squaring() {
+        let mut a = Fq2 {
+            c0: Fq::one(),
+            c1: Fq::one(),
+        }; // u + 1
+        a.square_assign();
+        assert_eq!(
+            a,
+            Fq2 {
+                c0: Fq::zero(),
+                c1: Fq::one() + Fq::one(),
+            }
+        ); // 2u
+
+        let mut a = Fq2 {
+            c0: Fq::zero(),
+            c1: Fq::one(),
+        }; // u
+        a.square_assign();
+        assert_eq!(a, {
+            let neg1 = -Fq::one();
+            Fq2 {
+                c0: neg1,
+                c1: Fq::zero(),
+            }
+        }); // -1
+    }
+
+    #[test]
+    fn test_fq2_mul_nonresidue() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+        let nine = Fq::one().double().double().double() + Fq::one();
+        let nqr = Fq2 {
+            c0: nine,
+            c1: Fq::one(),
+        };
+
+        for _ in 0..1000 {
+            let mut a = Fq2::random(&mut rng);
+            let mut b = a;
+            a.mul_by_nonresidue();
+            b.mul_assign(&nqr);
+
+            assert_eq!(a, b);
+        }
+    }
 }
