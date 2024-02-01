@@ -9,8 +9,7 @@ macro_rules! field_ext_common {
         $size:expr,
         $base_size:expr,
         $base_bits:expr,
-        $zeta:ident,
-        $is_1mod4:expr
+        $zeta:ident
     ) => {
         /// An element of the extension field, represented by c0 + c1 * u; where u^2 = U_SQUARE.
         #[derive(Copy, Clone, Debug, Eq, PartialEq)]

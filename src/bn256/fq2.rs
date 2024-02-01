@@ -39,7 +39,7 @@ pub(crate) const V_CUBE_1: Fq =
     // 1
     Fq::ONE;
 
-field_ext_common!(Fq2, Fq, U_SQUARE, V_CUBE_0, V_CUBE_1, 64, 32, 254, EXT_ZETA, false);
+field_ext_common!(Fq2, Fq, U_SQUARE, V_CUBE_0, V_CUBE_1, 64, 32, 254, EXT_ZETA);
 
 impl Field for Fq2 {
     const ZERO: Self = Self::zero();
