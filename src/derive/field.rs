@@ -436,7 +436,10 @@ macro_rules! field_arithmetic {
                 // Coarsely Integrated Operand Scanning (CIOS) as described
                 // in Algorithm 1 of EdMSM: https://eprint.iacr.org/2022/1400.pdf
                 // Does not use the fast version (algorithm 2) as secp256k1 has
-                // high word = 0xffffffffffffffff >= (D-1) / 2 - 1 = (2^64-1)/2 - 1
+                // high word = 0xffffffffffffffff >= (D-1) / 2 - 1 = (2^64-1)/2 - 1.
+                // Experimentally max savings on ARM were 0-4%.
+                // c1 = t[N], c2 = t[N+1]
+
                 const N: usize = 4;
 
                 let mut t: [u64; N] = [0u64; N];
@@ -456,7 +459,7 @@ macro_rules! field_arithmetic {
                         (t[j-1], c) = mac(t[j], m, $modulus.0[j], c);
                     }
                     (t[N-1], c) = adc(c1, c, 0);
-                    (c1, _) = adc(c2, c, 0);
+                    c1 = c2 + c;
                 }
 
                 if bigint_geq(&t, &$modulus.0) {
