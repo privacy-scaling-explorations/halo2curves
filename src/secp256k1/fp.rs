@@ -1,4 +1,4 @@
-use crate::arithmetic::{adc, mac, macx, sbb};
+use crate::arithmetic::{adc, mac, macx, sbb, bigint_geq};
 use crate::extend_field_legendre;
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use crate::{

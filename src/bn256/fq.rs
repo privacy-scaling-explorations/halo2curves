@@ -3,7 +3,7 @@ use crate::bn256::assembly::field_arithmetic_asm;
 #[cfg(not(feature = "asm"))]
 use crate::{arithmetic::macx, field_arithmetic, field_specific};
 
-use crate::arithmetic::{adc, mac, sbb};
+use crate::arithmetic::{adc, mac, sbb, bigint_geq};
 use crate::extend_field_legendre;
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use crate::{
