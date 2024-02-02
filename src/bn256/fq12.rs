@@ -498,6 +498,10 @@ mod test {
     crate::field_testing_suite!(
         Fq12,
         "frobenius",
+        // Frobenius endomorphism power parameter for extension field
+        //  ϕ: E → E
+        //  (x, y) ↦ (x^p, y^p)
+        // p: modulus of base field (Here, Fq::MODULUS)
         [
             0x3c208c16d87cfd47,
             0x97816a916871ca8d,
