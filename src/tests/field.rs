@@ -199,6 +199,7 @@ macro_rules! field_testing_suite {
                 0xbc, 0xe5,
             ]);
 
+            // reduce the number of tests for high-degree extension fields since TOO long
             let n = if impls::impls!($field: ff::PrimeField) { 1000000 } else { 100000 };
 
             // normal cases
