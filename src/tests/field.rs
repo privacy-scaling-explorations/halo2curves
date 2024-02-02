@@ -1,8 +1,8 @@
 #[macro_export]
 macro_rules! field_testing_suite {
     ($field: ident, "field_arithmetic") => {
-        fn random_multiplication_tests<F: Field, R: RngCore>(mut rng: R) {
-            for _ in 0..1000000 {
+        fn random_multiplication_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+            for _ in 0..n {
                 let a = F::random(&mut rng);
                 let b = F::random(&mut rng);
                 let c = F::random(&mut rng);
@@ -24,8 +24,8 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn random_addition_tests<F: Field, R: RngCore>(mut rng: R) {
-            for _ in 0..1000000 {
+        fn random_addition_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+            for _ in 0..n {
                 let a = F::random(&mut rng);
                 let b = F::random(&mut rng);
                 let c = F::random(&mut rng);
@@ -47,8 +47,8 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn random_subtraction_tests<F: Field, R: RngCore>(mut rng: R) {
-            for _ in 0..1000000 {
+        fn random_subtraction_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+            for _ in 0..n {
                 let a = F::random(&mut rng);
                 let b = F::random(&mut rng);
 
@@ -65,8 +65,8 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn random_negation_tests<F: Field, R: RngCore>(mut rng: R) {
-            for _ in 0..1000000 {
+        fn random_negation_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+            for _ in 0..n {
                 let a = F::random(&mut rng);
                 let mut b = a;
                 b = b.neg();
@@ -76,8 +76,8 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn random_doubling_tests<F: Field, R: RngCore>(mut rng: R) {
-            for _ in 0..1000000 {
+        fn random_doubling_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+            for _ in 0..n {
                 let mut a = F::random(&mut rng);
                 let mut b = a;
                 a.add_assign(&b);
@@ -87,8 +87,8 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn random_squaring_tests<F: Field, R: RngCore>(mut rng: R) {
-            for _ in 0..1000000 {
+        fn random_squaring_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+            for _ in 0..n {
                 let mut a = F::random(&mut rng);
                 let mut b = a;
                 a.mul_assign(&b);
@@ -98,10 +98,10 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn random_inversion_tests<F: Field, R: RngCore>(mut rng: R) {
+        fn random_inversion_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
             assert!(bool::from(F::ZERO.invert().is_none()));
 
-            for _ in 0..1000000 {
+            for _ in 0..n {
                 let mut a = F::random(&mut rng);
                 let b = a.invert().unwrap(); // probablistically nonzero
                 a.mul_assign(&b);
@@ -110,8 +110,8 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn random_expansion_tests<F: Field, R: RngCore>(mut rng: R) {
-            for _ in 0..1000000 {
+        fn random_expansion_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+            for _ in 0..n {
                 // Compare (a + b)(c + d) and (a*c + b*c + a*d + b*d)
 
                 let a = F::random(&mut rng);
@@ -199,15 +199,17 @@ macro_rules! field_testing_suite {
                 0xbc, 0xe5,
             ]);
 
+            let n = if impls::impls!($field: ff::PrimeField) { 1000000 } else { 100000 };
+
             // normal cases
-            random_multiplication_tests::<$field, _>(&mut rng);
-            random_addition_tests::<$field, _>(&mut rng);
-            random_subtraction_tests::<$field, _>(&mut rng);
-            random_negation_tests::<$field, _>(&mut rng);
-            random_doubling_tests::<$field, _>(&mut rng);
-            random_squaring_tests::<$field, _>(&mut rng);
-            random_inversion_tests::<$field, _>(&mut rng);
-            random_expansion_tests::<$field, _>(&mut rng);
+            random_multiplication_tests::<$field, _>(&mut rng, n);
+            random_addition_tests::<$field, _>(&mut rng, n);
+            random_subtraction_tests::<$field, _>(&mut rng, n);
+            random_negation_tests::<$field, _>(&mut rng, n);
+            random_doubling_tests::<$field, _>(&mut rng, n);
+            random_squaring_tests::<$field, _>(&mut rng, n);
+            random_inversion_tests::<$field, _>(&mut rng, n);
+            random_expansion_tests::<$field, _>(&mut rng, n);
 
             // edge cases
             zero_tests::<$field, _>(&mut rng);
