@@ -433,44 +433,109 @@ macro_rules! field_arithmetic {
             #[unroll::unroll_for_loops]
             #[allow(unused_assignments)]
             pub const fn mul(&self, rhs: &Self) -> Self {
-                // Coarsely Integrated Operand Scanning (CIOS) as described
-                // in Algorithm 1 of EdMSM: https://eprint.iacr.org/2022/1400.pdf
-                // Does not use the fast version (algorithm 2) as secp256k1 has
-                // high word = 0xffffffffffffffff >= (D-1) / 2 - 1 = (2^64-1)/2 - 1.
+                // Fast Coarsely Integrated Operand Scanning (CIOS) as described
+                // in Algorithm 2 of EdMSM: https://eprint.iacr.org/2022/1400.pdf
+                // Cannot use the fast version (algorithm 2) if 
+                // modulus_high_word >= (D-1) / 2 - 1 = (2^64-1)/2 - 1.
                 // Experimentally max savings on ARM were 0-4%.
-                // c1 = t[N], c2 = t[N+1]
 
-                const N: usize = 4;
+                if $modulus.0[3] <= (u64::MAX / 2) - 1 {
+                    let mut t: [u64; 4] = [0u64; 4];
+                    let mut c_2: u64;
+                    // i = 0
+                    let mut c;
+                    (t[0], c) = macx(t[0], self.0[0], rhs.0[0]);
+                    (t[1], c) = mac(t[1], self.0[1], rhs.0[0], c);
+                    (t[2], c) = mac(t[2], self.0[2], rhs.0[0], c);
+                    (t[3], c) = mac(t[3], self.0[3], rhs.0[0], c);
+                    c_2 = c;
 
-                let mut t: [u64; N] = [0u64; N];
-                let mut c1 = 0u64;
-                let mut c2;
-                for i in 0..4 {
-                    let mut c: u64 = 0u64;
-                    for j in 0..4 {
-                        (t[j], c) = mac(t[j], self.0[i], rhs.0[j], c);
-                    }
-                    (c1, c2) = adc(c1, c, 0);
-
-                    let m = t[0].wrapping_mul(INV);
+                    let m = t[0].wrapping_mul($inv);
                     (_, c) = macx(t[0], m, $modulus.0[0]);
 
-                    for j in 1..4 {
-                        (t[j-1], c) = mac(t[j], m, $modulus.0[j], c);
+                    (t[0], c) = mac(t[1], m, $modulus.0[1], c);
+                    (t[1], c) = mac(t[2], m, $modulus.0[2], c);
+                    (t[2], c) = mac(t[3], m, $modulus.0[3], c);
+                    (t[3], _) = adc(c_2, c, 0);
+
+                    // i = 1
+                    (t[0], c) = macx(t[0], self.0[0], rhs.0[1]);
+                    (t[1], c) = mac(t[1], self.0[1], rhs.0[1], c);
+                    (t[2], c) = mac(t[2], self.0[2], rhs.0[1], c);
+                    (t[3], c) = mac(t[3], self.0[3], rhs.0[1], c);
+                    c_2 = c;
+
+                    let m = t[0].wrapping_mul($inv);
+                    (_, c) = macx(t[0], m, $modulus.0[0]);
+
+                    (t[0], c) = mac(t[1], m, $modulus.0[1], c);
+                    (t[1], c) = mac(t[2], m, $modulus.0[2], c);
+                    (t[2], c) = mac(t[3], m, $modulus.0[3], c);
+                    (t[3], _) = adc(c_2, c, 0);
+
+                    // i = 2
+                    (t[0], c) = macx(t[0], self.0[0], rhs.0[2]);
+                    (t[1], c) = mac(t[1], self.0[1], rhs.0[2], c);
+                    (t[2], c) = mac(t[2], self.0[2], rhs.0[2], c);
+                    (t[3], c) = mac(t[3], self.0[3], rhs.0[2], c);
+                    c_2 = c;
+
+                    let m = t[0].wrapping_mul($inv);
+                    (_, c) = macx(t[0], m, $modulus.0[0]);
+
+                    (t[0], c) = mac(t[1], m, $modulus.0[1], c);
+                    (t[1], c) = mac(t[2], m, $modulus.0[2], c);
+                    (t[2], c) = mac(t[3], m, $modulus.0[3], c);
+                    (t[3], _) = adc(c_2, c, 0);
+
+                    // i = 3
+                    (t[0], c) = macx(t[0], self.0[0], rhs.0[3]);
+                    (t[1], c) = mac(t[1], self.0[1], rhs.0[3], c);
+                    (t[2], c) = mac(t[2], self.0[2], rhs.0[3], c);
+                    (t[3], c) = mac(t[3], self.0[3], rhs.0[3], c);
+                    c_2 = c;
+
+                    let m = t[0].wrapping_mul($inv);
+                    (_, c) = macx(t[0], m, $modulus.0[0]);
+
+                    (t[0], c) = mac(t[1], m, $modulus.0[1], c);
+                    (t[1], c) = mac(t[2], m, $modulus.0[2], c);
+                    (t[2], c) = mac(t[3], m, $modulus.0[3], c);
+                    (t[3], _) = adc(c_2, c, 0);
+
+                    if bigint_geq(&t, &$modulus.0) {
+                        let mut borrow = 0;
+                        (t[0], borrow) = sbb(t[0], $modulus.0[0], borrow);
+                        (t[1], borrow) = sbb(t[1], $modulus.0[1], borrow);
+                        (t[2], borrow) = sbb(t[2], $modulus.0[2], borrow);
+                        (t[3], borrow) = sbb(t[3], $modulus.0[3], borrow);
                     }
-                    (t[N-1], c) = adc(c1, c, 0);
-                    c1 = c2 + c;
-                }
+                    $field(t)
+                } else {
+                    // Schoolbook multiplication
 
-                if bigint_geq(&t, &$modulus.0) {
-                    let mut borrow = 0;
-                    (t[0], borrow) = sbb(t[0], $modulus.0[0], borrow);
-                    (t[1], borrow) = sbb(t[1], $modulus.0[1], borrow);
-                    (t[2], borrow) = sbb(t[2], $modulus.0[2], borrow);
-                    (t[3], _) = sbb(t[3], $modulus.0[3], borrow);
-                }
+                    let (r0, carry) = mac(0, self.0[0], rhs.0[0], 0);
+                    let (r1, carry) = mac(0, self.0[0], rhs.0[1], carry);
+                    let (r2, carry) = mac(0, self.0[0], rhs.0[2], carry);
+                    let (r3, r4) = mac(0, self.0[0], rhs.0[3], carry);
 
-                $field(t)
+                    let (r1, carry) = mac(r1, self.0[1], rhs.0[0], 0);
+                    let (r2, carry) = mac(r2, self.0[1], rhs.0[1], carry);
+                    let (r3, carry) = mac(r3, self.0[1], rhs.0[2], carry);
+                    let (r4, r5) = mac(r4, self.0[1], rhs.0[3], carry);
+
+                    let (r2, carry) = mac(r2, self.0[2], rhs.0[0], 0);
+                    let (r3, carry) = mac(r3, self.0[2], rhs.0[1], carry);
+                    let (r4, carry) = mac(r4, self.0[2], rhs.0[2], carry);
+                    let (r5, r6) = mac(r5, self.0[2], rhs.0[3], carry);
+
+                    let (r3, carry) = mac(r3, self.0[3], rhs.0[0], 0);
+                    let (r4, carry) = mac(r4, self.0[3], rhs.0[1], carry);
+                    let (r5, carry) = mac(r5, self.0[3], rhs.0[2], carry);
+                    let (r6, r7) = mac(r6, self.0[3], rhs.0[3], carry);
+
+                    $field::montgomery_reduce(&[r0, r1, r2, r3, r4, r5, r6, r7])
+                }
             }
 
             /// Subtracts `rhs` from `self`, returning the result.
