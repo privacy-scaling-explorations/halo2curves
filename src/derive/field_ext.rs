@@ -1,5 +1,5 @@
 #[macro_export]
-macro_rules! field_ext_common {
+macro_rules! field_quadratic_ext {
     (
         $field_ext:ident,
         $field:ident,

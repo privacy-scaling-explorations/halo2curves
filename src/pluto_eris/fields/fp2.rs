@@ -27,7 +27,7 @@ const U_SQUARE: Fp = Fp::from_raw([
 ]);
 
 use crate::{
-    field_ext_common, impl_add_binop_specify_output, impl_binops_additive,
+    field_quadratic_ext, impl_add_binop_specify_output, impl_binops_additive,
     impl_binops_additive_specify_output, impl_binops_multiplicative,
     impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
 };
@@ -68,7 +68,7 @@ pub(crate) const V_CUBE_1: Fp =
         0x07b6db6db6db756d,
     ]);
 
-field_ext_common!(Fp2, Fp, U_SQUARE, V_CUBE_0, V_CUBE_1, 112, 56, 446, EXT_ZETA);
+field_quadratic_ext!(Fp2, Fp, U_SQUARE, V_CUBE_0, V_CUBE_1, 112, 56, 446, EXT_ZETA);
 
 impl Field for Fp2 {
     const ZERO: Self = Self::zero();
