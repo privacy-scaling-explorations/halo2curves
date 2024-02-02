@@ -1,3 +1,6 @@
+// Derives a cuadratic extension froma a base field.
+// It is used in Pluto and Bn254 base fields to generate the first extension in the tower.
+// TODO: Ideally this can be used in the last step as well, to generate Fp12:Fp6.
 #[macro_export]
 macro_rules! field_quadratic_ext {
     (
@@ -464,6 +467,436 @@ macro_rules! field_quadratic_ext {
                 c0: $zeta,
                 c1: $field::zero(),
             };
+        }
+    };
+}
+
+// Derives a cubic extension from a base field.
+// It is used in Pluto and Bn254 fields to generate Fp6:Fp2.
+#[macro_export]
+macro_rules! field_cubic_ext {
+    (
+        $field_ext:ident,
+        $base_field:ident,
+        $frobenius_coeffs:ident
+        // $nonresidue:ident,
+        // $next_nonresidue_0:ident,
+        // $next_nonresidue_1:ident,
+        // $size:expr,
+        // $base_size:expr,
+        // $base_bits:expr,
+        // $zeta:ident
+    ) => {
+        #[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
+        /// The `$field_ext` element c0 + c1 * v + c2 * v^2
+        pub struct $field_ext {
+            pub c0: $base_field,
+            pub c1: $base_field,
+            pub c2: $base_field,
+        }
+
+        impl ConditionallySelectable for $field_ext {
+            fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
+                $field_ext {
+                    c0: $base_field::conditional_select(&a.c0, &b.c0, choice),
+                    c1: $base_field::conditional_select(&a.c1, &b.c1, choice),
+                    c2: $base_field::conditional_select(&a.c2, &b.c2, choice),
+                }
+            }
+        }
+
+        impl ConstantTimeEq for $field_ext {
+            fn ct_eq(&self, other: &Self) -> Choice {
+                self.c0.ct_eq(&other.c0) & self.c1.ct_eq(&other.c1) & self.c2.ct_eq(&other.c2)
+            }
+        }
+
+        impl Neg for $field_ext {
+            type Output = $field_ext;
+
+            #[inline]
+            fn neg(self) -> $field_ext {
+                -&self
+            }
+        }
+
+        impl<'a> Neg for &'a $field_ext {
+            type Output = $field_ext;
+
+            #[inline]
+            fn neg(self) -> $field_ext {
+                self.neg()
+            }
+        }
+
+        impl<'a, 'b> Sub<&'b $field_ext> for &'a $field_ext {
+            type Output = $field_ext;
+
+            #[inline]
+            fn sub(self, rhs: &'b $field_ext) -> $field_ext {
+                self.sub(rhs)
+            }
+        }
+
+        impl<'a, 'b> Add<&'b $field_ext> for &'a $field_ext {
+            type Output = $field_ext;
+
+            #[inline]
+            fn add(self, rhs: &'b $field_ext) -> $field_ext {
+                self.add(rhs)
+            }
+        }
+
+        impl<'a, 'b> Mul<&'b $field_ext> for &'a $field_ext {
+            type Output = $field_ext;
+
+            #[inline]
+            fn mul(self, rhs: &'b $field_ext) -> $field_ext {
+                self.mul(rhs)
+            }
+        }
+
+        impl $field_ext {
+            #[inline]
+            pub const fn zero() -> Self {
+                $field_ext {
+                    c0: $base_field::ZERO,
+                    c1: $base_field::ZERO,
+                    c2: $base_field::ZERO,
+                }
+            }
+
+            #[inline]
+            pub const fn one() -> Self {
+                $field_ext {
+                    c0: $base_field::ONE,
+                    c1: $base_field::ZERO,
+                    c2: $base_field::ZERO,
+                }
+            }
+
+            pub fn mul_assign(&mut self, other: &Self) {
+                let mut a_a = self.c0;
+                let mut b_b = self.c1;
+                let mut c_c = self.c2;
+                a_a *= &other.c0;
+                b_b *= &other.c1;
+                c_c *= &other.c2;
+
+                let mut t1 = other.c1;
+                t1 += &other.c2;
+                {
+                    let mut tmp = self.c1;
+                    tmp += &self.c2;
+
+                    t1 *= &tmp;
+                    t1 -= &b_b;
+                    t1 -= &c_c;
+                    t1.mul_by_nonresidue();
+                    t1 += &a_a;
+                }
+
+                let mut t3 = other.c0;
+                t3 += &other.c2;
+                {
+                    let mut tmp = self.c0;
+                    tmp += &self.c2;
+
+                    t3 *= &tmp;
+                    t3 -= &a_a;
+                    t3 += &b_b;
+                    t3 -= &c_c;
+                }
+
+                let mut t2 = other.c0;
+                t2 += &other.c1;
+                {
+                    let mut tmp = self.c0;
+                    tmp += &self.c1;
+
+                    t2 *= &tmp;
+                    t2 -= &a_a;
+                    t2 -= &b_b;
+                    c_c.mul_by_nonresidue();
+                    t2 += &c_c;
+                }
+
+                self.c0 = t1;
+                self.c1 = t2;
+                self.c2 = t3;
+            }
+
+            pub fn square_assign(&mut self) {
+                // s0 = a^2
+                let mut s0 = self.c0;
+                s0.square_assign();
+                // s1 = 2ab
+                let mut ab = self.c0;
+                ab *= &self.c1;
+                let mut s1 = ab;
+                s1.double_assign();
+                // s2 = (a - b + c)^2
+                let mut s2 = self.c0;
+                s2 -= &self.c1;
+                s2 += &self.c2;
+                s2.square_assign();
+                // bc
+                let mut bc = self.c1;
+                bc *= &self.c2;
+                // s3 = 2bc
+                let mut s3 = bc;
+                s3.double_assign();
+                // s4 = c^2
+                let mut s4 = self.c2;
+                s4.square_assign();
+
+                // new c0 = 2bc.mul_by_xi + a^2
+                self.c0 = s3;
+                self.c0.mul_by_nonresidue();
+                // self.c0.mul_by_xi();
+                self.c0 += &s0;
+
+                // new c1 = (c^2).mul_by_xi + 2ab
+                self.c1 = s4;
+                self.c1.mul_by_nonresidue();
+                // self.c1.mul_by_xi();
+                self.c1 += &s1;
+
+                // new c2 = 2ab + (a - b + c)^2 + 2bc - a^2 - c^2 = b^2 + 2ac
+                self.c2 = s1;
+                self.c2 += &s2;
+                self.c2 += &s3;
+                self.c2 -= &s0;
+                self.c2 -= &s4;
+            }
+
+            pub fn double(&self) -> Self {
+                Self {
+                    c0: self.c0.double(),
+                    c1: self.c1.double(),
+                    c2: self.c2.double(),
+                }
+            }
+
+            pub fn double_assign(&mut self) {
+                self.c0 = self.c0.double();
+                self.c1 = self.c1.double();
+                self.c2 = self.c2.double();
+            }
+
+            pub fn add(&self, other: &Self) -> Self {
+                Self {
+                    c0: self.c0 + other.c0,
+                    c1: self.c1 + other.c1,
+                    c2: self.c2 + other.c2,
+                }
+            }
+
+            pub fn sub(&self, other: &Self) -> Self {
+                Self {
+                    c0: self.c0 - other.c0,
+                    c1: self.c1 - other.c1,
+                    c2: self.c2 - other.c2,
+                }
+            }
+
+            pub fn mul(&self, other: &Self) -> Self {
+                let mut t = *other;
+                t.mul_assign(self);
+                t
+            }
+
+            pub fn square(&self) -> Self {
+                let mut t = *self;
+                t.square_assign();
+                t
+            }
+
+            pub fn neg(&self) -> Self {
+                Self {
+                    c0: -self.c0,
+                    c1: -self.c1,
+                    c2: -self.c2,
+                }
+            }
+
+            pub fn frobenius_map(&mut self, power: usize) {
+                self.c0.frobenius_map(power);
+                self.c1.frobenius_map(power);
+                self.c2.frobenius_map(power);
+
+                self.c1.mul_assign(&$frobenius_coeffs[0][power % 6]);
+                self.c2.mul_assign(&$frobenius_coeffs[1][power % 6]);
+            }
+
+            //TODO Doc
+            /// Multiply by cubic nonresidue v.
+            pub fn mul_by_nonresidue(&mut self) {
+                use std::mem::swap;
+                swap(&mut self.c0, &mut self.c1);
+                swap(&mut self.c0, &mut self.c2);
+                // c0, c1, c2 -> c2, c0, c1
+                self.c0.mul_by_nonresidue();
+            }
+
+            // TODO Review and doc these operations
+            pub fn mul_by_1(&mut self, c1: &$base_field) {
+                let mut b_b = self.c1;
+                b_b *= c1;
+
+                let mut t1 = *c1;
+                {
+                    let mut tmp = self.c1;
+                    tmp += &self.c2;
+
+                    t1 *= &tmp;
+                    t1 -= &b_b;
+                    t1.mul_by_nonresidue();
+                }
+
+                let mut t2 = *c1;
+                {
+                    let mut tmp = self.c0;
+                    tmp += &self.c1;
+
+                    t2 *= &tmp;
+                    t2 -= &b_b;
+                }
+
+                self.c0 = t1;
+                self.c1 = t2;
+                self.c2 = b_b;
+            }
+
+            pub fn mul_by_01(&mut self, c0: &$base_field, c1: &$base_field) {
+                let mut a_a = self.c0;
+                let mut b_b = self.c1;
+                a_a *= c0;
+                b_b *= c1;
+
+                let mut t1 = *c1;
+                {
+                    let mut tmp = self.c1;
+                    tmp += &self.c2;
+
+                    t1 *= &tmp;
+                    t1 -= &b_b;
+                    t1.mul_by_nonresidue();
+                    t1 += &a_a;
+                }
+
+                let mut t3 = *c0;
+                {
+                    let mut tmp = self.c0;
+                    tmp += &self.c2;
+
+                    t3 *= &tmp;
+                    t3 -= &a_a;
+                    t3 += &b_b;
+                }
+
+                let mut t2 = *c0;
+                t2 += c1;
+                {
+                    let mut tmp = self.c0;
+                    tmp += &self.c1;
+
+                    t2 *= &tmp;
+                    t2 -= &a_a;
+                    t2 -= &b_b;
+                }
+
+                self.c0 = t1;
+                self.c1 = t2;
+                self.c2 = t3;
+            }
+
+            fn invert(&self) -> CtOption<Self> {
+                let mut c0 = self.c2;
+                c0.mul_by_nonresidue();
+                c0 *= &self.c1;
+                c0 = -c0;
+                {
+                    let mut c0s = self.c0;
+                    c0s.square_assign();
+                    c0 += &c0s;
+                }
+                let mut c1 = self.c2;
+                c1.square_assign();
+                c1.mul_by_nonresidue();
+                {
+                    let mut c01 = self.c0;
+                    c01 *= &self.c1;
+                    c1 -= &c01;
+                }
+                let mut c2 = self.c1;
+                c2.square_assign();
+                {
+                    let mut c02 = self.c0;
+                    c02 *= &self.c2;
+                    c2 -= &c02;
+                }
+
+                let mut tmp1 = self.c2;
+                tmp1 *= &c1;
+                let mut tmp2 = self.c1;
+                tmp2 *= &c2;
+                tmp1 += &tmp2;
+                tmp1.mul_by_nonresidue();
+                tmp2 = self.c0;
+                tmp2 *= &c0;
+                tmp1 += &tmp2;
+
+                tmp1.invert().map(|t| {
+                    let mut tmp = $field_ext {
+                        c0: t,
+                        c1: t,
+                        c2: t,
+                    };
+                    tmp.c0 *= &c0;
+                    tmp.c1 *= &c1;
+                    tmp.c2 *= &c2;
+
+                    tmp
+                })
+            }
+        }
+
+        impl Field for $field_ext {
+            const ZERO: Self = Self::zero();
+            const ONE: Self = Self::one();
+
+            fn random(mut rng: impl RngCore) -> Self {
+                $field_ext {
+                    c0: $base_field::random(&mut rng),
+                    c1: $base_field::random(&mut rng),
+                    c2: $base_field::random(&mut rng),
+                }
+            }
+
+            fn is_zero(&self) -> Choice {
+                self.c0.is_zero() & self.c1.is_zero()
+            }
+
+            fn square(&self) -> Self {
+                self.square()
+            }
+
+            fn double(&self) -> Self {
+                self.double()
+            }
+
+            fn sqrt(&self) -> CtOption<Self> {
+                unimplemented!()
+            }
+
+            fn sqrt_ratio(_num: &Self, _div: &Self) -> (Choice, Self) {
+                unimplemented!()
+            }
+
+            fn invert(&self) -> CtOption<Self> {
+                self.invert()
+            }
         }
     };
 }
