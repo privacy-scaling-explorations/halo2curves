@@ -440,68 +440,24 @@ macro_rules! field_arithmetic {
                 // Experimentally max savings on ARM were 0-4%.
 
                 if $modulus.0[3] <= (u64::MAX / 2) - 1 {
-                    let mut t: [u64; 4] = [0u64; 4];
+                    const N: usize = 4;
+                    let mut t: [u64; N] = [0u64; N];
                     let mut c_2: u64;
-                    // i = 0
-                    let mut c;
-                    (t[0], c) = macx(t[0], self.0[0], rhs.0[0]);
-                    (t[1], c) = mac(t[1], self.0[1], rhs.0[0], c);
-                    (t[2], c) = mac(t[2], self.0[2], rhs.0[0], c);
-                    (t[3], c) = mac(t[3], self.0[3], rhs.0[0], c);
-                    c_2 = c;
-
-                    let m = t[0].wrapping_mul($inv);
-                    (_, c) = macx(t[0], m, $modulus.0[0]);
-
-                    (t[0], c) = mac(t[1], m, $modulus.0[1], c);
-                    (t[1], c) = mac(t[2], m, $modulus.0[2], c);
-                    (t[2], c) = mac(t[3], m, $modulus.0[3], c);
-                    (t[3], _) = adc(c_2, c, 0);
-
-                    // i = 1
-                    (t[0], c) = macx(t[0], self.0[0], rhs.0[1]);
-                    (t[1], c) = mac(t[1], self.0[1], rhs.0[1], c);
-                    (t[2], c) = mac(t[2], self.0[2], rhs.0[1], c);
-                    (t[3], c) = mac(t[3], self.0[3], rhs.0[1], c);
-                    c_2 = c;
-
-                    let m = t[0].wrapping_mul($inv);
-                    (_, c) = macx(t[0], m, $modulus.0[0]);
-
-                    (t[0], c) = mac(t[1], m, $modulus.0[1], c);
-                    (t[1], c) = mac(t[2], m, $modulus.0[2], c);
-                    (t[2], c) = mac(t[3], m, $modulus.0[3], c);
-                    (t[3], _) = adc(c_2, c, 0);
-
-                    // i = 2
-                    (t[0], c) = macx(t[0], self.0[0], rhs.0[2]);
-                    (t[1], c) = mac(t[1], self.0[1], rhs.0[2], c);
-                    (t[2], c) = mac(t[2], self.0[2], rhs.0[2], c);
-                    (t[3], c) = mac(t[3], self.0[3], rhs.0[2], c);
-                    c_2 = c;
-
-                    let m = t[0].wrapping_mul($inv);
-                    (_, c) = macx(t[0], m, $modulus.0[0]);
-
-                    (t[0], c) = mac(t[1], m, $modulus.0[1], c);
-                    (t[1], c) = mac(t[2], m, $modulus.0[2], c);
-                    (t[2], c) = mac(t[3], m, $modulus.0[3], c);
-                    (t[3], _) = adc(c_2, c, 0);
-
-                    // i = 3
-                    (t[0], c) = macx(t[0], self.0[0], rhs.0[3]);
-                    (t[1], c) = mac(t[1], self.0[1], rhs.0[3], c);
-                    (t[2], c) = mac(t[2], self.0[2], rhs.0[3], c);
-                    (t[3], c) = mac(t[3], self.0[3], rhs.0[3], c);
-                    c_2 = c;
-
-                    let m = t[0].wrapping_mul($inv);
-                    (_, c) = macx(t[0], m, $modulus.0[0]);
-
-                    (t[0], c) = mac(t[1], m, $modulus.0[1], c);
-                    (t[1], c) = mac(t[2], m, $modulus.0[2], c);
-                    (t[2], c) = mac(t[3], m, $modulus.0[3], c);
-                    (t[3], _) = adc(c_2, c, 0);
+                    for i in 0..4 {
+                        let mut c: u64 = 0u64;
+                        for j in 0..4 {
+                            (t[j], c) = mac(t[j], self.0[j], rhs.0[i], c);
+                        }
+                        c_2 = c;
+            
+                        let m = t[0].wrapping_mul(INV); 
+                        (_, c) = macx(t[0], m, $modulus.0[0]);
+            
+                        for j in 1..4 {
+                            (t[j-1], c) = mac(t[j], m, $modulus.0[j], c);
+                        }
+                        (t[N-1], _) = adc(c_2, c, 0);
+                    }
 
                     if bigint_geq(&t, &$modulus.0) {
                         let mut borrow = 0;
