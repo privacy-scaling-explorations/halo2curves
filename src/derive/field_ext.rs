@@ -1,4 +1,17 @@
-// Derives a cuadratic extension froma a base field.
+#[macro_export]
+macro_rules! impl_mul_nr {
+    (
+        $field:ident,
+        $nonresidue:ident
+    ) => {
+        impl $field {
+            pub fn mul_by_nonresidue(&mut self) {
+                self.mul_assign(&$nonresidue)
+            }
+        }
+    };
+}
+// Derives a 1uadratic extension froma a base field.
 // It is used in Pluto and Bn254 base fields to generate the first extension in the tower.
 // TODO: Ideally this can be used in the last step as well, to generate Fp12:Fp6.
 #[macro_export]
@@ -6,7 +19,6 @@ macro_rules! field_quadratic_ext {
     (
         $field_ext:ident,
         $field:ident,
-        $nonresidue:ident,
         $next_nonresidue_0:ident,
         $next_nonresidue_1:ident,
         $size:expr,
@@ -193,9 +205,10 @@ macro_rules! field_quadratic_ext {
                 let t0 = self.c0 * other.c0;
                 let t1 = self.c0 * other.c1;
                 let t2 = self.c1 * other.c0;
-                let t3 = self.c1 * other.c1;
+                let mut t3 = self.c1 * other.c1;
+                t3.mul_by_nonresidue();
 
-                self.c0 = t0 + $nonresidue * t3;
+                self.c0 = t0 + t3;
                 self.c1 = t1 + t2
             }
 
@@ -203,13 +216,18 @@ macro_rules! field_quadratic_ext {
             pub fn square_assign(&mut self) {
                 // r0 = s0^2 + U_SQUARE * s1^2
                 // r1 = 2* s0s1
-
-                let ab = self.c0 * self.c1;
-                let a2 = self.c0 * self.c0;
-                let b2 = self.c1 * self.c1;
-
-                self.c1 = ab.double();
-                self.c0 = a2 + $nonresidue * b2;
+                let mut ab = self.c0 * self.c1;
+                let c0c1 = self.c0 + self.c1;
+                let mut c0 = self.c1;
+                c0.mul_by_nonresidue();
+                c0 += &self.c0;
+                c0 *= &c0c1;
+                c0 -= &ab;
+                self.c1 = ab;
+                self.c1 += &ab;
+                ab.mul_by_nonresidue();
+                c0 -= &ab;
+                self.c0 = c0;
             }
 
             /// Returns = 2 * a
@@ -295,7 +313,7 @@ macro_rules! field_quadratic_ext {
             pub fn invert(&self) -> CtOption<Self> {
                 let mut t1 = self.c1;
                 t1 = t1.square();
-                t1 *= $nonresidue;
+                t1.mul_by_nonresidue();
                 let mut t0 = self.c0;
                 t0 = t0.square();
                 //t0 = c0^2 - U_SQUARE c1^2
@@ -317,7 +335,8 @@ macro_rules! field_quadratic_ext {
             fn norm(&self) -> $field {
                 // norm = self * self.cojungate()
                 let t0 = self.c0.square();
-                let t1 = self.c1.square() * $nonresidue;
+                let mut t1 = self.c1.square();
+                t1.mul_by_nonresidue();
                 t0 - t1
             }
         }
@@ -730,12 +749,13 @@ macro_rules! field_cubic_ext {
             }
 
             //TODO Doc
-            /// Multiply by cubic nonresidue v.
+            /// Multiply by quadratic nonresidue: W_SQUARE =  V.
             pub fn mul_by_nonresidue(&mut self) {
                 use std::mem::swap;
+                // (c0        + c1 * v +  c2 * v^2) * v =
+                // (c2 * v^3 +  c0 * v +  c1)
                 swap(&mut self.c0, &mut self.c1);
                 swap(&mut self.c0, &mut self.c2);
-                // c0, c1, c2 -> c2, c0, c1
                 self.c0.mul_by_nonresidue();
             }
 

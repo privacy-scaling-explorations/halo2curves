@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     field_quadratic_ext, impl_add_binop_specify_output, impl_binops_additive,
     impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
+    impl_binops_multiplicative_mixed, impl_mul_nr, impl_sub_binop_specify_output, impl_sum_prod,
 };
 impl_binops_additive!(Fq2, Fq2);
 impl_binops_multiplicative!(Fq2, Fq2);
@@ -39,7 +39,8 @@ pub(crate) const V_CUBE_1: Fq =
     // 1
     Fq::ONE;
 
-field_quadratic_ext!(Fq2, Fq, U_SQUARE, V_CUBE_0, V_CUBE_1, 64, 32, 254, EXT_ZETA);
+// impl_mul_nr!(Fq, U_SQUARE);
+field_quadratic_ext!(Fq2, Fq, V_CUBE_0, V_CUBE_1, 64, 32, 254, EXT_ZETA);
 
 impl Field for Fq2 {
     const ZERO: Self = Self::zero();

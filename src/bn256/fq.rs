@@ -15,6 +15,7 @@ use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
+use std::ops::MulAssign;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// This represents an element of $\mathbb{F}_q$ where
@@ -159,6 +160,13 @@ field_bits!(Fq, MODULUS, MODULUS_LIMBS_32);
 impl Fq {
     pub const fn size() -> usize {
         32
+    }
+}
+
+// TODO Doc
+impl Fq {
+    pub fn mul_by_nonresidue(&mut self) {
+        *self = -*self
     }
 }
 

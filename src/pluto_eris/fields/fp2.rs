@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 /// U_SQUARE = -5
 /// 0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5cda8a6c7be4a7a5fe8fadffd6a2a7e8c30006b9459ffffcd2fffffffc
-const U_SQUARE: Fp = Fp::from_raw([
+pub(crate) const U_SQUARE: Fp = Fp::from_raw([
     0x9ffffcd2fffffffc,
     0xa2a7e8c30006b945,
     0xe4a7a5fe8fadffd6,
@@ -29,7 +29,7 @@ const U_SQUARE: Fp = Fp::from_raw([
 use crate::{
     field_quadratic_ext, impl_add_binop_specify_output, impl_binops_additive,
     impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
+    impl_binops_multiplicative_mixed, impl_mul_nr, impl_sub_binop_specify_output, impl_sum_prod,
 };
 impl_binops_additive!(Fp2, Fp2);
 impl_binops_multiplicative!(Fp2, Fp2);
@@ -68,7 +68,7 @@ pub(crate) const V_CUBE_1: Fp =
         0x07b6db6db6db756d,
     ]);
 
-field_quadratic_ext!(Fp2, Fp, U_SQUARE, V_CUBE_0, V_CUBE_1, 112, 56, 446, EXT_ZETA);
+field_quadratic_ext!(Fp2, Fp, V_CUBE_0, V_CUBE_1, 112, 56, 446, EXT_ZETA);
 
 impl Field for Fp2 {
     const ZERO: Self = Self::zero();
@@ -234,7 +234,10 @@ mod test {
             0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
             0xbc, 0xe5,
         ]);
-        let nqr = crate::pluto_eris::fields::fp6::V_CUBE;
+        let nqr = Fp2 {
+            c0: V_CUBE_0,
+            c1: V_CUBE_1,
+        };
         for _ in 0..1000 {
             let mut a = Fp2::random(&mut rng);
             let mut b = a;

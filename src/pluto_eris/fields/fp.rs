@@ -19,6 +19,8 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
 
+use super::fp2::U_SQUARE;
+
 /// This represents an element of $\mathbb{F}_p$ where
 ///
 /// `p = 0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5cda8a6c7be4a7a5fe8fadffd6a2a7e8c30006b9459ffffcd300000001`
@@ -207,6 +209,12 @@ extend_field_legendre!(Fp);
 impl Fp {
     pub const fn size() -> usize {
         SIZE
+    }
+}
+
+impl Fp {
+    pub fn mul_by_nonresidue(&mut self) {
+        *self = *self * U_SQUARE;
     }
 }
 
