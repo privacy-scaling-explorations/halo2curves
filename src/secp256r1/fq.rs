@@ -300,78 +300,12 @@ extend_field_legendre!(Fq);
 #[cfg(test)]
 mod test {
     use super::*;
-    use ff::Field;
-    use rand_core::OsRng;
-
-    #[test]
-    fn test_zeta() {
-        assert_eq!(Fq::ZETA * Fq::ZETA * Fq::ZETA, Fq::ONE);
-        assert_ne!(Fq::ZETA * Fq::ZETA, Fq::ONE);
-    }
-
-    #[test]
-    fn test_sqrt() {
-        // NB: TWO_INV is standing in as a "random" field element
-        // let v = (Fq::TWO_INV).square().sqrt().unwrap();
-        // assert!(v == Fq::TWO_INV || (-v) == Fq::TWO_INV);
-
-        for _ in 0..10000 {
-            let a = Fq::random(OsRng);
-            let mut b = a;
-            b = b.square();
-
-            let b = b.sqrt().unwrap();
-            let mut negb = b;
-            negb = negb.neg();
-
-            assert!(a == b || a == negb);
-        }
-    }
-
-    #[test]
-    fn test_constants() {
-        assert_eq!(
-            Fq::MODULUS,
-            "0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
-        );
-
-        assert_eq!(Fq::from(2) * Fq::TWO_INV, Fq::ONE);
-    }
-
-    #[test]
-    fn test_delta() {
-        assert_eq!(Fq::DELTA, Fq::MULTIPLICATIVE_GENERATOR.pow([1u64 << Fq::S]));
-    }
-
-    #[test]
-    fn test_root_of_unity() {
-        assert_eq!(Fq::ROOT_OF_UNITY.pow_vartime([1 << Fq::S]), Fq::one());
-    }
-
-    #[test]
-    fn test_inv_root_of_unity() {
-        assert_eq!(Fq::ROOT_OF_UNITY_INV, Fq::ROOT_OF_UNITY.invert().unwrap());
-    }
-
-    #[test]
-    fn test_field() {
-        crate::tests::field::random_field_tests::<Fq>("secp256r1 scalar".to_string());
-    }
-
-    #[test]
-    fn test_conversion() {
-        crate::tests::field::random_conversion_tests::<Fq>("secp256r1 scalar".to_string());
-    }
-
-    #[test]
-    fn test_serialization() {
-        crate::tests::field::random_serialization_test::<Fq>("secp256r1 scalar".to_string());
-        #[cfg(feature = "derive_serde")]
-        crate::tests::field::random_serde_test::<Fq>("secp256r1 scalar".to_string());
-    }
-
-    #[test]
-    fn test_quadratic_residue() {
-        crate::tests::field::random_quadratic_residue_test::<Fq>();
-    }
+    crate::field_testing_suite!(Fq, "field_arithmetic");
+    crate::field_testing_suite!(Fq, "conversion");
+    crate::field_testing_suite!(Fq, "serialization");
+    crate::field_testing_suite!(Fq, "quadratic_residue");
+    crate::field_testing_suite!(Fq, "serialization_check");
+    crate::field_testing_suite!(Fq, "constants", MODULUS_STR);
+    crate::field_testing_suite!(Fq, "sqrt");
+    crate::field_testing_suite!(Fq, "zeta");
 }

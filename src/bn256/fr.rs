@@ -332,129 +332,87 @@ impl WithSmallOrderMulGroup<3> for Fr {
 
 #[cfg(test)]
 mod test {
-    use crate::serde::SerdeObject;
-
     use super::*;
-    use ark_std::{end_timer, start_timer};
-    use ff::Field;
-    use rand::SeedableRng;
-    use rand_core::OsRng;
-    use rand_xorshift::XorShiftRng;
-
-    #[test]
-    fn test_sqrt() {
-        let v = (Fr::TWO_INV).square().sqrt().unwrap();
-        assert!(v == Fr::TWO_INV || (-v) == Fr::TWO_INV);
-
-        for _ in 0..10000 {
-            let a = Fr::random(OsRng);
-            let mut b = a;
-            b = b.square();
-
-            let b = b.sqrt().unwrap();
-            let mut negb = b;
-            negb = negb.neg();
-
-            assert!(a == b || a == negb);
-        }
-    }
-
-    #[test]
-    fn test_field() {
-        crate::tests::field::random_field_tests::<Fr>("bn256 scalar".to_string());
-    }
-
-    #[test]
-    fn test_delta() {
-        assert_eq!(Fr::DELTA, GENERATOR.pow([1u64 << Fr::S]));
-        assert_eq!(Fr::DELTA, Fr::MULTIPLICATIVE_GENERATOR.pow([1u64 << Fr::S]));
-    }
-
-    #[test]
-    fn test_from_u512() {
-        assert_eq!(
+    crate::field_testing_suite!(Fr, "field_arithmetic");
+    crate::field_testing_suite!(Fr, "conversion");
+    crate::field_testing_suite!(Fr, "serialization");
+    crate::field_testing_suite!(Fr, "quadratic_residue");
+    crate::field_testing_suite!(Fr, "bits");
+    crate::field_testing_suite!(Fr, "serialization_check");
+    crate::field_testing_suite!(Fr, "constants", MODULUS_STR);
+    crate::field_testing_suite!(Fr, "sqrt");
+    crate::field_testing_suite!(Fr, "zeta");
+    crate::field_testing_suite!(
+        Fr,
+        "from_uniform_bytes",
+        [
             Fr::from_raw([
-                0x7e7140b5196b9e6f,
-                0x9abac9e4157b6172,
-                0xf04bc41062fd7322,
-                0x1185fa9c9fef6326,
+                0x2ca6366467811a07,
+                0x22727e3db430ed7e,
+                0xbdb79bcb97d9e250,
+                0x2cee6d1152d1d7b0
             ]),
-            Fr::from_u512([
-                0xaaaaaaaaaaaaaaaa,
-                0xaaaaaaaaaaaaaaaa,
-                0xaaaaaaaaaaaaaaaa,
-                0xaaaaaaaaaaaaaaaa,
-                0xaaaaaaaaaaaaaaaa,
-                0xaaaaaaaaaaaaaaaa,
-                0xaaaaaaaaaaaaaaaa,
-                0xaaaaaaaaaaaaaaaa
-            ])
-        );
-    }
-
-    #[test]
-    fn test_conversion() {
-        crate::tests::field::random_conversion_tests::<Fr>("fr".to_string());
-    }
-
-    #[test]
-    #[cfg(feature = "bits")]
-    fn test_bits() {
-        crate::tests::field::random_bits_tests::<Fr>("fr".to_string());
-    }
-
-    #[test]
-    fn test_serialization() {
-        crate::tests::field::random_serialization_test::<Fr>("fr".to_string());
-        #[cfg(feature = "derive_serde")]
-        crate::tests::field::random_serde_test::<Fr>("fr".to_string());
-    }
-
-    fn is_less_than(x: &[u64; 4], y: &[u64; 4]) -> bool {
-        match x[3].cmp(&y[3]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        match x[2].cmp(&y[2]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        match x[1].cmp(&y[1]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        x[0].lt(&y[0])
-    }
-
-    #[test]
-    fn test_serialization_check() {
-        let mut rng = XorShiftRng::from_seed([
-            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
-            0xbc, 0xe5,
-        ]);
-        let start = start_timer!(|| "serialize fr");
-        // failure check
-        for _ in 0..1000000 {
-            let rand_word = [(); 4].map(|_| rng.next_u64());
-            let a = Fr(rand_word);
-            let rand_bytes = a.to_raw_bytes();
-            match is_less_than(&rand_word, &MODULUS.0) {
-                false => {
-                    assert!(Fr::from_raw_bytes(&rand_bytes).is_none());
-                }
-                _ => {
-                    assert_eq!(Fr::from_raw_bytes(&rand_bytes), Some(a));
-                }
-            }
-        }
-        end_timer!(start);
-    }
+            Fr::from_raw([
+                0x6ec33f1a3af8cb2d,
+                0x2c8f3330e85dab4b,
+                0xfeeff4ae1b019172,
+                0x095cd2a455dd67b6
+            ]),
+            Fr::from_raw([
+                0x4741eee9c02c9f33,
+                0xfc0111dd8aeb7e7a,
+                0xb1d79e2a22d4ab08,
+                0x0cb7168893a7bbda
+            ]),
+            Fr::from_raw([
+                0xc2ff8410555287f8,
+                0x0927fbea8c6049c8,
+                0xc0edccc8e4d3efe4,
+                0x1d724b76911436c4
+            ]),
+            Fr::from_raw([
+                0xdef98bc8d4db6e5b,
+                0x42f0ea50590d557e,
+                0x1f311a3b8114fd9a,
+                0x0487c555645c67b1
+            ]),
+            Fr::from_raw([
+                0x8ad4879b05ceb610,
+                0x2e4e9a46537c84b0,
+                0x5cfa7c43c9dfcfa1,
+                0x0b6b2a4d122d0bb6
+            ]),
+            Fr::from_raw([
+                0xe7f11ee016df7fe7,
+                0x6419da89bd8aef3d,
+                0x3511f5d293af95c8,
+                0x10379c1d4d49593a
+            ]),
+            Fr::from_raw([
+                0xd63080c8aa3ecd37,
+                0x19c20f30b56fe458,
+                0xc9dbbcb3aa780e06,
+                0x28a4e2b8273762c6
+            ]),
+            Fr::from_raw([
+                0xecea51b521eac0b8,
+                0x65fff58a5881c562,
+                0x603ac7d1e06ef3af,
+                0x1e0c2c51226eecea
+            ]),
+            Fr::from_raw([
+                0xe6ec4779b8bd6516,
+                0x0d5411f3cb9504ae,
+                0xff706ec73df8e92a,
+                0x2c56d60b3e351e56
+            ]),
+        ]
+    );
 
     #[test]
     fn bench_fr_from_u16() {
+        use ark_std::{end_timer, start_timer};
+
         let repeat = 10000000;
         let mut rng = ark_std::test_rng();
         let base = (0..repeat).map(|_| (rng.next_u32() % (1 << 16)) as u64);
@@ -463,10 +421,5 @@ mod test {
         let _res: Vec<_> = base.map(Fr::from).collect();
 
         end_timer!(timer);
-    }
-
-    #[test]
-    fn test_quadratic_residue() {
-        crate::tests::field::random_quadratic_residue_test::<Fr>();
     }
 }

@@ -1,5 +1,3 @@
-#![allow(clippy::eq_op)]
-
 #[macro_export]
 macro_rules! curve_testing_suite {
     ($($curve: ident),*) => {
