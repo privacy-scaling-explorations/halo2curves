@@ -920,3 +920,331 @@ macro_rules! field_cubic_ext {
         }
     };
 }
+
+#[macro_export]
+macro_rules! impl_ext_12 {
+    (
+        $field_ext:ident,
+        $base_field:ident,
+        $quad_ext:ident,
+        $frobenius_coeffs:ident
+    ) => {
+        #[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
+        pub struct $field_ext {
+            c0: $base_field,
+            c1: $base_field,
+        }
+
+        impl ConditionallySelectable for $field_ext {
+            fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
+                $field_ext {
+                    c0: $base_field::conditional_select(&a.c0, &b.c0, choice),
+                    c1: $base_field::conditional_select(&a.c1, &b.c1, choice),
+                }
+            }
+        }
+
+        impl ConstantTimeEq for $field_ext {
+            fn ct_eq(&self, other: &Self) -> Choice {
+                self.c0.ct_eq(&other.c0) & self.c1.ct_eq(&other.c1)
+            }
+        }
+
+        impl Neg for $field_ext {
+            type Output = $field_ext;
+
+            #[inline]
+            fn neg(self) -> $field_ext {
+                -&self
+            }
+        }
+
+        impl<'a> Neg for &'a $field_ext {
+            type Output = $field_ext;
+
+            #[inline]
+            fn neg(self) -> $field_ext {
+                self.neg()
+            }
+        }
+
+        impl<'a, 'b> Sub<&'b $field_ext> for &'a $field_ext {
+            type Output = $field_ext;
+
+            #[inline]
+            fn sub(self, rhs: &'b $field_ext) -> $field_ext {
+                self.sub(rhs)
+            }
+        }
+
+        impl<'a, 'b> Add<&'b $field_ext> for &'a $field_ext {
+            type Output = $field_ext;
+
+            #[inline]
+            fn add(self, rhs: &'b $field_ext) -> $field_ext {
+                self.add(rhs)
+            }
+        }
+
+        impl<'a, 'b> Mul<&'b $field_ext> for &'a $field_ext {
+            type Output = $field_ext;
+
+            #[inline]
+            fn mul(self, rhs: &'b $field_ext) -> $field_ext {
+                self.mul(rhs)
+            }
+        }
+
+        impl $field_ext {
+            #[inline]
+            pub const fn zero() -> Self {
+                $field_ext {
+                    c0: $base_field::ZERO,
+                    c1: $base_field::ZERO,
+                }
+            }
+
+            #[inline]
+            pub const fn one() -> Self {
+                $field_ext {
+                    c0: $base_field::ONE,
+                    c1: $base_field::ZERO,
+                }
+            }
+
+            pub fn mul_assign(&mut self, other: &Self) {
+                let t0 = self.c0 * other.c0;
+                let mut t1 = self.c1 * other.c1;
+                let t2 = other.c0 + other.c1;
+
+                self.c1 += &self.c0;
+                self.c1 *= &t2;
+                self.c1 -= &t0;
+                self.c1 -= &t1;
+
+                t1.mul_by_nonresidue();
+                self.c0 = t0 + t1;
+            }
+
+            pub fn square_assign(&mut self) {
+                let mut ab = self.c0 * self.c1;
+
+                let c0c1 = self.c0 + self.c1;
+
+                let mut c0 = self.c1;
+                c0.mul_by_nonresidue();
+                c0 += &self.c0;
+                c0 *= &c0c1;
+                c0 -= &ab;
+                self.c1 = ab;
+                self.c1 += &ab;
+                ab.mul_by_nonresidue();
+                c0 -= &ab;
+                self.c0 = c0;
+            }
+
+            pub fn double(&self) -> Self {
+                Self {
+                    c0: self.c0.double(),
+                    c1: self.c1.double(),
+                }
+            }
+
+            pub fn double_assign(&mut self) {
+                self.c0 = self.c0.double();
+                self.c1 = self.c1.double();
+            }
+
+            pub fn add(&self, other: &Self) -> Self {
+                Self {
+                    c0: self.c0 + other.c0,
+                    c1: self.c1 + other.c1,
+                }
+            }
+
+            pub fn sub(&self, other: &Self) -> Self {
+                Self {
+                    c0: self.c0 - other.c0,
+                    c1: self.c1 - other.c1,
+                }
+            }
+
+            pub fn mul(&self, other: &Self) -> Self {
+                let mut t = *other;
+                t.mul_assign(self);
+                t
+            }
+
+            pub fn square(&self) -> Self {
+                let mut t = *self;
+                t.square_assign();
+                t
+            }
+
+            #[inline(always)]
+            pub fn neg(&self) -> Self {
+                Self {
+                    c0: -self.c0,
+                    c1: -self.c1,
+                }
+            }
+
+            #[inline(always)]
+            pub fn conjugate(&mut self) {
+                self.c1 = -self.c1;
+            }
+
+            pub fn frobenius_map(&mut self, power: usize) {
+                self.c0.frobenius_map(power);
+                self.c1.frobenius_map(power);
+
+                self.c1.c0.mul_assign(&$frobenius_coeffs[power % 12]);
+                self.c1.c1.mul_assign(&$frobenius_coeffs[power % 12]);
+                self.c1.c2.mul_assign(&$frobenius_coeffs[power % 12]);
+            }
+
+            pub fn mul_by_014(&mut self, c0: &$quad_ext, c1: &$quad_ext, c4: &$quad_ext) {
+                let mut aa = self.c0;
+                aa.mul_by_01(c0, c1);
+                let mut bb = self.c1;
+                bb.mul_by_1(c4);
+                let o = c1 + c4;
+                self.c1 += &self.c0;
+                self.c1.mul_by_01(c0, &o);
+                self.c1 -= &aa;
+                self.c1 -= &bb;
+                self.c0 = bb;
+                self.c0.mul_by_nonresidue();
+                self.c0 += &aa;
+            }
+
+            pub fn mul_by_034(&mut self, c0: &$quad_ext, c3: &$quad_ext, c4: &$quad_ext) {
+                let t0 = $base_field {
+                    c0: self.c0.c0 * c0,
+                    c1: self.c0.c1 * c0,
+                    c2: self.c0.c2 * c0,
+                };
+                let mut t1 = self.c1;
+                t1.mul_by_01(c3, c4);
+                let o = c0 + c3;
+                let mut t2 = self.c0 + self.c1;
+                t2.mul_by_01(&o, c4);
+                t2 -= t0;
+                self.c1 = t2 - t1;
+                t1.mul_by_nonresidue();
+                self.c0 = t0 + t1;
+            }
+
+            pub fn invert(&self) -> CtOption<Self> {
+                let mut c0s = self.c0;
+                c0s.square_assign();
+                let mut c1s = self.c1;
+                c1s.square_assign();
+                c1s.mul_by_nonresidue();
+                c0s -= &c1s;
+
+                c0s.invert().map(|t| {
+                    let mut tmp = $field_ext { c0: t, c1: t };
+                    tmp.c0.mul_assign(&self.c0);
+                    tmp.c1.mul_assign(&self.c1);
+                    tmp.c1 = tmp.c1.neg();
+
+                    tmp
+                })
+            }
+
+            pub fn cyclotomic_square(&mut self) {
+                fn fp4_square(
+                    c0: &mut $quad_ext,
+                    c1: &mut $quad_ext,
+                    a0: &$quad_ext,
+                    a1: &$quad_ext,
+                ) {
+                    let t0 = a0.square();
+                    let t1 = a1.square();
+                    let mut t2 = t1;
+                    t2.mul_by_nonresidue();
+                    *c0 = t2 + t0;
+                    t2 = a0 + a1;
+                    t2.square_assign();
+                    t2 -= t0;
+                    *c1 = t2 - t1;
+                }
+
+                let mut t3 = $quad_ext::zero();
+                let mut t4 = $quad_ext::zero();
+                let mut t5 = $quad_ext::zero();
+                let mut t6 = $quad_ext::zero();
+
+                fp4_square(&mut t3, &mut t4, &self.c0.c0, &self.c1.c1);
+                let mut t2 = t3 - self.c0.c0;
+                t2.double_assign();
+                self.c0.c0 = t2 + t3;
+
+                t2 = t4 + self.c1.c1;
+                t2.double_assign();
+                self.c1.c1 = t2 + t4;
+
+                fp4_square(&mut t3, &mut t4, &self.c1.c0, &self.c0.c2);
+                fp4_square(&mut t5, &mut t6, &self.c0.c1, &self.c1.c2);
+
+                t2 = t3 - self.c0.c1;
+                t2.double_assign();
+                self.c0.c1 = t2 + t3;
+                t2 = t4 + self.c1.c2;
+                t2.double_assign();
+                self.c1.c2 = t2 + t4;
+                t3 = t6;
+                t3.mul_by_nonresidue();
+                t2 = t3 + self.c1.c0;
+                t2.double_assign();
+                self.c1.c0 = t2 + t3;
+                t2 = t5 - self.c0.c2;
+                t2.double_assign();
+                self.c0.c2 = t2 + t5;
+            }
+        }
+
+        impl Field for $field_ext {
+            const ZERO: Self = Self::zero();
+            const ONE: Self = Self::one();
+
+            fn random(mut rng: impl RngCore) -> Self {
+                $field_ext {
+                    c0: $base_field::random(&mut rng),
+                    c1: $base_field::random(&mut rng),
+                }
+            }
+
+            fn is_zero(&self) -> Choice {
+                self.c0.is_zero() & self.c1.is_zero()
+            }
+
+            fn square(&self) -> Self {
+                self.square()
+            }
+
+            fn double(&self) -> Self {
+                self.double()
+            }
+
+            fn sqrt(&self) -> CtOption<Self> {
+                // The square root method is typically only required for finding y-coordinate
+                // given the x-coordinate of an EC point. Fields over which we have not
+                // defined a curve do not need this method.
+                unimplemented!()
+            }
+
+            fn sqrt_ratio(_num: &Self, _div: &Self) -> (Choice, Self) {
+                // The square root method is typically only required for finding y-coordinate
+                // given the x-coordinate of an EC point. Fields over which we have not
+                // defined a curve do not need this method.
+                unimplemented!()
+            }
+
+            fn invert(&self) -> CtOption<Self> {
+                self.invert()
+            }
+        }
+    };
+}
