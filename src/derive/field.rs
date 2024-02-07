@@ -437,7 +437,7 @@ macro_rules! field_arithmetic {
                 // in Algorithm 2 of EdMSM: https://eprint.iacr.org/2022/1400.pdf
                 //
                 // Cannot use the fast version (algorithm 2) if 
-                // modulus_high_word >= (D-1) / 2 - 1 = (2^64-1)/2 - 1.
+                // modulus_high_word >= (WORD_SIZE - 1) / 2 - 1 = (2^64 - 1)/2 - 1
 
                 if $modulus.0[3] <= (u64::MAX / 2) - 1 {
                     const N: usize = 4;
