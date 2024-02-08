@@ -18,7 +18,7 @@ pub use table::FR_TABLE;
 #[cfg(not(feature = "bn256-table"))]
 use crate::impl_from_u64;
 
-use crate::arithmetic::{adc, mac, sbb, bigint_geq};
+use crate::arithmetic::{adc, bigint_geq, mac, sbb};
 use crate::extend_field_legendre;
 use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use crate::{
