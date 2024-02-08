@@ -568,210 +568,82 @@ impl WithSmallOrderMulGroup<3> for Fp2 {
 }
 
 #[cfg(test)]
-use rand::SeedableRng;
-#[cfg(test)]
-use rand_xorshift::XorShiftRng;
-
-#[test]
-fn test_ser() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    let a0 = Fp2::random(&mut rng);
-    let a_bytes = a0.to_bytes();
-    let a1 = Fp2::from_bytes(&a_bytes).unwrap();
-    assert_eq!(a0, a1);
-}
-
-#[test]
-fn test_fp2_ordering() {
-    let mut a = Fp2 {
-        c0: Fp::zero(),
-        c1: Fp::zero(),
-    };
-
-    let mut b = a;
-
-    assert!(a.cmp(&b) == Ordering::Equal);
-    b.c0 += &Fp::one();
-    assert!(a.cmp(&b) == Ordering::Less);
-    a.c0 += &Fp::one();
-    assert!(a.cmp(&b) == Ordering::Equal);
-    b.c1 += &Fp::one();
-    assert!(a.cmp(&b) == Ordering::Less);
-    a.c0 += &Fp::one();
-    assert!(a.cmp(&b) == Ordering::Less);
-    a.c1 += &Fp::one();
-    assert!(a.cmp(&b) == Ordering::Greater);
-    b.c0 += &Fp::one();
-    assert!(a.cmp(&b) == Ordering::Equal);
-}
-
-#[test]
-fn test_fp2_basics() {
-    assert_eq!(
-        Fp2 {
-            c0: Fp::zero(),
-            c1: Fp::zero(),
-        },
-        Fp2::ZERO
+mod test {
+    use super::*;
+    crate::field_testing_suite!(Fp2, "field_arithmetic");
+    crate::field_testing_suite!(Fp2, "conversion");
+    crate::field_testing_suite!(Fp2, "serialization");
+    crate::field_testing_suite!(Fp2, "quadratic_residue");
+    crate::field_testing_suite!(Fp2, "sqrt");
+    crate::field_testing_suite!(Fp2, "zeta", Fp);
+    // extension field-specific
+    crate::field_testing_suite!(Fp2, "f2_tests", Fp);
+    crate::field_testing_suite!(
+        Fp2,
+        "frobenius",
+        // Frobenius endomorphism power parameter for extension field
+        //  ϕ: E → E
+        //  (x, y) ↦ (x^p, y^p)
+        // p: modulus of base field (Here, Fp::MODULUS)
+        [
+            0x9ffffcd300000001,
+            0xa2a7e8c30006b945,
+            0xe4a7a5fe8fadffd6,
+            0x443f9a5cda8a6c7b,
+            0xa803ca76f439266f,
+            0x0130e0000d7f70e4,
+            0x2400000000002400,
+        ]
     );
-    assert_eq!(
-        Fp2 {
+
+    #[test]
+    fn test_fp2_squaring() {
+        // u + 1
+        let mut a = Fp2 {
             c0: Fp::one(),
-            c1: Fp::zero(),
-        },
-        Fp2::ONE
-    );
-    assert_eq!(Fp2::ZERO.is_zero().unwrap_u8(), 1);
-    assert_eq!(Fp2::ONE.is_zero().unwrap_u8(), 0);
-    assert_eq!(
-        Fp2 {
+            c1: Fp::one(),
+        };
+        // (u + 1) ^2 = 1 + u^2 + 2u = -4 + 2u
+        a.square_assign();
+        let minus_4 = -Fp::from(4u64);
+        assert_eq!(
+            a,
+            Fp2 {
+                c0: minus_4,
+                c1: Fp::one() + Fp::one(),
+            }
+        );
+
+        // u
+        let mut a = Fp2 {
             c0: Fp::zero(),
             c1: Fp::one(),
-        }
-        .is_zero()
-        .unwrap_u8(),
-        0
-    );
-}
-
-#[test]
-fn test_fp2_squaring() {
-    // u + 1
-    let mut a = Fp2 {
-        c0: Fp::one(),
-        c1: Fp::one(),
-    };
-    // (u + 1) ^2 = 1 + u^2 + 2u = -4 + 2u
-    a.square_assign();
-    let minus_4 = -Fp::from(4u64);
-    assert_eq!(
-        a,
-        Fp2 {
-            c0: minus_4,
-            c1: Fp::one() + Fp::one(),
-        }
-    );
-
-    // u
-    let mut a = Fp2 {
-        c0: Fp::zero(),
-        c1: Fp::one(),
-    };
-    // u^2
-    a.square_assign();
-    assert_eq!(
-        a,
-        Fp2 {
-            c0: U_SQUARE,
-            c1: Fp::zero(),
-        }
-    );
-}
-
-#[test]
-fn test_fp2_mul_nonresidue() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-    let nqr = super::fp6::V_CUBE;
-    for _ in 0..1000 {
-        let mut a = Fp2::random(&mut rng);
-        let mut b = a;
-        a.mul_by_nonresidue();
-        b.mul_assign(&nqr);
-
-        assert_eq!(a, b);
-    }
-}
-
-#[test]
-pub fn test_sqrt() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-    const N_ITER: usize = 1000;
-    for _ in 0..N_ITER {
-        let a = Fp2::random(&mut rng);
-        if a.legendre() == -1 {
-            assert!(bool::from(a.sqrt().is_none()));
-        }
+        };
+        // u^2
+        a.square_assign();
+        assert_eq!(
+            a,
+            Fp2 {
+                c0: U_SQUARE,
+                c1: Fp::zero(),
+            }
+        );
     }
 
-    for _ in 0..N_ITER {
-        let a = Fp2::random(&mut rng);
-        let mut b = a;
-        b.square_assign();
-        assert_eq!(b.legendre(), 1);
-
-        let b = b.sqrt().unwrap();
-        let mut negb = b;
-        negb = negb.neg();
-
-        assert!(a == b || a == negb);
-    }
-
-    let mut c = Fp2::ONE;
-    for _ in 0..N_ITER {
-        let mut b = c;
-        b.square_assign();
-        assert_eq!(b.legendre(), 1);
-
-        b = b.sqrt().unwrap();
-
-        if b != c {
-            b = b.neg();
-        }
-
-        assert_eq!(b, c);
-
-        c += &Fp2::ONE;
-    }
-}
-
-#[test]
-fn test_frobenius() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..50 {
-        for i in 0..8 {
+    #[test]
+    fn test_fp2_mul_nonresidue() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+        let nqr = crate::pluto_eris::fields::fp6::V_CUBE;
+        for _ in 0..1000 {
             let mut a = Fp2::random(&mut rng);
             let mut b = a;
-
-            for _ in 0..i {
-                a = a.pow_vartime([
-                    0x9ffffcd300000001,
-                    0xa2a7e8c30006b945,
-                    0xe4a7a5fe8fadffd6,
-                    0x443f9a5cda8a6c7b,
-                    0xa803ca76f439266f,
-                    0x0130e0000d7f70e4,
-                    0x2400000000002400,
-                ]);
-            }
-            b.frobenius_map(i);
+            a.mul_by_nonresidue();
+            b.mul_assign(&nqr);
 
             assert_eq!(a, b);
         }
     }
-}
-
-#[test]
-fn test_field() {
-    crate::tests::field::random_field_tests::<Fp2>("fp2".to_string());
-}
-
-#[test]
-fn test_serialization() {
-    crate::tests::field::random_serialization_test::<Fp2>("fp2".to_string());
-    #[cfg(feature = "derive_serde")]
-    crate::tests::field::random_serde_test::<Fp2>("fp2".to_string());
 }

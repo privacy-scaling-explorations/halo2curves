@@ -659,128 +659,26 @@ pub(crate) const FROBENIUS_COEFF_FP6_C2: [Fp2; 6] = [
 ];
 
 #[cfg(test)]
-use rand::SeedableRng;
-#[cfg(test)]
-use rand_xorshift::XorShiftRng;
-
-#[test]
-fn test_fp6_mul_nonresidue() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    let nqr = Fp6 {
-        c0: Fp2::zero(),
-        c1: Fp2::one(),
-        c2: Fp2::zero(),
-    };
-
-    for _ in 0..1000 {
-        let mut a = Fp6::random(&mut rng);
-        let mut b = a;
-        a.mul_by_nonresidue();
-        b.mul_assign(&nqr);
-
-        assert_eq!(a, b);
-    }
-}
-
-#[test]
-fn test_fp6_mul_by_1() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..1000 {
-        let c1 = Fp2::random(&mut rng);
-        let mut a = Fp6::random(&mut rng);
-        let mut b = a;
-
-        a.mul_by_1(&c1);
-        b.mul_assign(&Fp6 {
-            c0: Fp2::zero(),
-            c1,
-            c2: Fp2::zero(),
-        });
-
-        assert_eq!(a, b);
-    }
-}
-
-#[test]
-fn test_fp6_mul_by_01() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..1000 {
-        let c0 = Fp2::random(&mut rng);
-        let c1 = Fp2::random(&mut rng);
-        let mut a = Fp6::random(&mut rng);
-        let mut b = a;
-
-        a.mul_by_01(&c0, &c1);
-        b.mul_assign(&Fp6 {
-            c0,
-            c1,
-            c2: Fp2::zero(),
-        });
-
-        assert_eq!(a, b);
-    }
-}
-
-#[test]
-fn test_squaring() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..1000 {
-        let mut a = Fp6::random(&mut rng);
-        let mut b = a;
-        b.mul_assign(&a);
-        a.square_assign();
-        assert_eq!(a, b);
-    }
-}
-
-#[test]
-fn test_frobenius() {
-    let mut rng = XorShiftRng::from_seed([
-        0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
-
-    for _ in 0..50 {
-        for i in 0..8 {
-            let mut a = Fp6::random(&mut rng);
-            let mut b = a;
-
-            for _ in 0..i {
-                a = a.pow_vartime([
-                    // p
-                    0x9ffffcd300000001,
-                    0xa2a7e8c30006b945,
-                    0xe4a7a5fe8fadffd6,
-                    0x443f9a5cda8a6c7b,
-                    0xa803ca76f439266f,
-                    0x0130e0000d7f70e4,
-                    0x2400000000002400,
-                ]);
-            }
-            b.frobenius_map(i);
-
-            assert_eq!(a, b);
-        }
-    }
-}
-
-#[test]
-fn test_field() {
-    crate::tests::field::random_field_tests::<Fp6>("fp6".to_string());
+mod test {
+    use super::*;
+    crate::field_testing_suite!(Fp6, "field_arithmetic");
+    // extension field-specific
+    crate::field_testing_suite!(Fp6, "f6_tests", Fp2);
+    crate::field_testing_suite!(
+        Fp6,
+        "frobenius",
+        // Frobenius endomorphism power parameter for extension field
+        //  ϕ: E → E
+        //  (x, y) ↦ (x^p, y^p)
+        // p: modulus of base field (Here, Fp::MODULUS)
+        [
+            0x9ffffcd300000001,
+            0xa2a7e8c30006b945,
+            0xe4a7a5fe8fadffd6,
+            0x443f9a5cda8a6c7b,
+            0xa803ca76f439266f,
+            0x0130e0000d7f70e4,
+            0x2400000000002400,
+        ]
+    );
 }

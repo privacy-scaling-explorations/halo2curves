@@ -285,88 +285,79 @@ impl WithSmallOrderMulGroup<3> for Fq {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::ff_ext::Legendre;
-    use ff::Field;
-    use rand_core::OsRng;
-
-    #[test]
-    fn test_sqrt_fq() {
-        let v = (Fq::TWO_INV).square().sqrt().unwrap();
-        assert!(v == Fq::TWO_INV || (-v) == Fq::TWO_INV);
-
-        for _ in 0..10000 {
-            let a = Fq::random(OsRng);
-            let mut b = a;
-            b = b.square();
-            assert_eq!(b.legendre(), 1);
-
-            let b = b.sqrt().unwrap();
-            let mut negb = b;
-            negb = negb.neg();
-
-            assert!(a == b || a == negb);
-        }
-
-        let mut c = Fq::one();
-        for _ in 0..10000 {
-            let mut b = c;
-            b = b.square();
-            assert_eq!(b.legendre(), 1);
-
-            b = b.sqrt().unwrap();
-
-            if b != c {
-                b = b.neg();
-            }
-
-            assert_eq!(b, c);
-
-            c += &Fq::one();
-        }
-    }
-
-    #[test]
-    fn test_from_u512() {
-        assert_eq!(
+    crate::field_testing_suite!(Fq, "field_arithmetic");
+    crate::field_testing_suite!(Fq, "conversion");
+    crate::field_testing_suite!(Fq, "serialization");
+    crate::field_testing_suite!(Fq, "quadratic_residue");
+    crate::field_testing_suite!(Fq, "bits");
+    crate::field_testing_suite!(Fq, "serialization_check");
+    crate::field_testing_suite!(Fq, "constants", MODULUS_STR);
+    crate::field_testing_suite!(Fq, "sqrt");
+    crate::field_testing_suite!(Fq, "zeta");
+    crate::field_testing_suite!(
+        Fq,
+        "from_uniform_bytes",
+        [
             Fq::from_raw([
-                0x1f8905a172affa8a,
-                0xde45ad177dcf3306,
-                0xaaa7987907d73ae2,
-                0x24d349431d468e30,
+                0xd1f334151139642a,
+                0xb0f28bcaa90fdb88,
+                0x9a13255d88eca613,
+                0x02afef300dd32d9a,
             ]),
-            Fq::from_u512([
-                0xaaaaaaaaaaaaaaaa,
-                0xaaaaaaaaaaaaaaaa,
-                0xaaaaaaaaaaaaaaaa,
-                0xaaaaaaaaaaaaaaaa,
-                0xaaaaaaaaaaaaaaaa,
-                0xaaaaaaaaaaaaaaaa,
-                0xaaaaaaaaaaaaaaaa,
-                0xaaaaaaaaaaaaaaaa
-            ])
-        );
-    }
-
-    #[test]
-    fn test_field() {
-        crate::tests::field::random_field_tests::<Fq>("fq".to_string());
-    }
-
-    #[test]
-    fn test_conversion() {
-        crate::tests::field::random_conversion_tests::<Fq>("fq".to_string());
-    }
-
-    #[test]
-    #[cfg(feature = "bits")]
-    fn test_bits() {
-        crate::tests::field::random_bits_tests::<Fq>("fq".to_string());
-    }
-
-    #[test]
-    fn test_serialization() {
-        crate::tests::field::random_serialization_test::<Fq>("fq".to_string());
-        #[cfg(feature = "derive_serde")]
-        crate::tests::field::random_serde_test::<Fq>("fq".to_string());
-    }
+            Fq::from_raw([
+                0x03cd906680808fbe,
+                0xc28902db5aef5254,
+                0x3dbdb406ae292ddf,
+                0x276ec249e6b9e195
+            ]),
+            Fq::from_raw([
+                0xb0e07ded189e91f7,
+                0x9e3b0caae2b98899,
+                0x49e511f19341fdcf,
+                0x1ea71260f64b72da
+            ]),
+            Fq::from_raw([
+                0x61132be14bb978d4,
+                0xe27e09a20808067b,
+                0x3842cc8fd1d8406f,
+                0x13163c8a13fd550b
+            ]),
+            Fq::from_raw([
+                0x04a6495a33d39ac5,
+                0xc918e75bb383fae0,
+                0x80068784d577b035,
+                0x1dd962b86e44e1be
+            ]),
+            Fq::from_raw([
+                0x107ffeecf4cb3348,
+                0x53a0adb5491a4944,
+                0x50028f636ffcb780,
+                0x0af7f3aa38015c1d
+            ]),
+            Fq::from_raw([
+                0x22513787342eba07,
+                0x4fac22ed88770319,
+                0x0b7c31082cc92b13,
+                0x250e22a8cac6e790
+            ]),
+            Fq::from_raw([
+                0x5954fd7dda014940,
+                0x9df859b2124e66fa,
+                0xaab48d94eadd9d14,
+                0x2a9a75013e3da632
+            ]),
+            Fq::from_raw([
+                0xedd59c88fee718de,
+                0x2b034dcfe6de3844,
+                0x76b0e2e360488694,
+                0x068998ef20d62df1
+            ]),
+            Fq::from_raw([
+                0xac161667911634a4,
+                0x296c2f453152552f,
+                0x2653625dfaa1cf74,
+                0x171abf201a2587d7
+            ]),
+        ]
+    );
 }

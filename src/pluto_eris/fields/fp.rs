@@ -401,54 +401,20 @@ impl WithSmallOrderMulGroup<3> for Fp {
 
 #[cfg(test)]
 mod test {
-    use crate::serde::SerdeObject;
-
     use super::*;
-    use ark_std::{end_timer, start_timer};
-    use ff::Field;
-    use rand::SeedableRng;
-    use rand_core::OsRng;
-    use rand_xorshift::XorShiftRng;
-
-    #[test]
-    fn test_sqrt() {
-        let v = (Fp::TWO_INV).square().sqrt().unwrap();
-        assert!(v == Fp::TWO_INV || (-v) == Fp::TWO_INV);
-
-        for _ in 0..10000 {
-            let a = Fp::random(OsRng);
-            let mut b = a;
-            b = b.square();
-
-            let b = b.sqrt().unwrap();
-            let mut negb = b;
-            negb = negb.neg();
-
-            assert!(a == b || a == negb);
-        }
-    }
-
-    #[test]
-    fn test_field() {
-        crate::tests::field::random_field_tests::<Fp>("Eris scalar".to_string());
-    }
-
-    #[test]
-    fn test_delta() {
-        assert_eq!(Fp::DELTA, GENERATOR.pow([1u64 << Fp::S]));
-        assert_eq!(Fp::DELTA, Fp::MULTIPLICATIVE_GENERATOR.pow([1u64 << Fp::S]));
-    }
-
-    #[test]
-    fn test_zeta() {
-        assert_eq!(Fp::ZETA * Fp::ZETA * Fp::ZETA, Fp::ONE);
-        assert_ne!(Fp::ZETA * Fp::ZETA, Fp::ONE);
-    }
-
-    #[test]
-    fn test_from_u512() {
-        const N_VECS: usize = 10;
-        let expected_results = [
+    crate::field_testing_suite!(Fp, "field_arithmetic");
+    crate::field_testing_suite!(Fp, "conversion");
+    crate::field_testing_suite!(Fp, "serialization");
+    crate::field_testing_suite!(Fp, "quadratic_residue");
+    crate::field_testing_suite!(Fp, "bits");
+    crate::field_testing_suite!(Fp, "serialization_check");
+    crate::field_testing_suite!(Fp, "constants", MODULUS_STR);
+    crate::field_testing_suite!(Fp, "sqrt");
+    crate::field_testing_suite!(Fp, "zeta");
+    crate::field_testing_suite!(
+        Fp,
+        "from_uniform_bytes",
+        [
             Fp::from_raw([
                 0x93638251ffeffed3,
                 0x4d32f4d20020be11,
@@ -539,91 +505,6 @@ mod test {
                 0xd7d5d8bc4497465a,
                 0x08ce8bee1323d4f9,
             ]),
-        ];
-
-        let mut seeded_rng = XorShiftRng::seed_from_u64(0u64);
-        let uniform_bytes = std::iter::from_fn(|| {
-            let mut bytes = [0u8; 64];
-            seeded_rng.fill_bytes(&mut bytes);
-            Some(bytes)
-        })
-        .take(N_VECS)
-        .collect::<Vec<_>>();
-
-        for i in 0..N_VECS {
-            let p = Fp::from_uniform_bytes(&uniform_bytes[i]);
-            assert_eq!(expected_results[i], p);
-        }
-    }
-
-    #[test]
-    #[cfg(feature = "bits")]
-    fn test_bits() {
-        crate::tests::field::random_bits_tests::<Fp>("Fp".to_string());
-    }
-
-    #[test]
-    fn test_serialization() {
-        crate::tests::field::random_serialization_test::<Fp>("Fp".to_string());
-        #[cfg(feature = "derive_serde")]
-        crate::tests::field::random_serde_test::<Fp>("Fp".to_string());
-    }
-
-    fn is_less_than(x: &[u64; 7], y: &[u64; 7]) -> bool {
-        match x[6].cmp(&y[6]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        match x[5].cmp(&y[5]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        match x[4].cmp(&y[4]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        match x[3].cmp(&y[3]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        match x[2].cmp(&y[2]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        match x[1].cmp(&y[1]) {
-            core::cmp::Ordering::Less => return true,
-            core::cmp::Ordering::Greater => return false,
-            _ => {}
-        }
-        x[0].lt(&y[0])
-    }
-
-    #[test]
-    fn test_serialization_check() {
-        let mut rng = XorShiftRng::from_seed([
-            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
-            0xbc, 0xe5,
-        ]);
-        let start = start_timer!(|| "serialize Fp");
-        // failure check
-        for _ in 0..1000000 {
-            let rand_word = [(); 7].map(|_| rng.next_u64());
-            let a = Fp(rand_word);
-            let rand_bytes = a.to_raw_bytes();
-            match is_less_than(&rand_word, &MODULUS.0) {
-                false => {
-                    assert!(Fp::from_raw_bytes(&rand_bytes).is_none());
-                }
-                _ => {
-                    assert_eq!(Fp::from_raw_bytes(&rand_bytes), Some(a));
-                }
-            }
-        }
-        end_timer!(start);
-    }
+        ]
+    );
 }
