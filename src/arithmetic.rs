@@ -66,7 +66,7 @@ pub(crate) const fn bigint_geq(a: &[u64; 4], b: &[u64; 4]) -> bool {
     if a[0] >= b[0] {
         return true;
     }
-    return false;
+    false
 }
 
 /// Compute a * b, returning the result.

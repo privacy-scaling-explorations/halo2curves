@@ -440,7 +440,7 @@ macro_rules! field_arithmetic {
                 // Cannot use the fast version (algorithm 2) if
                 // modulus_high_word >= (WORD_SIZE - 1) / 2 - 1 = (2^64 - 1)/2 - 1
 
-                if $modulus.0[3] <= (u64::MAX / 2) - 1 {
+                if $modulus.0[3] < (u64::MAX / 2) {
                     const N: usize = 4;
                     let mut t: [u64; N] = [0u64; N];
                     let mut c_2: u64;
