@@ -171,14 +171,7 @@ macro_rules! field_common {
             /// Converts from an integer represented in little endian
             /// into its (congruent) `$field` representation.
             pub const fn from_raw(val: [u64; 4]) -> Self {
-                #[cfg(feature = "asm")]
-                {
-                    Self::montgomery_form(val, $r2)
-                }
-                #[cfg(not(feature = "asm"))]
-                {
-                    (&$field(val)).mul(&$r2)
-                }
+                Self::montgomery_form(val, $r2)
             }
 
             /// Attempts to convert a little-endian byte representation of
