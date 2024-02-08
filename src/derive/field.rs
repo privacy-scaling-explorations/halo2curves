@@ -436,7 +436,7 @@ macro_rules! field_arithmetic {
                 // Fast Coarsely Integrated Operand Scanning (CIOS) as described
                 // in Algorithm 2 of EdMSM: https://eprint.iacr.org/2022/1400.pdf
                 //
-                // Cannot use the fast version (algorithm 2) if 
+                // Cannot use the fast version (algorithm 2) if
                 // modulus_high_word >= (WORD_SIZE - 1) / 2 - 1 = (2^64 - 1)/2 - 1
 
                 if $modulus.0[3] <= (u64::MAX / 2) - 1 {
@@ -449,14 +449,14 @@ macro_rules! field_arithmetic {
                             (t[j], c) = mac(t[j], self.0[j], rhs.0[i], c);
                         }
                         c_2 = c;
-            
-                        let m = t[0].wrapping_mul(INV); 
+
+                        let m = t[0].wrapping_mul(INV);
                         (_, c) = macx(t[0], m, $modulus.0[0]);
-            
+
                         for j in 1..4 {
-                            (t[j-1], c) = mac(t[j], m, $modulus.0[j], c);
+                            (t[j - 1], c) = mac(t[j], m, $modulus.0[j], c);
                         }
-                        (t[N-1], _) = adc(c_2, c, 0);
+                        (t[N - 1], _) = adc(c_2, c, 0);
                     }
 
                     if bigint_geq(&t, &$modulus.0) {
