@@ -15,6 +15,7 @@ use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
+use std::ops::MulAssign;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// This represents an element of $\mathbb{F}_q$ where
@@ -87,7 +88,8 @@ pub const NEGATIVE_ONE: Fq = Fq([
     0x2259d6b14729c0fa,
 ]);
 
-const MODULUS_STR: &str = "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
+pub(crate) const MODULUS_STR: &str =
+    "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
 
 /// Obtained with:
 /// `sage: GF(0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47).primitive_element()`
@@ -158,6 +160,13 @@ field_bits!(Fq, MODULUS, MODULUS_LIMBS_32);
 impl Fq {
     pub const fn size() -> usize {
         32
+    }
+}
+
+// TODO Doc
+impl Fq {
+    pub fn mul_by_nonresidue(&mut self) {
+        *self = -*self
     }
 }
 

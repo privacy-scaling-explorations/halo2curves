@@ -2,6 +2,8 @@
 pub mod curve;
 #[macro_use]
 pub mod field;
+#[macro_use]
+mod field_ext;
 
 #[macro_export]
 macro_rules! impl_add_binop_specify_output {
