@@ -8,6 +8,8 @@ use rayon::iter::{
     IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
 };
 
+const BATCH_SIZE: usize = 64;
+
 fn get_booth_index(window_index: usize, window_size: usize, el: &[u8]) -> i32 {
     // Booth encoding:
     // * step by `window` size
@@ -222,7 +224,7 @@ impl<C: CurveAffine> BucketAffine<C> {
 
 struct Schedule<C: CurveAffine> {
     buckets: Vec<BucketAffine<C>>,
-    set: Vec<SchedulePoint>,
+    set: [SchedulePoint; BATCH_SIZE],
     ptr: usize,
 }
 
@@ -244,10 +246,16 @@ impl SchedulePoint {
 }
 
 impl<C: CurveAffine> Schedule<C> {
-    fn new(batch_size: usize, c: usize) -> Self {
+    fn new(c: usize) -> Self {
+        let set = (0..BATCH_SIZE)
+            .map(|_| SchedulePoint::default())
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
+
         Self {
             buckets: vec![BucketAffine::None; 1 << (c - 1)],
-            set: vec![SchedulePoint::default(); batch_size],
+            set,
             ptr: 0,
         }
     }
@@ -351,9 +359,48 @@ pub fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &
     }
 }
 
+/// Performs a multi-exponentiation operation.
+///
+/// This function will panic if coeffs and bases have a different length.
+///
+/// This will use multithreading if beneficial.
 pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
-    // TODO: consider adjusting it with emprical data?
-    let batch_size = 64;
+    assert_eq!(coeffs.len(), bases.len());
+
+    let num_threads = rayon::current_num_threads();
+    if coeffs.len() > num_threads {
+        let chunk = coeffs.len() / num_threads;
+        let num_chunks = coeffs.chunks(chunk).len();
+        let mut results = vec![C::Curve::identity(); num_chunks];
+        rayon::scope(|scope| {
+            let chunk = coeffs.len() / num_threads;
+
+            for ((coeffs, bases), acc) in coeffs
+                .chunks(chunk)
+                .zip(bases.chunks(chunk))
+                .zip(results.iter_mut())
+            {
+                scope.spawn(move |_| {
+                    multiexp_serial(coeffs, bases, acc);
+                });
+            }
+        });
+        results.iter().fold(C::Curve::identity(), |a, b| a + b)
+    } else {
+        let mut acc = C::Curve::identity();
+        multiexp_serial(coeffs, bases, &mut acc);
+        acc
+    }
+}
+///
+/// This function will panic if coeffs and bases have a different length.
+///
+/// This will use multithreading if beneficial.
+pub fn best_multiexp_independent_points<C: CurveAffine>(
+    coeffs: &[C::Scalar],
+    bases: &[C],
+) -> C::Curve {
+    assert_eq!(coeffs.len(), bases.len());
 
     // TODO: consider adjusting it with emprical data?
     let c = if bases.len() < 4 {
@@ -363,6 +410,10 @@ pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Cu
     } else {
         (f64::from(bases.len() as u32)).ln().ceil() as usize
     };
+
+    if c < 10 {
+        return best_multiexp(coeffs, bases);
+    }
 
     // coeffs to byte representation
     let coeffs: Vec<_> = coeffs.par_iter().map(|a| a.to_repr()).collect();
@@ -378,7 +429,7 @@ pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Cu
         let mut j_bucks = vec![Bucket::<C>::None; 1 << (c - 1)];
 
         // schedular for affine addition
-        let mut sched = Schedule::new(batch_size, c);
+        let mut sched = Schedule::new(c);
 
         for (base_idx, coeff) in coeffs.iter().enumerate() {
             let buck_idx = get_booth_index(w, c, coeff.as_ref());
@@ -431,36 +482,6 @@ mod test {
     use group::{Curve, Group};
     use pasta_curves::arithmetic::CurveAffine;
     use rand_core::OsRng;
-
-    // keeping older implementation here for benchmarking and testing
-    pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
-        assert_eq!(coeffs.len(), bases.len());
-
-        let num_threads = rayon::current_num_threads();
-        if coeffs.len() > num_threads {
-            let chunk = coeffs.len() / num_threads;
-            let num_chunks = coeffs.chunks(chunk).len();
-            let mut results = vec![C::Curve::identity(); num_chunks];
-            rayon::scope(|scope| {
-                let chunk = coeffs.len() / num_threads;
-
-                for ((coeffs, bases), acc) in coeffs
-                    .chunks(chunk)
-                    .zip(bases.chunks(chunk))
-                    .zip(results.iter_mut())
-                {
-                    scope.spawn(move |_| {
-                        super::multiexp_serial(coeffs, bases, acc);
-                    });
-                }
-            });
-            results.iter().fold(C::Curve::identity(), |a, b| a + b)
-        } else {
-            let mut acc = C::Curve::identity();
-            super::multiexp_serial(coeffs, bases, &mut acc);
-            acc
-        }
-    }
 
     #[test]
     fn test_booth_encoding() {
@@ -524,21 +545,19 @@ mod test {
             let points = &points[..1 << k];
             let scalars = &scalars[..1 << k];
 
-            let t0 = start_timer!(|| format!("older k={}", k));
-            let e0 = best_multiexp(scalars, points);
+            let t0 = start_timer!(|| format!("cyclone k={}", k));
+            let e0 = super::best_multiexp_independent_points(scalars, points);
             end_timer!(t0);
 
-            let t1 = start_timer!(|| format!("cyclone k={}", k));
+            let t1 = start_timer!(|| format!("older k={}", k));
             let e1 = super::best_multiexp(scalars, points);
             end_timer!(t1);
-
             assert_eq!(e0, e1);
         }
     }
 
     #[test]
     fn test_msm_cross() {
-        run_msm_cross::<G1Affine>(16, 22);
-        // run_msm_cross::<G1Affine>(19, 23);
+        run_msm_cross::<G1Affine>(14, 22);
     }
 }
