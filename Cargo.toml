@@ -40,7 +40,7 @@ serde = { version = "1.0", default-features = false, optional = true }
 serde_arrays = { version = "0.1.0", optional = true }
 hex = { version = "0.4", optional = true, default-features = false, features = ["alloc", "serde"] }
 blake2b_simd = "1"
-bls12_381 = { git = "https://github.com/dragan2234/bls12_381", tag = "v2023_10_26", features = ["groups", "basefield"] }
+bls12_381 = { git = "https://github.com/dragan2234/bls12_381", features = ["groups", "basefield"], branch = "add-FromUniformBytes-trait" }
 rayon = "1.8"
 
 [features]
