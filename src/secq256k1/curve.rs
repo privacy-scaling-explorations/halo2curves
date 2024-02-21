@@ -1,3 +1,4 @@
+use crate::derive::curve::{IS_IDENTITY_MASK, IS_IDENTITY_SHIFT, NEG_Y_MASK, NEG_Y_SHIFT};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::Curve;
@@ -41,7 +42,7 @@ new_curve_impl!(
     (pub),
     Secq256k1,
     Secq256k1Affine,
-    true,
+    0,
     Fq,
     Fp,
     (SECQ_GENERATOR_X, SECQ_GENERATOR_Y),

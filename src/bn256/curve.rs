@@ -5,6 +5,7 @@ use crate::arithmetic::EndoParameters;
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
+use crate::derive::curve::{IS_IDENTITY_MASK, IS_IDENTITY_SHIFT, NEG_Y_MASK, NEG_Y_SHIFT};
 use crate::endo;
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
@@ -32,7 +33,7 @@ new_curve_impl!(
     (pub),
     G1,
     G1Affine,
-    false,
+    2,
     Fq,
     Fr,
     (G1_GENERATOR_X,G1_GENERATOR_Y),
@@ -46,7 +47,7 @@ new_curve_impl!(
     (pub),
     G2,
     G2Affine,
-    false,
+    2,
     Fq2,
     Fr,
     (G2_GENERATOR_X, G2_GENERATOR_Y),

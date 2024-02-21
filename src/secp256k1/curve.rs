@@ -1,3 +1,4 @@
+use crate::derive::curve::{IS_IDENTITY_MASK, IS_IDENTITY_SHIFT, NEG_Y_MASK, NEG_Y_SHIFT};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
@@ -58,7 +59,7 @@ new_curve_impl!(
     (pub),
     Secp256k1,
     Secp256k1Affine,
-    true,
+    0,
     Fp,
     Fq,
     (SECP_GENERATOR_X,SECP_GENERATOR_Y),
@@ -127,7 +128,7 @@ new_curve_impl!(
     (pub(crate)),
     IsoSecp256k1,
     IsoSecp256k1Affine,
-    true,
+    0,
     Fp,
     Fq,
     (ISO_SECP_GENERATOR_X, ISO_SECP_GENERATOR_Y),
