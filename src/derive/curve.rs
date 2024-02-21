@@ -49,12 +49,19 @@ macro_rules! endo {
     };
 }
 
+// These masks work for 0, 1, and 2 spare bits.
+// The only curve that does not fit these masks is Bls12-381.
+pub(crate) const NEG_Y_MASK: u8 = 0b1000_0000;
+pub(crate) const NEG_Y_SHIFT: u8 = 7;
+pub(crate) const IS_IDENTITY_MASK: u8 = 0b0100_0000;
+pub(crate) const IS_IDENTITY_SHIFT: u8 = 6;
+
 #[macro_export]
 macro_rules! new_curve_impl {
     (($($privacy:tt)*),
     $name:ident,
     $name_affine:ident,
-    $flags_extra_byte:expr,
+    $spare_bits:expr,
     $base:ident,
     $scalar:ident,
     $generator:expr,
@@ -68,13 +75,24 @@ macro_rules! new_curve_impl {
             () => {
                 paste::paste! {
 
+                // The copressed size is the size of the x-coordinate (one base field element)
+                // when there is at least 1 spare bit. When there is no spare bits (secp256k1)
+                // the size is increased by 1 byte.
                 #[allow(non_upper_case_globals)]
-                const [< $name _COMPRESSED_SIZE >]: usize = if $flags_extra_byte {$base::size() + 1} else {$base::size()};
+                const [< $name _COMPRESSED_SIZE >]: usize =
+                    if $spare_bits == 0 {
+                        $base::size() + 1
+                    } else {
+                        $base::size()
+                    };
+
                 #[derive(Copy, Clone, PartialEq, Eq)]
                 #[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
-                pub struct [<$name Compressed >](#[cfg_attr(feature = "derive_serde", serde(with = "serde_arrays"))] [u8; [< $name _COMPRESSED_SIZE >]]);
+                pub struct [<$name Compressed >](
+                    #[cfg_attr(feature = "derive_serde", serde(with = "serde_arrays"))]
+                    [u8; [< $name _COMPRESSED_SIZE >]]
+                );
 
-                // Compressed
                 impl std::fmt::Debug for [< $name Compressed >] {
                     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                         self.0[..].fmt(f)
@@ -99,58 +117,6 @@ macro_rules! new_curve_impl {
                     }
                 }
 
-                impl group::GroupEncoding for $name_affine {
-                    type Repr = [< $name Compressed >];
-
-
-                    fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
-                        let bytes = &bytes.0;
-                        let mut tmp = *bytes;
-                        let is_inf = Choice::from(tmp[[< $name _COMPRESSED_SIZE >] - 1] >> 7);
-                        let ysign = Choice::from((tmp[[< $name _COMPRESSED_SIZE >] - 1] >> 6) & 1);
-                        tmp[[< $name _COMPRESSED_SIZE >] - 1] &= 0b0011_1111;
-                        let mut xbytes = [0u8; $base::size()];
-                        xbytes.copy_from_slice(&tmp[ ..$base::size()]);
-
-                        $base::from_bytes(&xbytes).and_then(|x| {
-                            CtOption::new(Self::identity(), x.is_zero() & (is_inf)).or_else(|| {
-                                $name_affine::y2(x).sqrt().and_then(|y| {
-                                    let sign = Choice::from(y.to_bytes()[0] & 1);
-
-                                    let y = $base::conditional_select(&y, &-y, ysign ^ sign);
-
-                                    CtOption::new(
-                                        $name_affine {
-                                            x,
-                                            y,
-                                        },
-                                        Choice::from(1u8),
-                                    )
-                                })
-                            })
-                        })
-                    }
-
-                    fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
-                        Self::from_bytes(bytes)
-                    }
-
-                    fn to_bytes(&self) -> Self::Repr {
-                        if bool::from(self.is_identity()) {
-                            let mut bytes = [0; [< $name _COMPRESSED_SIZE >]];
-                            bytes[[< $name _COMPRESSED_SIZE >] - 1] |= 0b1000_0000;
-                            [< $name Compressed >](bytes)
-                        } else {
-                            let (x, y) = (self.x, self.y);
-                            let sign = (y.to_bytes()[0] & 1) << 6;
-                            let mut xbytes = [0u8; [< $name _COMPRESSED_SIZE >]];
-                            xbytes[..$base::size()].copy_from_slice(&x.to_bytes());
-                            xbytes[[< $name _COMPRESSED_SIZE >] - 1] |= sign;
-                            [< $name Compressed >](xbytes)
-                        }
-                    }
-                }
-
                 impl GroupEncoding for $name {
                     type Repr = [< $name Compressed >];
 
@@ -167,21 +133,105 @@ macro_rules! new_curve_impl {
                     }
                 }
 
+
+                // The flags are placed in the last byte, the MSB.
+                #[allow(non_upper_case_globals)]
+                const [< $name _FLAG_BYTE_INDEX>]: usize= [< $name _COMPRESSED_SIZE >]-1 ;
+
+                #[allow(non_upper_case_globals)]
+                const [< $name _FLAG_BITS >]: u8 =
+                if $spare_bits == 1 {
+                    0b0111_1111
+                } else if $spare_bits == 2 {
+                    0b0011_1111
+                } else {
+                    //$spare_bits == 0
+                    0b0000_0000
+                };
+
+                impl group::GroupEncoding for $name_affine {
+                    type Repr = [< $name Compressed >];
+
+
+                    fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
+                        let mut tmp = bytes.0;
+                        // When only 1 spare bit, there is no identity flag
+                        let is_inf  = if $spare_bits == 1  {
+                            Choice::from(1u8)
+                        } else {
+                            Choice::from((tmp[[< $name _FLAG_BYTE_INDEX>]] & IS_IDENTITY_MASK) >> IS_IDENTITY_SHIFT )
+                        };
+                        let ysign = Choice::from( (tmp[[< $name _FLAG_BYTE_INDEX>]]  & NEG_Y_MASK) >> NEG_Y_SHIFT );
+                        // Clear flag bits
+                        tmp[[< $name _FLAG_BYTE_INDEX>]] &= [< $name _FLAG_BITS >];
+
+                        let mut xbytes = [0u8; $base::size()];
+                        xbytes.copy_from_slice(&tmp[..$base::size()]);
+
+                        $base::from_bytes(&xbytes).and_then(|x| {
+                            CtOption::new(
+                                Self::identity(),
+                                x.is_zero() & (is_inf))
+                            .or_else(|| {
+                                //Computes corresponding y
+                                $name_affine::y2(x).sqrt().and_then(|y| {
+                                    // Get sign of obtained solution. sign = y % 2.
+                                    let sign = Choice::from(y.to_bytes()[0] & 1);
+                                    // Adjust sign if necessary.
+                                    let y = $base::conditional_select(&y, &-y, ysign ^ sign);
+                                    CtOption::new(
+                                        $name_affine {
+                                            x,
+                                            y,
+                                        },
+                                        Choice::from(1u8),
+                                    )
+                                })
+                            })
+                        })
+                    }
+
+                    fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
+                        // In compressed form we cannot skip the curve check.
+                        Self::from_bytes(bytes)
+                    }
+
+                    fn to_bytes(&self) -> Self::Repr {
+                        if bool::from(self.is_identity()) {
+                            let mut bytes = [0; [< $name _COMPRESSED_SIZE >]];
+                            // When spare_bits == 1, the identity is all 0's.
+                            if $spare_bits == 0 || $spare_bits ==2 {
+                                bytes[[< $name _FLAG_BYTE_INDEX>]] |= IS_IDENTITY_MASK;
+                            }
+                            [< $name Compressed >](bytes)
+                        } else {
+                            let (x, y) = (self.x, self.y);
+                            let mut xbytes = [0u8; [< $name _COMPRESSED_SIZE >]];
+                            xbytes[..$base::size()].copy_from_slice(&x.to_bytes());
+                            if (y.to_bytes()[0] & 1) == 1 {
+                                xbytes[[< $name _FLAG_BYTE_INDEX>]] |= NEG_Y_MASK;
+                            }
+                            [< $name Compressed >](xbytes)
+                        }
+                    }
+                }
+
+
                 }
             };
         }
 
         macro_rules! impl_uncompressed {
             () => {
-
                 paste::paste! {
 
                 #[allow(non_upper_case_globals)]
-                const [< $name _UNCOMPRESSED_SIZE >]: usize = if $flags_extra_byte {
+                const [< $name _UNCOMPRESSED_SIZE >]: usize = if $spare_bits == 0{
                     2 * $base::size() + 1
                 } else{
                     2 *$base::size()
                 };
+
                 #[derive(Copy, Clone)]
                 pub struct [< $name Uncompressed >]([u8; [< $name _UNCOMPRESSED_SIZE >]]);
                     impl std::fmt::Debug for [< $name Uncompressed >] {
