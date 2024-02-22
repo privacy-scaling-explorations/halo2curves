@@ -18,7 +18,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 pub struct Fr(pub(crate) [u64; 4]);
 
 #[cfg(feature = "derive_serde")]
-crate::serialize_deserialize_32_byte_primefield!(Fq);
+crate::serialize_deserialize_32_byte_primefield!(Fr);
 
 /// Constant representing the modulus
 /// r = 0x1cfb69d4ca675f520cce760202687600ff8f87007419047174fd06b52876e7e1
@@ -61,71 +61,75 @@ const R: Fr = Fr([
 /// 0xAE793DDB14AEC7DAA9E6DAEC0055CEA40FA7CA27FECB938DBB4F5D658DB47CB
 const R2: Fr = Fr([
     0xDBB4F5D658DB47CB,
-    0x0FA7CA27FECB938,
-    0xA9E6DAEC0055CEA4,
-    0xAE793DDB14AEC7DA,
+    0x40FA7CA27FECB938,
+    0xAA9E6DAEC0055CEA,
+    0xAE793DDB14AEC7D,
 ]);
 
 /// R^3 = 2^768 mod r
 /// 0x53A3B49F57751131126587105341936B0CE06DAEDDD77691EB6E3EB79377BD1
-const R3: Fq = Fq([
+const R3: Fr = Fr([
     0x1EB6E3EB79377BD1,
     0xB0CE06DAEDDD7769,
     0x1126587105341936,
     0x53A3B49F5775113,
 ]);
 
-/// `GENERATOR = 7 mod r` is a generator of the `q - 1` order multiplicative
+/// `GENERATOR = 7 mod r` is a generator of the `r - 1` order multiplicative
 /// subgroup, or in other words a primitive root of the field.
 /// It's derived with SageMath with: `GF(MODULUS).primitive_element()`.
-const GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00]);
+const GENERATOR: Fr = Fr::from_raw([0x07, 0x00, 0x00, 0x00]);
 
 /// GENERATOR^t where t * 2^s + 1 = r with t odd. In other words, this is a 2^s root of unity.
-/// `ffc97f062a770992ba807ace842a3dfc1546cad004378daf0592d7fbb41e6602`
-const ROOT_OF_UNITY: Fq = Fq::from_raw([
-    0x0592d7fbb41e6602,
-    0x1546cad004378daf,
-    0xba807ace842a3dfc,
-    0xffc97f062a770992,
+/// t = 409655274805673363120685472720202858103411121670017820368325103335302739775
+/// `19470B7EFE802F9B36B6675F52C7008234BB3E0CB7ED22AEC65A62A1234BD960`
+const ROOT_OF_UNITY: Fr = Fr::from_raw([
+    0xC65A62A1234BD960,
+    0x34BB3E0CB7ED22AE,
+    0x36B6675F52C70082,
+    0x19470B7EFE802F9B,
 ]);
 
-/// 1 / ROOT_OF_UNITY mod q
-/// `a0a66a5562d46f2ac645fa0458131caee3ac117c794c4137379c7f0657c73764`
-const ROOT_OF_UNITY_INV: Fq = Fq::from_raw([
-    0x379c7f0657c73764,
-    0xe3ac117c794c4137,
-    0xc645fa0458131cae,
-    0xa0a66a5562d46f2a,
+/// 1 / ROOT_OF_UNITY mod r
+/// `12BD24C544CCEE9E935FC01BF5106936E62D68F4CC287C26DE5B1F3C2F8A9200`
+const ROOT_OF_UNITY_INV: Fr = Fr::from_raw([
+    0xDE5B1F3C2F8A9200,
+    0xE62D68F4CC287C26,
+    0x935FC01BF5106936,
+    0x12BD24C544CCEE9E,
 ]);
 
-/// 1 / 2 mod q
-const TWO_INV: Fq = Fq::from_raw([
-    0x79dce5617e3192a9,
-    0xde737d56d38bcf42,
-    0x7fffffffffffffff,
-    0x7fffffff80000000,
+/// 1 / 2 mod r
+/// E7DB4EA6533AFA906673B0101343B007FC7C3803A0C8238BA7E835A943B73F1
+// 0x1a8321a98684c180beebb2019390cad6e0d54b593ee3286311383e6c85936f08
+const TWO_INV: Fr = Fr::from_raw([
+    0xba7e835a943b73f1,
+    0x7fc7c3803a0c8238,
+    0x06673b0101343b00,
+    0xe7db4ea6533afa9,
 ]);
 
-const ZETA: Fq = Fq::from_raw([
-    0x7cbf87ff12884e21,
-    0x9405335ce9c83e1d,
-    0x4e786d0777fd6aef,
-    0x52891d43d946a035,
+// C6A4BE1AB577A673E9D28FF76D10E05F34C2C9AC1E5639B32882FC4D84C3E8E
+const ZETA: Fr = Fr::from_raw([
+    0x32882FC4D84C3E8E,
+    0xF34C2C9AC1E5639B,
+    0x3E9D28FF76D10E05,
+    0xC6A4BE1AB577A67,
 ]);
 
 /// Generator of the t-order multiplicative subgroup.
 /// Computed by exponentiating Self::MULTIPLICATIVE_GENERATOR by 2^s, where s is Self::S.
-const DELTA: Fq = Fq::from_raw([0x1e39a5057d81, 0, 0, 0]);
+const DELTA: Fr = Fr::from_raw([0x1E39A5057D81, 0, 0, 0]);
 
 use crate::{
     field_arithmetic, field_bits, field_common, field_specific, impl_add_binop_specify_output,
     impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
     impl_binops_multiplicative_mixed, impl_from_u64, impl_sub_binop_specify_output, impl_sum_prod,
 };
-impl_binops_additive!(Fq, Fq);
-impl_binops_multiplicative!(Fq, Fq);
+impl_binops_additive!(Fr, Fr);
+impl_binops_multiplicative!(Fr, Fr);
 field_common!(
-    Fq,
+    Fr,
     MODULUS,
     INV,
     MODULUS_STR,
@@ -137,22 +141,22 @@ field_common!(
     R2,
     R3
 );
-impl_from_u64!(Fq, R2);
-field_arithmetic!(Fq, MODULUS, INV, dense);
-impl_sum_prod!(Fq);
+impl_from_u64!(Fr, R2);
+field_arithmetic!(Fr, MODULUS, INV, dense);
+impl_sum_prod!(Fr);
 
 #[cfg(target_pointer_width = "64")]
-field_bits!(Fq, MODULUS);
+field_bits!(Fr, MODULUS);
 #[cfg(not(target_pointer_width = "64"))]
-field_bits!(Fq, MODULUS, MODULUS_LIMBS_32);
+field_bits!(Fr, MODULUS, MODULUS_LIMBS_32);
 
-impl Fq {
+impl Fr {
     pub const fn size() -> usize {
         32
     }
 }
 
-impl ff::Field for Fq {
+impl ff::Field for Fr {
     const ZERO: Self = Self::zero();
     const ONE: Self = Self::one();
 
@@ -219,21 +223,21 @@ impl ff::Field for Fq {
     }
 }
 
-impl ff::PrimeField for Fq {
+impl ff::PrimeField for Fr {
     type Repr = [u8; 32];
 
-    const NUM_BITS: u32 = 256;
-    const CAPACITY: u32 = 255;
+    const NUM_BITS: u32 = 253;
+    const CAPACITY: u32 = 252;
     const MODULUS: &'static str = MODULUS_STR;
     const MULTIPLICATIVE_GENERATOR: Self = GENERATOR;
     const ROOT_OF_UNITY: Self = ROOT_OF_UNITY;
     const ROOT_OF_UNITY_INV: Self = ROOT_OF_UNITY_INV;
     const TWO_INV: Self = TWO_INV;
     const DELTA: Self = DELTA;
-    const S: u32 = 4;
+    const S: u32 = 5;
 
     fn from_repr(repr: Self::Repr) -> CtOption<Self> {
-        let mut tmp = Fq([0, 0, 0, 0]);
+        let mut tmp = Fr([0, 0, 0, 0]);
 
         tmp.0[0] = u64::from_le_bytes(repr[0..8].try_into().unwrap());
         tmp.0[1] = u64::from_le_bytes(repr[8..16].try_into().unwrap());
@@ -274,9 +278,9 @@ impl ff::PrimeField for Fq {
     }
 }
 
-impl FromUniformBytes<64> for Fq {
+impl FromUniformBytes<64> for Fr {
     /// Converts a 512-bit little endian integer into
-    /// an `Fq` by reducing by the modulus.
+    /// an `Fr` by reducing by the modulus.
     fn from_uniform_bytes(bytes: &[u8; 64]) -> Self {
         Self::from_u512([
             u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
@@ -291,11 +295,11 @@ impl FromUniformBytes<64> for Fq {
     }
 }
 
-impl WithSmallOrderMulGroup<3> for Fq {
+impl WithSmallOrderMulGroup<3> for Fr {
     const ZETA: Self = ZETA;
 }
 
-extend_field_legendre!(Fq);
+extend_field_legendre!(Fr);
 
 #[cfg(test)]
 mod test {
@@ -305,18 +309,18 @@ mod test {
 
     #[test]
     fn test_zeta() {
-        assert_eq!(Fq::ZETA * Fq::ZETA * Fq::ZETA, Fq::ONE);
-        assert_ne!(Fq::ZETA * Fq::ZETA, Fq::ONE);
+        assert_eq!(Fr::ZETA * Fr::ZETA * Fr::ZETA, Fr::ONE);
+        assert_ne!(Fr::ZETA * Fr::ZETA, Fr::ONE);
     }
 
     #[test]
     fn test_sqrt() {
         // NB: TWO_INV is standing in as a "random" field element
-        // let v = (Fq::TWO_INV).square().sqrt().unwrap();
-        // assert!(v == Fq::TWO_INV || (-v) == Fq::TWO_INV);
+        // let v = (Fr::TWO_INV).square().sqrt().unwrap();
+        // assert!(v == Fr::TWO_INV || (-v) == Fr::TWO_INV);
 
         for _ in 0..10000 {
-            let a = Fq::random(OsRng);
+            let a = Fr::random(OsRng);
             let mut b = a;
             b = b.square();
 
@@ -331,47 +335,45 @@ mod test {
     #[test]
     fn test_constants() {
         assert_eq!(
-            Fq::MODULUS,
-            "0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
+            Fr::MODULUS,
+            "0x1cfb69d4ca675f520cce760202687600ff8f87007419047174fd06b52876e7e1",
         );
-
-        assert_eq!(Fq::from(2) * Fq::TWO_INV, Fq::ONE);
     }
 
     #[test]
     fn test_delta() {
-        assert_eq!(Fq::DELTA, Fq::MULTIPLICATIVE_GENERATOR.pow([1u64 << Fq::S]));
+        assert_eq!(Fr::DELTA, Fr::MULTIPLICATIVE_GENERATOR.pow([1u64 << Fr::S]));
     }
 
     #[test]
     fn test_root_of_unity() {
-        assert_eq!(Fq::ROOT_OF_UNITY.pow_vartime([1 << Fq::S]), Fq::one());
+        assert_eq!(Fr::ROOT_OF_UNITY.pow_vartime([1 << Fr::S]), Fr::one());
     }
 
     #[test]
     fn test_inv_root_of_unity() {
-        assert_eq!(Fq::ROOT_OF_UNITY_INV, Fq::ROOT_OF_UNITY.invert().unwrap());
+        assert_eq!(Fr::ROOT_OF_UNITY_INV, Fr::ROOT_OF_UNITY.invert().unwrap());
     }
 
     #[test]
     fn test_field() {
-        crate::tests::field::random_field_tests::<Fq>("secp256r1 scalar".to_string());
+        crate::tests::field::random_field_tests::<Fr>("bandersnatch scalar".to_string());
     }
 
     #[test]
     fn test_conversion() {
-        crate::tests::field::random_conversion_tests::<Fq>("secp256r1 scalar".to_string());
+        crate::tests::field::random_conversion_tests::<Fr>("bandersnatch scalar".to_string());
     }
 
     #[test]
     fn test_serialization() {
-        crate::tests::field::random_serialization_test::<Fq>("secp256r1 scalar".to_string());
+        crate::tests::field::random_serialization_test::<Fr>("bandersnatch scalar".to_string());
         #[cfg(feature = "derive_serde")]
-        crate::tests::field::random_serde_test::<Fq>("secp256r1 scalar".to_string());
+        crate::tests::field::random_serde_test::<Fr>("bandersnatch scalar".to_string());
     }
 
     #[test]
     fn test_quadratic_residue() {
-        crate::tests::field::random_quadratic_residue_test::<Fq>();
+        crate::tests::field::random_quadratic_residue_test::<Fr>();
     }
 }

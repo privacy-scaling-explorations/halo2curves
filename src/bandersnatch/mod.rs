@@ -1,6 +1,6 @@
 mod curve;
-// mod fr;
+mod fr;
 
 pub use crate::bls12_381::{Scalar as Fp};
-pub use curve::*;
-// pub use fr::*;
+// pub use curve::*;
+pub use fr::*;
