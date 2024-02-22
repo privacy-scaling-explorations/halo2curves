@@ -226,14 +226,11 @@ macro_rules! new_curve_impl {
                 paste::paste! {
 
                 #[allow(non_upper_case_globals)]
-                const [< $name _UNCOMPRESSED_SIZE >]: usize = if $spare_bits == 0{
-                    2 * $base::size() + 1
-                } else{
-                    2 *$base::size()
-                };
+                const [< $name _FLAT_BYTE_INDEX >]: usize =
+                    2 *$base::size() - 1;
 
                 #[derive(Copy, Clone)]
-                pub struct [< $name Uncompressed >]([u8; [< $name _UNCOMPRESSED_SIZE >]]);
+                pub struct [< $name Uncompressed >]([u8; 2*$base::size()]);
                     impl std::fmt::Debug for [< $name Uncompressed >] {
                         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                             self.0[..].fmt(f)
@@ -242,7 +239,7 @@ macro_rules! new_curve_impl {
 
                     impl Default for [< $name Uncompressed >] {
                         fn default() -> Self {
-                            [< $name Uncompressed >]([0; [< $name _UNCOMPRESSED_SIZE >] ])
+                            [< $name Uncompressed >]([0; 2*$base::size() ])
                         }
                     }
 
@@ -282,15 +279,20 @@ macro_rules! new_curve_impl {
 
                         fn from_uncompressed_unchecked(bytes: &Self::Uncompressed) -> CtOption<Self> {
                             let bytes = &bytes.0;
-                            let infinity_flag_set = Choice::from((bytes[[< $name _UNCOMPRESSED_SIZE >] - 1] >> 6) & 1);
-                            // Attempt to obtain the x-coordinate
+                            let infinity_flag_set = if $spare_bits == 1 {
+                                // With 1 spare bit there is no infinity flag, so we just rely
+                                // on the x, y coordinates to be set to 0.
+                                Choice::from(1u8)
+                            } else {
+                                Choice::from((( bytes[[<$name _FLAT_BYTE_INDEX >]] & IS_IDENTITY_MASK) >> IS_IDENTITY_SHIFT) )
+                            };
+
                             let x = {
                                 let mut tmp = [0; $base::size()];
                                 tmp.copy_from_slice(&bytes[0..$base::size()]);
                                 $base::from_bytes(&tmp)
                             };
 
-                            // Attempt to obtain the y-coordinate
                             let y = {
                                 let mut tmp = [0; $base::size()];
                                 tmp.copy_from_slice(&bytes[$base::size()..2*$base::size()]);
@@ -299,27 +301,29 @@ macro_rules! new_curve_impl {
 
                             x.and_then(|x| {
                                 y.and_then(|y| {
-                                    // Create a point representing this value
+                                    // The point is the identity iff the x and y coordinates are zero
+                                    // and the identity flag is set, in the fomrats where such flag is present.
+                                    let is_ident = infinity_flag_set & x.is_zero() & y.is_zero();
+
                                     let p = $name_affine::conditional_select(
                                         &$name_affine{
                                             x,
                                             y,
                                         },
                                         &$name_affine::identity(),
-                                        infinity_flag_set,
+                                        is_ident,
                                     );
 
                                     CtOption::new(
                                         p,
-                                        // If the infinity flag is set, the x and y coordinates should have been zero.
-                                        ((!infinity_flag_set) | (x.is_zero() & y.is_zero()))
+                                        is_ident,
                                     )
                                 })
                             })
                         }
 
                         fn to_uncompressed(&self) -> Self::Uncompressed {
-                            let mut res = [0; [< $name _UNCOMPRESSED_SIZE >]];
+                            let mut res = [0; 2*$base::size()];
 
                             res[0..$base::size()].copy_from_slice(
                                 &$base::conditional_select(&self.x, &$base::zero(), self.is_identity()).to_bytes()[..],
@@ -327,15 +331,15 @@ macro_rules! new_curve_impl {
                             res[$base::size().. 2*$base::size()].copy_from_slice(
                                 &$base::conditional_select(&self.y, &$base::zero(), self.is_identity()).to_bytes()[..],
                             );
-
-                            res[[< $name _UNCOMPRESSED_SIZE >] - 1] |= u8::conditional_select(&0u8, &(1u8 << 6), self.is_identity());
+                            if $spare_bits == 0 || $spare_bits == 2  {
+                                res[[< $name _FLAG_BYTE_INDEX >]] |= u8::conditional_select(&0u8, &IS_IDENTITY_MASK, self.is_identity());
+                            }
 
                             [< $name Uncompressed >](res)
                         }
                     }
                 }
             };
-
         }
 
         /// A macro to help define point serialization using the [`group::GroupEncoding`] trait
