@@ -207,12 +207,12 @@ impl ff::Field for Fr {
     }
 
     fn sqrt(&self) -> CtOption<Self> {
-        // 7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a
+        // 73EDA753299D7D483339D80809A1D803FE3E1C01D06411C5D3F41AD4A1DB9F
         let tm1d2 = [
-            0x279dce5617e3192a,
-            0xfde737d56d38bcf4,
-            0x07ffffffffffffff,
-            0x7fffffff8000000,
+            0xC5D3F41AD4A1DB9F,
+            0x03FE3E1C01D06411,
+            0x483339D80809A1D8,
+            0x73EDA753299D7D,
         ];
 
         ff::helpers::sqrt_tonelli_shanks(self, tm1d2)
