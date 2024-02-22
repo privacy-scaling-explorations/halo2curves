@@ -119,7 +119,7 @@ const ZETA: Fr = Fr::from_raw([
 
 /// Generator of the t-order multiplicative subgroup.
 /// Computed by exponentiating Self::MULTIPLICATIVE_GENERATOR by 2^s, where s is Self::S.
-const DELTA: Fr = Fr::from_raw([0x1E39A5057D81, 0, 0, 0]);
+const DELTA: Fr = Fr::from_raw([0x303C33586E913B01, 0x3918FA8, 0, 0]);
 
 use crate::{
     field_arithmetic, field_bits, field_common, field_specific, impl_add_binop_specify_output,
