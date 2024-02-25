@@ -242,7 +242,7 @@ impl Fq2 {
         }
     }
 
-    // conjucate by negating c1
+    // conjugate by negating c1
     pub fn conjugate(&mut self) {
         self.c1 = -self.c1;
     }

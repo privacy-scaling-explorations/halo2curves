@@ -318,7 +318,7 @@ impl Fp2 {
 
     /// Norm of Fp2 as extension field in u over Fp
     fn norm(&self) -> Fp {
-        // norm = self * self.cojungate()
+        // norm = self * self.conjugate()
         let t0 = self.c0.square();
         let t1 = self.c1.square() * U_SQUARE;
         t1 - t0

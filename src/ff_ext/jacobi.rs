@@ -329,7 +329,7 @@ fn jacobinary(mut n: u64, mut d: u64, mut t: u64) -> i64 {
 /// - M. Hamburg, "Computing the Jacobi symbol using Bernstein-Yang",
 /// https://eprint.iacr.org/2021/1271.pdf
 pub fn jacobi<const L: usize>(n: &[u64], d: &[u64]) -> i64 {
-    // Instead of the variable "j" taking the values from {-1, 1} and satysfying
+    // Instead of the variable "j" taking the values from {-1, 1} and satisfying
     // at the end of the outer loop iteration the equation J = "j" * ("n" / |"d"|)
     // for the modified Jacobi symbol ("n" / |"d"|) and the sought Jacobi symbol J,
     // we store the sign bit of "j" in the second-lowest bit of "t" for optimization

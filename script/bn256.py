@@ -1,4 +1,4 @@
-# This file generates the montogomary form integers for x in [0, 2^16) \intersect
+# This file generates the montgomery form integers for x in [0, 2^16) \intersect
 # BN::ScalarField
 
 verbose = False

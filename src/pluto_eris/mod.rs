@@ -1,4 +1,4 @@
-//! # `Pluto\Eris half-pairing ccyle`
+//! # `Pluto\Eris half-pairing cycle`
 //!
 //! Implementation of the Pluto / Eris half-pairing cycle of prime order elliptic curves.
 //!
