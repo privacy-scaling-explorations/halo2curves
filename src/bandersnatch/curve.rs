@@ -19,7 +19,7 @@ impl group::cofactor::CofactorGroup for Bandersnatch {
     type Subgroup = Bandersnatch;
 
     fn clear_cofactor(&self) -> Self {
-        *self
+        self * Fr::from(4)
     }
 
     fn into_subgroup(self) -> CtOption<Self::Subgroup> {
