@@ -89,13 +89,13 @@ new_curve_impl!(
 impl Bandersnatch {
     // TODO: switch to bandersnatch param
     // Optimal Z with: <https://datatracker.ietf.org/doc/html/rfc9380#sswu-z-code>
-    // 0xffffffff00000001000000000000000000000000fffffffffffffffffffffff5
-    // Z = -10 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#section-8.2>)
+    // Script: https://github.com/privacy-scaling-explorations/halo2curves/pull/139#issuecomment-1965257028
+    // Z = 7 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#section-8.2>)
     const SSVDW_Z: Fp = Fp::from_raw([
-        0xfffffffffffffff5,
-        0x00000000ffffffff,
+        0x0000000000000007,
         0x0000000000000000,
-        0xffffffff00000001,
+        0x0000000000000000,
+        0x0000000000000000,
     ]);
 }
 
