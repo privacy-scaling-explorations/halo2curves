@@ -112,6 +112,16 @@ jobs:
           command: clippy
           args: --verbose --release --tests --all-features
 
+   typos:
+    name: Spell Check with Typos
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use typos with config file
+      uses: crate-ci/typos@master
+      with: 
+        config: .config/typos.toml
+
   bench:
     if: github.event.pull_request.draft == false
     name: Bench
