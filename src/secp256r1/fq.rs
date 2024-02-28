@@ -251,7 +251,7 @@ impl ff::PrimeField for Fq {
         // of 0xffff...ffff. Otherwise, it'll be zero.
         let is_some = (borrow as u8) & 1;
 
-        // Convert to Montgomery form by computi
+        // Convert to Montgomery form by computing
         // (a.R^0 * R^2) / R = a.R
         tmp *= &R2;
 

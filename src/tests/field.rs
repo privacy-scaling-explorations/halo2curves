@@ -103,7 +103,7 @@ macro_rules! field_testing_suite {
 
             for _ in 0..n {
                 let mut a = F::random(&mut rng);
-                let b = a.invert().unwrap(); // probablistically nonzero
+                let b = a.invert().unwrap(); // probabilistically nonzero
                 a.mul_assign(&b);
 
                 assert_eq!(a, F::ONE);
