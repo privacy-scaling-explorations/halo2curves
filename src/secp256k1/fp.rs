@@ -52,7 +52,7 @@ const MODULUS_LIMBS_32: [u32; 8] = [
     0xffff_ffff,
 ];
 
-/// Constant representing the modolus as static str
+/// Constant representing the modulus as static str
 const MODULUS_STR: &str = "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f";
 
 /// INV = -(p^{-1} mod 2^64) mod 2^64
