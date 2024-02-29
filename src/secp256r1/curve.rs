@@ -1,4 +1,4 @@
-use crate::derive::curve::{IS_IDENTITY_MASK, IS_IDENTITY_SHIFT, NEG_Y_MASK, NEG_Y_SHIFT};
+use crate::derive::curve::{IS_IDENTITY_MASK, IS_IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
@@ -70,7 +70,6 @@ new_curve_impl!(
     (pub),
     Secp256r1,
     Secp256r1Affine,
-    0,
     Fp,
     Fq,
     (SECP_GENERATOR_X,SECP_GENERATOR_Y),
@@ -95,6 +94,7 @@ impl Secp256r1 {
 #[cfg(test)]
 mod test {
     use super::*;
+    use group::UncompressedEncoding;
     crate::curve_testing_suite!(Secp256r1);
     crate::curve_testing_suite!(Secp256r1, "ecdsa_example");
     crate::curve_testing_suite!(

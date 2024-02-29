@@ -49,10 +49,10 @@ macro_rules! endo {
     };
 }
 
-// These masks work for 0, 1, and 2 spare bits.
-// The only curve that does not fit these masks is Bls12-381.
-pub(crate) const NEG_Y_MASK: u8 = 0b1000_0000;
-pub(crate) const NEG_Y_SHIFT: u8 = 7;
+// Sign mask for 0, 1 and 2 spare bits.
+pub(crate) const SIGN_MASK: u8 = 0b1000_0000;
+pub(crate) const SIGN_SHIFT: u8 = 7;
+// Identity mask for 0 and 2 spare bits (1 spare bit does not use it).
 pub(crate) const IS_IDENTITY_MASK: u8 = 0b0100_0000;
 pub(crate) const IS_IDENTITY_SHIFT: u8 = 6;
 
@@ -61,7 +61,6 @@ macro_rules! new_curve_impl {
     (($($privacy:tt)*),
     $name:ident,
     $name_affine:ident,
-    $spare_bits:expr,
     $base:ident,
     $scalar:ident,
     $generator:expr,
@@ -72,10 +71,10 @@ macro_rules! new_curve_impl {
     ) => {
 
         macro_rules! impl_compressed {
-            () => {
+            ($spare_bits: expr) => {
                 paste::paste! {
 
-                // The copressed size is the size of the x-coordinate (one base field element)
+                // The compressed size is the size of the x-coordinate (one base field element)
                 // when there is at least 1 spare bit. When there is no spare bits (secp256k1)
                 // the size is increased by 1 byte.
                 #[allow(non_upper_case_globals)]
@@ -125,7 +124,7 @@ macro_rules! new_curve_impl {
                     }
 
                     fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
-                        $name_affine::from_bytes(bytes).map(Self::from)
+                        $name_affine::from_bytes_unchecked(bytes).map(Self::from)
                     }
 
                     fn to_bytes(&self) -> Self::Repr {
@@ -134,7 +133,7 @@ macro_rules! new_curve_impl {
                 }
 
 
-                // The flags are placed in the last byte, the MSB.
+                // The flags are placed in the last byte (the most significant byte).
                 #[allow(non_upper_case_globals)]
                 const [< $name _FLAG_BYTE_INDEX>]: usize= [< $name _COMPRESSED_SIZE >]-1 ;
 
@@ -155,36 +154,76 @@ macro_rules! new_curve_impl {
 
                     fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
                         let mut tmp = bytes.0;
-                        // When only 1 spare bit, there is no identity flag
-                        let is_inf  = if $spare_bits == 1  {
-                            Choice::from(1u8)
+
+                        let flag_byte = tmp[[< $name _FLAG_BYTE_INDEX>]];
+                        // Get identity and sign flags.
+                        let identity_flag = if $spare_bits == 0  || $spare_bits == 2 {
+                            Choice::from((flag_byte & IS_IDENTITY_MASK) >> IS_IDENTITY_SHIFT )
                         } else {
-                            Choice::from((tmp[[< $name _FLAG_BYTE_INDEX>]] & IS_IDENTITY_MASK) >> IS_IDENTITY_SHIFT )
+                            Choice::from(0u8)
                         };
-                        let ysign = Choice::from( (tmp[[< $name _FLAG_BYTE_INDEX>]]  & NEG_Y_MASK) >> NEG_Y_SHIFT );
+
+                        let sign_flag = Choice::from( (flag_byte  & SIGN_MASK) >> SIGN_SHIFT );
+
+                        let extra_bits = if $spare_bits == 0 {
+                            // In the case of 0 spare bits, an extra byte is added to hold the flags.
+                            // In this byte, the 6 least significant bits must be set to 0.
+                            Choice::from(u8::from((flag_byte & 0b0011_1111) !=0) )
+                        } else {
+                            // There are no extra bits in the rest of cases.
+                            Choice::from(0u8)
+                        };
+
                         // Clear flag bits
                         tmp[[< $name _FLAG_BYTE_INDEX>]] &= [< $name _FLAG_BITS >];
 
+                        // Get x-coordinate
                         let mut xbytes = [0u8; $base::size()];
                         xbytes.copy_from_slice(&tmp[..$base::size()]);
 
+
+
                         $base::from_bytes(&xbytes).and_then(|x| {
+
+                            // Decide if the point is the identity and the validity of the encoding.
+                            let (is_valid, is_identity) =
+                            if $spare_bits   == 0  || $spare_bits == 2 {
+                                // Correct encoding follows one of the following:
+                                // 1. Identity:
+                                //  identity_flag = 1, sign = 0, x = 0, extra_bits = 0
+                                // 2. Non-identity:
+                                //  identity_flag = 0, , extra_bits = 0
+                                //
+                                // is_valid = !identity_flag \/ (!sign /\ x.is_zero()) /\ !extra_bits
+                                ( (!identity_flag | (!sign_flag & x.is_zero())) & !extra_bits, identity_flag)
+                            } else {
+                                // Correct encoding follows one of the following:
+                                // 1. Identity:
+                                //  sign = 0, x = 0
+                                // 2. Non-identity:
+                                //  x!=0
+                                //
+                                // is_valid = !(x.is_zero() /\ sign_flag)
+                                ( !(x.is_zero() & sign_flag), x.is_zero())
+                            };
+
+
                             CtOption::new(
                                 Self::identity(),
-                                x.is_zero() & (is_inf))
+                                is_identity)
                             .or_else(|| {
-                                //Computes corresponding y
+                                // Computes corresponding y coordinate.
                                 $name_affine::y2(x).sqrt().and_then(|y| {
                                     // Get sign of obtained solution. sign = y % 2.
                                     let sign = Choice::from(y.to_bytes()[0] & 1);
                                     // Adjust sign if necessary.
-                                    let y = $base::conditional_select(&y, &-y, ysign ^ sign);
+                                    let y = $base::conditional_select(&y, &-y, sign_flag ^ sign);
                                     CtOption::new(
                                         $name_affine {
                                             x,
                                             y,
                                         },
-                                        Choice::from(1u8),
+                                        is_valid,
                                     )
                                 })
                             })
@@ -199,8 +238,7 @@ macro_rules! new_curve_impl {
                     fn to_bytes(&self) -> Self::Repr {
                         if bool::from(self.is_identity()) {
                             let mut bytes = [0; [< $name _COMPRESSED_SIZE >]];
-                            // When spare_bits == 1, the identity is all 0's.
-                            if $spare_bits == 0 || $spare_bits ==2 {
+                            if $spare_bits == 0 || $spare_bits == 2 {
                                 bytes[[< $name _FLAG_BYTE_INDEX>]] |= IS_IDENTITY_MASK;
                             }
                             [< $name Compressed >](bytes)
@@ -209,7 +247,7 @@ macro_rules! new_curve_impl {
                             let mut xbytes = [0u8; [< $name _COMPRESSED_SIZE >]];
                             xbytes[..$base::size()].copy_from_slice(&x.to_bytes());
                             if (y.to_bytes()[0] & 1) == 1 {
-                                xbytes[[< $name _FLAG_BYTE_INDEX>]] |= NEG_Y_MASK;
+                                xbytes[[< $name _FLAG_BYTE_INDEX>]] |= SIGN_MASK;
                             }
                             [< $name Compressed >](xbytes)
                         }
@@ -222,12 +260,8 @@ macro_rules! new_curve_impl {
         }
 
         macro_rules! impl_uncompressed {
-            () => {
+            ($spare_bits: expr) => {
                 paste::paste! {
-
-                #[allow(non_upper_case_globals)]
-                const [< $name _FLAT_BYTE_INDEX >]: usize =
-                    2 *$base::size() - 1;
 
                 #[derive(Copy, Clone)]
                 pub struct [< $name Uncompressed >]([u8; 2*$base::size()]);
@@ -278,32 +312,56 @@ macro_rules! new_curve_impl {
                         }
 
                         fn from_uncompressed_unchecked(bytes: &Self::Uncompressed) -> CtOption<Self> {
-                            let bytes = &bytes.0;
-                            let infinity_flag_set = if $spare_bits == 1 {
-                                // With 1 spare bit there is no infinity flag, so we just rely
-                                // on the x, y coordinates to be set to 0.
-                                Choice::from(1u8)
+                            let mut bytes = bytes.0;
+
+                            let flag_idx = 2* $base::size() -1;
+
+                            // In the uncompressed format, the bit in the sign flag position must be 0 always.
+                            let sign_flag =  if $spare_bits == 2 || $spare_bits == 1 {
+                                Choice::from( (bytes[ flag_idx ] & SIGN_MASK) >> SIGN_SHIFT )
                             } else {
-                                Choice::from((( bytes[[<$name _FLAT_BYTE_INDEX >]] & IS_IDENTITY_MASK) >> IS_IDENTITY_SHIFT) )
+                                // For 0 spare bits, there is no sign flag.
+                                Choice::from(0u8)
                             };
 
+                            // Get identity flag.
+                            let identity_flag= if $spare_bits == 2 {
+                                let identity_flag = Choice::from( ( ( bytes[ flag_idx ] & IS_IDENTITY_MASK) >> IS_IDENTITY_SHIFT) );
+
+                                // Clear flags.
+                                bytes[flag_idx] &= [< $name _FLAG_BITS >];
+                                identity_flag
+                            } else {
+                                // With 0 and 1 spare bit there is no identity flag, so we just rely
+                                // on the x, y coordinates to be set to 0.
+                                Choice::from(0u8)
+                            };
+
+                            // Get x, y coordinates.
+                            let mut repr = [0u8; $base::size()];
                             let x = {
-                                let mut tmp = [0; $base::size()];
-                                tmp.copy_from_slice(&bytes[0..$base::size()]);
-                                $base::from_bytes(&tmp)
+                                repr.copy_from_slice(&bytes[0..$base::size()]);
+                                $base::from_bytes(&repr)
                             };
 
                             let y = {
-                                let mut tmp = [0; $base::size()];
-                                tmp.copy_from_slice(&bytes[$base::size()..2*$base::size()]);
-                                $base::from_bytes(&tmp)
+                                repr.copy_from_slice(&bytes[$base::size()..2*$base::size()]);
+                                $base::from_bytes(&repr)
                             };
+
 
                             x.and_then(|x| {
                                 y.and_then(|y| {
-                                    // The point is the identity iff the x and y coordinates are zero
-                                    // and the identity flag is set, in the fomrats where such flag is present.
-                                    let is_ident = infinity_flag_set & x.is_zero() & y.is_zero();
+                                    let zero_coords = x.is_zero() & y.is_zero();
+
+                                    // Check encoding validity: If the identity flag is set, then the x,y coordinates must be 0.
+                                    let (is_valid, is_identity) = if $spare_bits == 2 {
+                                        (!( zero_coords ^ identity_flag) & !sign_flag, identity_flag)
+                                    } else {
+                                        // With 1 spare bit, the encoding is always valid, and the identity is encoded with a 0 x-coordinate.
+                                        (!sign_flag, zero_coords)
+                                    };
+
 
                                     let p = $name_affine::conditional_select(
                                         &$name_affine{
@@ -311,12 +369,13 @@ macro_rules! new_curve_impl {
                                             y,
                                         },
                                         &$name_affine::identity(),
-                                        is_ident,
+                                        is_identity,
                                     );
+
 
                                     CtOption::new(
                                         p,
-                                        is_ident,
+                                        Choice::from(is_valid),
                                     )
                                 })
                             })
@@ -331,8 +390,8 @@ macro_rules! new_curve_impl {
                             res[$base::size().. 2*$base::size()].copy_from_slice(
                                 &$base::conditional_select(&self.y, &$base::zero(), self.is_identity()).to_bytes()[..],
                             );
-                            if $spare_bits == 0 || $spare_bits == 2  {
-                                res[[< $name _FLAG_BYTE_INDEX >]] |= u8::conditional_select(&0u8, &IS_IDENTITY_MASK, self.is_identity());
+                            if  $spare_bits == 2  {
+                                res[ 2*$base::size() -1 ] |= u8::conditional_select(&0u8, &IS_IDENTITY_MASK, self.is_identity());
                             }
 
                             [< $name Uncompressed >](res)
@@ -423,8 +482,10 @@ macro_rules! new_curve_impl {
         #[cfg(feature = "derive_serde")]
         serialize_deserialize_to_from_bytes!();
 
-        impl_compressed!();
-        impl_uncompressed!();
+        // Base's num_bits is the number of bits for the base prime field,
+        // so the computation of spare bits is correct for extensions as well.
+        impl_compressed!((($base::NUM_BITS-1) / 8 +1) * 8 - $base::NUM_BITS);
+        impl_uncompressed!((($base::NUM_BITS-1) / 8 +1) * 8 - $base::NUM_BITS);
 
 
 

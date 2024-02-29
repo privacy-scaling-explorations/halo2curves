@@ -2,7 +2,7 @@ use crate::arithmetic::mul_512;
 use crate::arithmetic::sbb;
 use crate::arithmetic::CurveEndo;
 use crate::arithmetic::EndoParameters;
-use crate::derive::curve::{IS_IDENTITY_MASK, IS_IDENTITY_SHIFT, NEG_Y_MASK, NEG_Y_SHIFT};
+use crate::derive::curve::{IS_IDENTITY_MASK, IS_IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::Curve;
@@ -30,7 +30,6 @@ new_curve_impl!(
     (pub),
     G1,
     G1Affine,
-    2,
     Fq,
     Fr,
     (G1_GENERATOR_X, G1_GENERATOR_Y),
@@ -93,6 +92,7 @@ impl G1 {
 #[cfg(test)]
 mod test {
     use super::*;
+    use group::UncompressedEncoding;
     crate::curve_testing_suite!(G1);
     crate::curve_testing_suite!(G1, "endo_consistency");
     crate::curve_testing_suite!(G1, "endo");

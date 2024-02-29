@@ -238,11 +238,19 @@ macro_rules! curve_testing_suite {
                         .unwrap()
                         .is_identity()
                 ));
+
+                assert!(bool::from(
+                    <$c as CurveExt>::AffineExt::from_uncompressed(&<$c as CurveExt>::AffineExt::identity().to_uncompressed())
+                        .unwrap()
+                        .is_identity()
+                ));
+
                 assert!(bool::from(
                     <$c as CurveExt>::AffineExt::from_bytes(&<$c as CurveExt>::AffineExt::identity().to_bytes())
                         .unwrap()
                         .is_identity()
                 ));
+
                 for _ in 0..100 {
                     let projective_point = $c::random(OsRng);
                     let affine_point: <$c as CurveExt>::AffineExt = projective_point.into();
@@ -263,7 +271,6 @@ macro_rules! curve_testing_suite {
                     assert_eq!(affine_point, affine_point_rec_unchecked);
 
                     // Uncompressed format
-                    use group::UncompressedEncoding;
                     let affine_repr = affine_point.to_uncompressed();
 
                     let affine_point_rec = <$c as CurveExt>::AffineExt::from_uncompressed_unchecked(&affine_repr).unwrap();
@@ -271,8 +278,6 @@ macro_rules! curve_testing_suite {
 
                     assert_eq!(affine_point, affine_point_rec);
                     assert_eq!(affine_point, affine_point_rec_unchecked);
-
-
                 }
             }
         }
@@ -343,6 +348,7 @@ macro_rules! curve_testing_suite {
         use crate::{group::GroupEncoding, serde::SerdeObject};
         use crate::{CurveAffine, CurveExt};
         use rand_core::OsRng;
+
 
         #[test]
         fn test_curve() {
