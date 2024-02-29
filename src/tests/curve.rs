@@ -246,10 +246,14 @@ macro_rules! curve_testing_suite {
                 for _ in 0..100 {
                     let projective_point = $c::random(OsRng);
                     let affine_point: <$c as CurveExt>::AffineExt = projective_point.into();
+
+                    // Compressed format tests
                     let projective_repr = projective_point.to_bytes();
                     let affine_repr = affine_point.to_bytes();
+
                     let projective_point_rec = $c::from_bytes(&projective_repr).unwrap();
                     let projective_point_rec_unchecked = $c::from_bytes(&projective_repr).unwrap();
+
                     let affine_point_rec = <$c as CurveExt>::AffineExt::from_bytes(&affine_repr).unwrap();
                     let affine_point_rec_unchecked = <$c as CurveExt>::AffineExt::from_bytes(&affine_repr).unwrap();
 
@@ -257,10 +261,23 @@ macro_rules! curve_testing_suite {
                     assert_eq!(projective_point, projective_point_rec_unchecked);
                     assert_eq!(affine_point, affine_point_rec);
                     assert_eq!(affine_point, affine_point_rec_unchecked);
+
+                    // Uncompressed format
+                    use group::UncompressedEncoding;
+                    let affine_repr = affine_point.to_uncompressed();
+
+                    let affine_point_rec = <$c as CurveExt>::AffineExt::from_uncompressed_unchecked(&affine_repr).unwrap();
+                    let affine_point_rec_unchecked = <$c as CurveExt>::AffineExt::from_uncompressed_unchecked(&affine_repr).unwrap();
+
+                    assert_eq!(affine_point, affine_point_rec);
+                    assert_eq!(affine_point, affine_point_rec_unchecked);
+
+
                 }
             }
         }
 
+        // TODO Change name
         macro_rules! random_serialization_test {
             ($c: ident) => {
                 for _ in 0..100 {
