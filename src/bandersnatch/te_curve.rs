@@ -35,11 +35,9 @@ use core::fmt::Debug;
 use core::fmt;
 use core::borrow::Borrow;
 use core::iter::Sum;
-use core::ops::{Add, Mul, Neg, Sub};
+use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-use std::ops::AddAssign;
-use std::ops::SubAssign;
 
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
@@ -73,6 +71,7 @@ const TE_BANDERSNATCH_GENERATOR_Y: Fp = Fp::from_raw([
     0x157d8b50badcd586,
     0x2a6c669eda123e0f,
 ]);
+
 
 // 73EDA753299D7D483339D80809A1D80553BDA402FFFE5BFEFFFFFFFEFFFFFFFC
 const TE_A_PARAMETER: Fp = Fp::from_raw([
@@ -139,6 +138,45 @@ impl ConstantTimeEq for AffinePoint {
 }
 
 impl PartialEq for AffinePoint {
+    fn eq(&self, other: &Self) -> bool {
+        bool::from(self.ct_eq(other))
+    }
+}
+
+
+#[derive(Clone, Copy, Debug, Eq)]
+pub struct ProjectivePoint {
+    u: Fp,
+    v: Fp,
+    z: Fp,
+    t: Fp,
+}
+
+// pub fn equal(p: ExtendedPoint, q: ExtendedPoint) bool {
+//     if (p.isZero()) {
+//         return q.isZero();
+//     }
+
+//     if (q.isZero()) {
+//         return false;
+//     }
+
+//     return (p.x.mul(q.z).equal(p.z.mul(q.x))) and (p.y.mul(q.z).equal(q.y.mul(p.z)));
+// }
+
+impl ConstantTimeEq for ProjectivePoint {
+    fn ct_eq(&self, other: &Self) -> Choice {
+        // (u/z, v/z) = (u'/z', v'/z') is implied by
+        //      (uz'z = u'z'z) and
+        //      (vz'z = v'z'z)
+        // as z and z' are always nonzero.
+
+        (self.u * other.z).ct_eq(&(other.u * self.z))
+            & (self.v * other.z).ct_eq(&(other.v * self.z))
+    }
+}
+
+impl PartialEq for ProjectivePoint {
     fn eq(&self, other: &Self) -> bool {
         bool::from(self.ct_eq(other))
     }
@@ -772,6 +810,7 @@ impl ExtendedPoint {
 
     /// Computes the doubling of a point more efficiently than a point can
     /// be added to itself.
+    /// TODO: change these to bandersnatch method: 
     pub fn double(&self) -> ExtendedPoint {
         // Doubling is more efficient (three multiplications, four squarings)
         // when we work within the projective coordinate space (U:Z, V:Z). We
@@ -780,6 +819,19 @@ impl ExtendedPoint {
         //
         // See <https://hyperelliptic.org/EFD/g1p/auto-twisted-projective.html#doubling-dbl-2008-bbjlp>
         // for more information.
+        // TODO: change to this formula
+        // A = X1^2
+        // B = Y1^2
+        // C = 2*Z1^2
+        // D = a*A
+        // E = (X1+Y1)^2-A-B
+        // G = D+B
+        // F = G-C
+        // H = D-B
+        // X3 = E*F
+        // Y3 = G*H
+        // T3 = E*H
+        // Z3 = F*G
         //
         // We differ from the literature in that we use (u, v) rather than
         // (x, y) coordinates. We also have the constant `a = -1` implied. Let
@@ -867,4 +919,40 @@ impl ExtendedPoint {
     fn multiply(self, by: &[u8; 32]) -> Self {
         self.to_niels().multiply(by)
     }
+}
+
+impl<'a, 'b> Mul<&'b Fr> for &'a ExtendedPoint {
+    type Output = ExtendedPoint;
+
+    fn mul(self, other: &'b Fr) -> ExtendedPoint {
+        self.multiply(&other.to_bytes())
+    }
+}
+
+impl_binops_multiplicative!(ExtendedPoint, Fr);
+
+#[cfg(test)]
+mod tests {
+    use super::{AffinePoint, TE_BANDERSNATCH_GENERATOR_X, TE_BANDERSNATCH_GENERATOR_Y};
+    use crate::bandersnatch::Fr;
+
+    #[test]
+    fn test_gen() {
+        let generator = AffinePoint{u: TE_BANDERSNATCH_GENERATOR_X, v: TE_BANDERSNATCH_GENERATOR_Y};
+
+        let proj_generator = generator.to_extended();
+
+        let five_g = proj_generator.double();
+
+        println!("2*g is = {:?}", five_g.u);
+        // print!("dsa");
+        // 690994F4D0C0728C
+        // 61DE82DFB8813DE8
+        // 0x662d4556956bb34afb7072392404fb921c2084f205cfff217b4fc9769dc645ed
+        // 690994F4D0C0728C255E4CB8434B1130E551F9D662503FAA61DE82DFB8813DE8
+        // 690994F4D0C0728C255E4CB8434B1130E551F9D662503FAA61DE82DFB8813DE8
+        // 47509778783496412982820807418084268119503941123460587829794679458985081388520
+        // x: BigInt([7052217963893571048, 16524263206966804394, 2692673981500821808, 7568744427968033420])
+    }
+
 }
