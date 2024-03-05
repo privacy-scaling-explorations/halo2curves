@@ -182,6 +182,305 @@ impl PartialEq for ProjectivePoint {
     }
 }
 
+
+#[derive(Clone, Copy, Debug, Eq)]
+pub struct BandersnatchExtendedPoint {
+    u: Fp,
+    v: Fp,
+    z: Fp,
+    t: Fp,
+}
+
+impl fmt::Display for BandersnatchExtendedPoint {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl ConstantTimeEq for BandersnatchExtendedPoint {
+    fn ct_eq(&self, other: &Self) -> Choice {
+        // (u/z, v/z) = (u'/z', v'/z') is implied by
+        //      (uz'z = u'z'z) and
+        //      (vz'z = v'z'z)
+        // as z and z' are always nonzero.
+
+        (self.u * other.z).ct_eq(&(other.u * self.z))
+            & (self.v * other.z).ct_eq(&(other.v * self.z))
+    }
+}
+
+impl ConditionallySelectable for BandersnatchExtendedPoint {
+    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
+        BandersnatchExtendedPoint {
+            u: Fp::conditional_select(&a.u, &b.u, choice),
+            v: Fp::conditional_select(&a.v, &b.v, choice),
+            z: Fp::conditional_select(&a.z, &b.z, choice),
+            t: Fp::conditional_select(&a.t, &b.t, choice)
+        }
+    }
+}
+
+impl PartialEq for BandersnatchExtendedPoint {
+    fn eq(&self, other: &Self) -> bool {
+        bool::from(self.ct_eq(other))
+    }
+}
+
+impl_binops_additive!(BandersnatchExtendedPoint, BandersnatchExtendedPoint);
+
+
+impl<T> Sum<T> for BandersnatchExtendedPoint
+where
+    T: Borrow<BandersnatchExtendedPoint>,
+{
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = T>,
+    {
+        iter.fold(Self::identity(), |acc, item| acc + item.borrow())
+    }
+}
+
+
+impl Neg for BandersnatchExtendedPoint {
+    type Output = BandersnatchExtendedPoint;
+
+    /// Computes the negation of a point `P = (U, V, Z, T)`
+    /// as `-P = (-U, V, Z, -T)`.
+    #[inline]
+    fn neg(self) -> BandersnatchExtendedPoint {
+        BandersnatchExtendedPoint {
+            u: -self.u,
+            v: self.v,
+            z: self.z,
+            t: -self.t,
+        }
+    }
+}
+
+impl BandersnatchExtendedPoint {
+    /// Constructs an extended point from the neutral element `(0, 1)`.
+    pub const fn identity() -> Self {
+        BandersnatchExtendedPoint {
+            u: Fp::zero(),
+            v: Fp::one(),
+            z: Fp::one(),
+            t: Fp::zero()
+        }
+    }
+        /// Determines if this point is the identity.
+        pub fn is_identity(&self) -> Choice {
+            // If this point is the identity, then
+            //     u = 0 * z = 0
+            // and v = 1 * z = z
+            self.u.ct_eq(&Fp::zero()) & self.v.ct_eq(&self.z)
+        }
+    
+        /// Determines if this point is of small order.
+        pub fn is_small_order(&self) -> Choice {
+            // We only need to perform two doublings, since the 2-torsion
+            // points are (0, 1) and (0, -1), and so we only need to check
+            // that the u-coordinate of the result is zero to see if the
+            // point is small order.
+            self.double().double().u.ct_eq(&Fp::zero())
+        }
+    
+        /// Determines if this point is torsion free and so is contained
+        /// in the prime order subgroup.
+        pub fn is_torsion_free(&self) -> Choice {
+            self.multiply(&FR_MODULUS_BYTES).is_identity()
+        }
+    
+        /// Determines if this point is prime order, or in other words that
+        /// the smallest scalar multiplied by this point that produces the
+        /// identity is `r`. This is equivalent to checking that the point
+        /// is both torsion free and not the identity.
+        pub fn is_prime_order(&self) -> Choice {
+            self.is_torsion_free() & (!self.is_identity())
+        }
+    
+        /// Multiplies this element by the cofactor `8`.
+        pub fn mul_by_cofactor(&self) -> BandersnatchExtendedPoint {
+            self.double().double()
+        }
+
+    /// Performs a pre-processing step that produces an `ExtendedNielsPoint`
+    /// for use in multiple additions.
+    // TODO: remove, not needed
+    // pub fn to_niels(&self) -> ExtendedNielsPoint {
+    //     ExtendedNielsPoint {
+    //         v_plus_u: self.v + self.u,
+    //         v_minus_u: self.v - self.u,
+    //         z: self.z,
+    //         t2d: self.t1 * self.t2 * TE_D_2_PARAMETER,
+    //     }
+    // }
+
+    /// Computes the doubling of a point more efficiently than a point can
+    /// be added to itself.
+    /// TODO: change these to bandersnatch method: 
+    pub fn double(&self) -> BandersnatchExtendedPoint {
+        // Doubling is more efficient (three multiplications, four squarings)
+        // when we work within the projective coordinate space (U:Z, V:Z). We
+        // rely on the most efficient formula, "dbl-2008-bbjlp", as described
+        // in Section 6 of "Twisted Edwards Curves" by Bernstein et al.
+        //
+        // See <https://hyperelliptic.org/EFD/g1p/auto-twisted-projective.html#doubling-dbl-2008-bbjlp>
+        // for more information.
+        //
+        // We differ from the literature in that we use (u, v) rather than
+        // (x, y) coordinates. We also have the constant `a = -1` implied. Let
+        // us rewrite the procedure of doubling (u, v, z) to produce (U, V, Z)
+        // as follows:
+        //
+        // B = (u + v)^2
+        // C = u^2
+        // D = v^2
+        // F = D - C
+        // H = 2 * z^2
+        // J = F - H
+        // U = (B - C - D) * J
+        // V = F * (- C - D)
+        // Z = F * J
+        //
+        // If we compute K = D + C, we can rewrite this:
+        //
+        // B = (u + v)^2
+        // C = u^2
+        // D = v^2
+        // F = D - C
+        // K = D + C
+        // H = 2 * z^2
+        // J = F - H
+        // U = (B - K) * J
+        // V = F * (-K)
+        // Z = F * J
+        //
+        // In order to avoid the unnecessary negation of K,
+        // we will negate J, transforming the result into
+        // an equivalent point with a negated z-coordinate.
+        //
+        // B = (u + v)^2
+        // C = u^2
+        // D = v^2
+        // F = D - C
+        // K = D + C
+        // H = 2 * z^2
+        // J = H - F
+        // U = (B - K) * J
+        // V = F * K
+        // Z = F * J
+        //
+        // Let us rename some variables to simplify:
+        //
+        // UV2 = (u + v)^2
+        // UU = u^2
+        // VV = v^2
+        // VVmUU = VV - UU
+        // VVpUU = VV + UU
+        // ZZ2 = 2 * z^2
+        // J = ZZ2 - VVmUU
+        // U = (UV2 - VVpUU) * J
+        // V = VVmUU * VVpUU
+        // Z = VVmUU * J
+        //
+        // We wish to obtain two factors of T = UV/Z.
+        //
+        // UV/Z = (UV2 - VVpUU) * (ZZ2 - VVmUU) * VVmUU * VVpUU / VVmUU / (ZZ2 - VVmUU)
+        //      = (UV2 - VVpUU) * VVmUU * VVpUU / VVmUU
+        //      = (UV2 - VVpUU) * VVpUU
+        //
+        // and so we have that T1 = (UV2 - VVpUU) and T2 = VVpUU.
+
+        // let uu = self.u.square();
+        // let vv = self.v.square();
+        // let zz2 = self.z.square().double();
+        // let uv2 = (self.u + self.v).square();
+        // let vv_plus_uu = vv + uu;
+        // let vv_minus_uu = vv - uu;
+
+        // The remaining arithmetic is exactly the process of converting
+        // from a completed point to an extended point.
+        // CompletedPoint {
+        //     u: uv2 - vv_plus_uu,
+        //     v: vv_plus_uu,
+        //     z: vv_minus_uu,
+        //     t: zz2 - vv_minus_uu,
+        // }
+        // .into_extended();
+
+
+        // TODO: change to this formula
+        // A = X1^2
+        // B = Y1^2
+        // C = 2*Z1^2
+        // D = a*A
+        // E = (X1+Y1)^2-A-B
+        // G = D+B
+        // F = G-C
+        // H = D-B
+        // X3 = E*F
+        // Y3 = G*H
+        // T3 = E*H
+        // Z3 = F*G
+
+
+        let a = self.u.square();
+        let b = self.v.square();
+        let c = self.z.square().double();
+        let d = TE_A_PARAMETER * a;
+        let e = (self.u + self.v).square() - a - b;
+        let g = d + b;
+        let f = g - c;
+        let h = d - b;
+
+        BandersnatchExtendedPoint {
+            u: e * f,
+            v: g * h,
+            z: e * h,
+            t: f * g,
+        }
+    }
+
+    // TODO: investigate what to do
+    #[inline]
+    fn multiply(&self, by: &[u8; 32]) -> BandersnatchExtendedPoint {
+        let zero = BandersnatchExtendedPoint::identity();
+
+        let mut acc = BandersnatchExtendedPoint::identity();
+
+        // This is a simple double-and-add implementation of point
+        // multiplication, moving from most significant to least
+        // significant bit of the scalar.
+        //
+        // We skip the leading four bits because they're always
+        // unset for Fr.
+        for bit in by
+            .iter()
+            .rev()
+            .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))
+            .skip(4)
+        {
+            acc = acc.double();
+            acc += BandersnatchExtendedPoint::conditional_select(&zero, self, bit);
+        }
+
+        acc
+    }
+}
+
+impl<'a, 'b> Mul<&'b Fr> for &'a BandersnatchExtendedPoint {
+    type Output = BandersnatchExtendedPoint;
+
+    fn mul(self, other: &'b Fr) -> BandersnatchExtendedPoint {
+        self.multiply(&other.to_bytes())
+    }
+}
+
+impl_binops_multiplicative!(BandersnatchExtendedPoint, Fr);
+
+
+
 /// This represents an extended point `(U, V, Z, T1, T2)`
 /// with `Z` nonzero, corresponding to the affine point
 /// `(U/Z, V/Z)`. We always have `T1 * T2 = UV/Z`.
@@ -711,13 +1010,12 @@ impl AffinePoint {
     }
 
     /// Returns an `ExtendedPoint` for use in arithmetic operations.
-    pub const fn to_extended(&self) -> ExtendedPoint {
-        ExtendedPoint {
+    pub fn to_extended(&self) -> BandersnatchExtendedPoint {
+        BandersnatchExtendedPoint {
             u: self.u,
             v: self.v,
             z: Fp::one(),
-            t1: self.u,
-            t2: self.v,
+            t: self.u * self.v,
         }
     }
 
@@ -933,26 +1231,23 @@ impl_binops_multiplicative!(ExtendedPoint, Fr);
 
 #[cfg(test)]
 mod tests {
+    use ff::PrimeField;
+
     use super::{AffinePoint, TE_BANDERSNATCH_GENERATOR_X, TE_BANDERSNATCH_GENERATOR_Y};
     use crate::bandersnatch::Fr;
+    use crate::bls12_381::Scalar;
 
     #[test]
-    fn test_gen() {
+    fn test_double() {
         let generator = AffinePoint{u: TE_BANDERSNATCH_GENERATOR_X, v: TE_BANDERSNATCH_GENERATOR_Y};
 
         let proj_generator = generator.to_extended();
 
-        let five_g = proj_generator.double();
+        let double_g = proj_generator.double();
 
-        println!("2*g is = {:?}", five_g.u);
-        // print!("dsa");
-        // 690994F4D0C0728C
-        // 61DE82DFB8813DE8
-        // 0x662d4556956bb34afb7072392404fb921c2084f205cfff217b4fc9769dc645ed
-        // 690994F4D0C0728C255E4CB8434B1130E551F9D662503FAA61DE82DFB8813DE8
-        // 690994F4D0C0728C255E4CB8434B1130E551F9D662503FAA61DE82DFB8813DE8
-        // 47509778783496412982820807418084268119503941123460587829794679458985081388520
-        // x: BigInt([7052217963893571048, 16524263206966804394, 2692673981500821808, 7568744427968033420])
+        println!("2*g is = {:?}", double_g.u);
+
+        assert_eq!(double_g.u, Scalar::from_str_vartime("47509778783496412982820807418084268119503941123460587829794679458985081388520").unwrap());
     }
 
 }
