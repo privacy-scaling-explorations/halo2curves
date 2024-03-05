@@ -710,5 +710,11 @@ mod tests {
         let minus = double_g - proj_generator;
 
         assert!(proj_generator.eq(&minus));
+
+        let quadruple_g = proj_generator.double().double();
+
+        let scalar_mul_4 = proj_generator * Fr::from(4);
+
+        assert!(quadruple_g.eq(&scalar_mul_4));
     }
 }
