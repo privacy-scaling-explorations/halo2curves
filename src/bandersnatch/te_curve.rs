@@ -87,7 +87,6 @@ const TE_D_PARAMETER: Fp = Fp::from_raw([
     0x6389C12633C267CB,
 ]);
 
-
 // TODO: change to bandersnatch if it's not correct, but should be
 const FR_MODULUS_BYTES: [u8; 32] = [
     183, 44, 247, 214, 94, 14, 151, 208, 130, 16, 200, 204, 147, 32, 104, 166, 0, 59, 52, 1, 1, 59,
@@ -310,6 +309,9 @@ impl ExtendedPoint {
     }
 }
 
+impl_binops_multiplicative!(ExtendedPoint, Fr);
+impl_binops_additive!(ExtendedPoint, ExtendedPoint);
+
 impl<'a, 'b> Mul<&'b Fr> for &'a ExtendedPoint {
     type Output = ExtendedPoint;
 
@@ -317,9 +319,6 @@ impl<'a, 'b> Mul<&'b Fr> for &'a ExtendedPoint {
         self.multiply(&other.to_bytes())
     }
 }
-
-impl_binops_multiplicative!(ExtendedPoint, Fr);
-impl_binops_additive!(ExtendedPoint, ExtendedPoint);
 
 impl<'a, 'b> Add<&'b ExtendedPoint> for &'a ExtendedPoint {
     type Output = ExtendedPoint;
@@ -362,14 +361,34 @@ impl<'a, 'b> Add<&'b ExtendedPoint> for &'a ExtendedPoint {
     }
 }
 
-impl<'a, 'b> Sub<&'b ExtendedPoint> for &'a ExtendedPoint {
+impl<'a, 'b> Sub<&'a ExtendedPoint> for &'b ExtendedPoint {
     type Output = ExtendedPoint;
 
     #[allow(clippy::suspicious_arithmetic_impl)]
-    fn sub(self, other: &'b ExtendedPoint) -> ExtendedPoint {
-        self - other
+    fn sub(self, other: &'a ExtendedPoint) -> ExtendedPoint {
+        self + (-other)
     }
 }
+impl<'a> Neg for &'a ExtendedPoint {
+    type Output = ExtendedPoint;
+
+    fn neg(self) -> ExtendedPoint {
+        ExtendedPoint {
+            u: -self.u,
+            v: self.v,
+            z: self.z,
+            t: -self.t,
+        }
+    }
+}
+
+// impl<'a, 'b> Sub<&'a $name> for &'b $name {
+//     type Output = $name;
+
+//     fn sub(self, other: &'a $name) -> $name {
+//         self + (-other)
+//     }
+// }
 
 impl From<AffinePoint> for ExtendedPoint {
     /// Constructs an extended point (with `Z = 1`) from
@@ -687,5 +706,9 @@ mod tests {
 
         assert!(double_g.eq(&double_g_double));
         assert!(double_g.eq(&scalar_mul));
+
+        let minus = double_g - proj_generator;
+
+        assert!(proj_generator.eq(&minus));
     }
 }
