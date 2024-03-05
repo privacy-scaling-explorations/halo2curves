@@ -39,6 +39,13 @@ use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
+use crate::{
+    impl_add_binop_specify_output_te, impl_binops_additive_te, impl_binops_additive_specify_output_te,
+    impl_binops_multiplicative_te, impl_binops_multiplicative_mixed_te, impl_sub_binop_specify_output_te,
+    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
+    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
+    new_curve_impl,
+};
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
 
@@ -54,8 +61,6 @@ use serde::{Deserialize, Serialize};
 // Reference: https://eprint.iacr.org/2021/1152.pdf
 // TE x: 29c132cc2c0b34c5743711777bbe42f32b79c022ad998465e1e71866a252ae18
 
-#[macro_use]
-mod util;
 
 const TE_BANDERSNATCH_GENERATOR_X: Fp = Fp::from_raw([
     0xe1e71866a252ae18,
@@ -203,6 +208,7 @@ impl ConstantTimeEq for BandersnatchExtendedPoint {
         //      (uz'z = u'z'z) and
         //      (vz'z = v'z'z)
         // as z and z' are always nonzero.
+        // x1/z1 == x2/z2  <==> x1 * z2 == x2 * z1
 
         (self.u * other.z).ct_eq(&(other.u * self.z))
             & (self.v * other.z).ct_eq(&(other.v * self.z))
@@ -437,8 +443,8 @@ impl BandersnatchExtendedPoint {
         BandersnatchExtendedPoint {
             u: e * f,
             v: g * h,
-            z: e * h,
-            t: f * g,
+            z: f * g,
+            t: e * h,
         }
     }
 
@@ -458,8 +464,8 @@ impl BandersnatchExtendedPoint {
         for bit in by
             .iter()
             .rev()
-            .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))
-            .skip(4)
+            .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8))).skip(3)
+            
         {
             acc = acc.double();
             acc += BandersnatchExtendedPoint::conditional_select(&zero, self, bit);
@@ -479,6 +485,78 @@ impl<'a, 'b> Mul<&'b Fr> for &'a BandersnatchExtendedPoint {
 
 impl_binops_multiplicative!(BandersnatchExtendedPoint, Fr);
 
+impl<'a, 'b> Add<&'b BandersnatchExtendedPoint> for &'a BandersnatchExtendedPoint {
+    type Output = BandersnatchExtendedPoint;
+
+    #[allow(clippy::suspicious_arithmetic_impl)]
+    fn add(self, other: &'b BandersnatchExtendedPoint) -> BandersnatchExtendedPoint {
+        // We perform addition in the extended coordinates. Here we use
+        // a formula presented by Hisil, Wong, Carter and Dawson in
+        // "Twisted Edward Curves Revisited" which only requires 8M.
+        //
+        // A = (V1 - U1) * (V2 - U2)
+        // B = (V1 + U1) * (V2 + U2)
+        // C = 2d * T1 * T2
+        // D = 2 * Z1 * Z2
+        // E = B - A
+        // F = D - C
+        // G = D + C
+        // H = B + A
+        // U3 = E * F
+        // Y3 = G * H
+        // Z3 = F * G
+        // T3 = E * H
+
+
+        // TODO:
+        // A = X1*X2
+        // B = Y1*Y2
+        // C = T1*d*T2
+        // D = Z1*Z2
+        // E = (X1+Y1)*(X2+Y2)-A-B  // ((X1+Y1)*(X2+Y2)-A-B) * ((Z1*Z2) - (T1*d*T2))
+        // F = D-C                  // ((X1+Y1)^2-X1^2-Y1^2) * (((a*A) + Y1^2) - 2*Z1^2)
+        // G = D+C
+        // H = B-a*A
+        // X3 = E*F
+        // Y3 = G*H
+        // T3 = E*H
+        // Z3 = F*G
+
+        let a = self.u * other.u;
+        let b = self.v * other.v;
+        let c = self.t * TE_D_PARAMETER * other.t;
+        let d = self.z * other.z;
+        let e = (self.u + self.v)*(other.u+other.v) - a - b;
+        let f = d - c;
+        let g = d + c;
+        let h = b - TE_A_PARAMETER*a;
+
+        let u_r = e*f;
+
+        let res = BandersnatchExtendedPoint {
+            u: e * f,
+            v: g * h,
+            z: f * g,
+            t: e * h,
+        };
+
+        res
+        // res.0.0 17016332093273884661
+
+        
+    }
+}
+
+impl<'a, 'b> Sub<&'b BandersnatchExtendedPoint> for &'a BandersnatchExtendedPoint {
+    type Output = BandersnatchExtendedPoint;
+
+    #[allow(clippy::suspicious_arithmetic_impl)]
+    fn sub(self, other: &'b BandersnatchExtendedPoint) -> BandersnatchExtendedPoint {
+        self - other
+    }
+}
+
+// impl_binops_multiplicative_mixed!(BandersnatchExtendedPoint, Fr, BandersnatchExtendedPoint);
 
 
 /// This represents an extended point `(U, V, Z, T1, T2)`
@@ -538,20 +616,20 @@ impl PartialEq for ExtendedPoint {
     }
 }
 
-impl_binops_additive!(ExtendedPoint, ExtendedPoint);
+// impl_binops_additive!(ExtendedPoint, ExtendedPoint);
 
 
-impl<T> Sum<T> for ExtendedPoint
-where
-    T: Borrow<ExtendedPoint>,
-{
-    fn sum<I>(iter: I) -> Self
-    where
-        I: Iterator<Item = T>,
-    {
-        iter.fold(Self::identity(), |acc, item| acc + item.borrow())
-    }
-}
+// impl<T> Sum<T> for ExtendedPoint
+// where
+//     T: Borrow<ExtendedPoint>,
+// {
+//     fn sum<I>(iter: I) -> Self
+//     where
+//         I: Iterator<Item = T>,
+//     {
+//         iter.fold(Self::identity(), |acc, item| acc + item.borrow())
+//     }
+// }
 
 
 impl Neg for ExtendedPoint {
@@ -1092,7 +1170,7 @@ impl ExtendedPoint {
     
         /// Multiplies this element by the cofactor `8`.
         pub fn mul_by_cofactor(&self) -> ExtendedPoint {
-            self.double().double().double()
+            self.double().double()
         }
 
     /// Performs a pre-processing step that produces an `ExtendedNielsPoint`
@@ -1234,8 +1312,8 @@ mod tests {
     use ff::PrimeField;
 
     use super::{AffinePoint, TE_BANDERSNATCH_GENERATOR_X, TE_BANDERSNATCH_GENERATOR_Y};
-    use crate::bandersnatch::Fr;
     use crate::bls12_381::Scalar;
+    use crate::bandersnatch::Fr;
 
     #[test]
     fn test_double() {
@@ -1245,9 +1323,46 @@ mod tests {
 
         let double_g = proj_generator.double();
 
-        println!("2*g is = {:?}", double_g.u);
-
+        // Value is taken from arworks implementation of bandersnatch.
         assert_eq!(double_g.u, Scalar::from_str_vartime("47509778783496412982820807418084268119503941123460587829794679458985081388520").unwrap());
+    }
+
+    #[test]
+    fn test_scalar_mul() {
+        let generator = AffinePoint{u: TE_BANDERSNATCH_GENERATOR_X, v: TE_BANDERSNATCH_GENERATOR_Y};
+
+        let proj_generator = generator.to_extended();
+
+        let double_g = proj_generator + proj_generator;
+
+        let double_g_double = proj_generator.double();
+
+        let scalar_mul = proj_generator * Fr::from(2);
+
+
+
+        assert!(double_g.eq(&double_g_double));
+
+        assert!(double_g.eq(&scalar_mul));
+
+        println!("2g je: {:?}", double_g.u);
+
+        println!("drugi 2g je: {:?}", double_g_double.u);
+
+        println!("treci 2g je: {:?}", scalar_mul.u);
+
+
+        // assert_eq!(five_g.u, Scalar::from_str_vartime("14944993281672414721705037953373557123500285334104593838299867149851712156131").unwrap());
+        // AE4125E58DD0ABC0DDB8B4FC656C6D46E6BAA2C9DAE1C549E217D1F477EC219
+        // 0x0ae4125e58dd0abc0ddb8b4fc656c6d46e6baa2c9dae1c549e217d1f477ec219
+
+        // 4698646619146169813 = 0x4134f234a34c2dd5
+        // 4698646619146169813
+        // {4698646619146169813, 5162164529777628827, 1698630974069236655, 3443592081911959640}
+
+        // 47509778783496412982820807418084268119503941123460587829794679458985081388520
+        //47509778783496412982820807418084268119503941123460587829794679458985081388520
+        //14944993281672414721705037953373557123500285334104593838299867149851712156131
     }
 
 }
