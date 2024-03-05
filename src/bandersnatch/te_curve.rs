@@ -40,11 +40,8 @@ use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::{
-    impl_add_binop_specify_output_te, impl_binops_additive_te, impl_binops_additive_specify_output_te,
-    impl_binops_multiplicative_te, impl_binops_multiplicative_mixed_te, impl_sub_binop_specify_output_te,
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
-    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
-    new_curve_impl,
+    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output
 };
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
@@ -782,8 +779,8 @@ impl ConditionallySelectable for AffineNielsPoint {
     }
 }
 
-impl_binops_multiplicative_mixed!(AffineNielsPoint, Fr, ExtendedPoint);
-impl_binops_additive!(ExtendedPoint, AffineNielsPoint);
+// impl_binops_multiplicative_mixed!(AffineNielsPoint, Fr, ExtendedPoint);
+// impl_binops_additive!(ExtendedPoint, AffineNielsPoint);
 
 /// This is a pre-processed version of an extended point `(U, V, Z, T1, T2)`
 /// in the form `(V + U, V - U, Z, T1 * T2 * 2d)`.
@@ -857,9 +854,9 @@ impl<'a, 'b> Mul<&'b Fr> for &'a ExtendedNielsPoint {
     }
 }
 
-impl_binops_multiplicative_mixed!(ExtendedNielsPoint, Fr, ExtendedPoint);
+// impl_binops_multiplicative_mixed!(ExtendedNielsPoint, Fr, ExtendedPoint);
 
-impl_binops_additive!(ExtendedPoint, ExtendedNielsPoint);
+// impl_binops_additive!(ExtendedPoint, ExtendedNielsPoint);
 
 
 impl AffinePoint {
@@ -1328,7 +1325,7 @@ mod tests {
     }
 
     #[test]
-    fn test_scalar_mul() {
+    fn test_equality_scalar_mul_double_addition() {
         let generator = AffinePoint{u: TE_BANDERSNATCH_GENERATOR_X, v: TE_BANDERSNATCH_GENERATOR_Y};
 
         let proj_generator = generator.to_extended();
@@ -1340,29 +1337,8 @@ mod tests {
         let scalar_mul = proj_generator * Fr::from(2);
 
 
-
         assert!(double_g.eq(&double_g_double));
-
         assert!(double_g.eq(&scalar_mul));
-
-        println!("2g je: {:?}", double_g.u);
-
-        println!("drugi 2g je: {:?}", double_g_double.u);
-
-        println!("treci 2g je: {:?}", scalar_mul.u);
-
-
-        // assert_eq!(five_g.u, Scalar::from_str_vartime("14944993281672414721705037953373557123500285334104593838299867149851712156131").unwrap());
-        // AE4125E58DD0ABC0DDB8B4FC656C6D46E6BAA2C9DAE1C549E217D1F477EC219
-        // 0x0ae4125e58dd0abc0ddb8b4fc656c6d46e6baa2c9dae1c549e217d1f477ec219
-
-        // 4698646619146169813 = 0x4134f234a34c2dd5
-        // 4698646619146169813
-        // {4698646619146169813, 5162164529777628827, 1698630974069236655, 3443592081911959640}
-
-        // 47509778783496412982820807418084268119503941123460587829794679458985081388520
-        //47509778783496412982820807418084268119503941123460587829794679458985081388520
-        //14944993281672414721705037953373557123500285334104593838299867149851712156131
     }
 
 }
