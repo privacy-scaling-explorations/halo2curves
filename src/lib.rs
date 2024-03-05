@@ -5,6 +5,7 @@ pub mod hash_to_curve;
 pub mod msm;
 pub mod serde;
 
+pub mod bandersnatch;
 pub mod bls12_381;
 pub mod bn256;
 pub mod grumpkin;
@@ -13,7 +14,6 @@ pub mod pluto_eris;
 pub mod secp256k1;
 pub mod secp256r1;
 pub mod secq256k1;
-pub mod bandersnatch;
 
 #[macro_use]
 mod derive;

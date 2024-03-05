@@ -1,9 +1,9 @@
+use crate::bandersnatch::Fp;
+use crate::bandersnatch::Fr;
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
 use crate::hash_to_curve::sswu_hash_to_curve;
-use crate::bandersnatch::Fp;
-use crate::bandersnatch::Fr;
 use crate::{Coordinates, CurveAffine, CurveExt};
 use core::cmp;
 use core::fmt::Debug;
@@ -102,8 +102,8 @@ impl Bandersnatch {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bandersnatch::{Bandersnatch, Fp, Fr};
     use crate::group::Curve;
-    use crate::bandersnatch::{Fp, Fr, Bandersnatch};
     use ff::FromUniformBytes;
     use rand_core::OsRng;
 
