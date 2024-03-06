@@ -140,12 +140,12 @@ macro_rules! new_curve_impl {
                 #[allow(non_upper_case_globals)]
                 const [< $name _FLAG_BITS >]: u8 =
                 if $spare_bits == 1 {
-                    0b0111_1111
+                    0b1000_0000
                 } else if $spare_bits == 2 {
-                    0b0011_1111
+                    0b1100_0000
                 } else {
                     //$spare_bits == 0
-                    0b0000_0000
+                    0b1111_1111
                 };
 
                 impl group::GroupEncoding for $name_affine {
@@ -175,7 +175,7 @@ macro_rules! new_curve_impl {
                         };
 
                         // Clear flag bits
-                        tmp[[< $name _FLAG_BYTE_INDEX>]] &= [< $name _FLAG_BITS >];
+                        tmp[[< $name _FLAG_BYTE_INDEX>]] &= ![< $name _FLAG_BITS >];
 
                         // Get x-coordinate
                         let mut xbytes = [0u8; $base::size()];
@@ -329,7 +329,7 @@ macro_rules! new_curve_impl {
                                 let identity_flag = Choice::from( ( ( bytes[ flag_idx ] & IS_IDENTITY_MASK) >> IS_IDENTITY_SHIFT) );
 
                                 // Clear flags.
-                                bytes[flag_idx] &= [< $name _FLAG_BITS >];
+                                bytes[flag_idx] &= ![< $name _FLAG_BITS >];
                                 identity_flag
                             } else {
                                 // With 0 and 1 spare bit there is no identity flag, so we just rely
