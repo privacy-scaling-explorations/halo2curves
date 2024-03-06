@@ -53,8 +53,8 @@ macro_rules! endo {
 pub(crate) const SIGN_MASK: u8 = 0b1000_0000;
 pub(crate) const SIGN_SHIFT: u8 = 7;
 // Identity mask for 0 and 2 spare bits (1 spare bit does not use it).
-pub(crate) const IS_IDENTITY_MASK: u8 = 0b0100_0000;
-pub(crate) const IS_IDENTITY_SHIFT: u8 = 6;
+pub(crate) const IDENTITY_MASK: u8 = 0b0100_0000;
+pub(crate) const IDENTITY_SHIFT: u8 = 6;
 
 #[macro_export]
 macro_rules! new_curve_impl {
@@ -158,7 +158,7 @@ macro_rules! new_curve_impl {
                         let flag_byte = tmp[[< $name _FLAG_BYTE_INDEX>]];
                         // Get identity and sign flags.
                         let identity_flag = if $spare_bits == 0  || $spare_bits == 2 {
-                            Choice::from((flag_byte & IS_IDENTITY_MASK) >> IS_IDENTITY_SHIFT )
+                            Choice::from((flag_byte & IDENTITY_MASK) >> IDENTITY_SHIFT )
                         } else {
                             Choice::from(0u8)
                         };
@@ -236,21 +236,17 @@ macro_rules! new_curve_impl {
                     }
 
                     fn to_bytes(&self) -> Self::Repr {
-                        if bool::from(self.is_identity()) {
-                            let mut bytes = [0; [< $name _COMPRESSED_SIZE >]];
-                            if $spare_bits == 0 || $spare_bits == 2 {
-                                bytes[[< $name _FLAG_BYTE_INDEX>]] |= IS_IDENTITY_MASK;
-                            }
-                            [< $name Compressed >](bytes)
-                        } else {
-                            let (x, y) = (self.x, self.y);
-                            let mut xbytes = [0u8; [< $name _COMPRESSED_SIZE >]];
-                            xbytes[..$base::size()].copy_from_slice(&x.to_bytes());
-                            if (y.to_bytes()[0] & 1) == 1 {
-                                xbytes[[< $name _FLAG_BYTE_INDEX>]] |= SIGN_MASK;
-                            }
-                            [< $name Compressed >](xbytes)
-                        }
+                        let mut res = [0; [< $name _COMPRESSED_SIZE >]];
+
+                        let x_bytes = $base::conditional_select(&self.x, &$base::zero(), self.is_identity()).to_bytes();
+                        res[..$base::size()].copy_from_slice(&x_bytes);
+
+                        // Set identity flag if necessary.
+                        res[ [< $name _FLAG_BYTE_INDEX>]] |= u8::conditional_select(&0u8, &IDENTITY_MASK, self.is_identity());
+
+                        // Set sign flag if point is not identity, and has negative sign.
+                        res[ [< $name _FLAG_BYTE_INDEX>]] |= u8::conditional_select(&0u8, &SIGN_MASK, !self.is_identity() & Choice::from(self.y.to_bytes()[0] & 1));
+                        [< $name Compressed >](res)
                     }
                 }
 
@@ -326,7 +322,7 @@ macro_rules! new_curve_impl {
 
                             // Get identity flag.
                             let identity_flag= if $spare_bits == 2 {
-                                let identity_flag = Choice::from( ( ( bytes[ flag_idx ] & IS_IDENTITY_MASK) >> IS_IDENTITY_SHIFT) );
+                                let identity_flag = Choice::from( ( ( bytes[ flag_idx ] & IDENTITY_MASK) >> IDENTITY_SHIFT) );
 
                                 // Clear flags.
                                 bytes[flag_idx] &= ![< $name _FLAG_BITS >];
@@ -391,7 +387,7 @@ macro_rules! new_curve_impl {
                                 &$base::conditional_select(&self.y, &$base::zero(), self.is_identity()).to_bytes()[..],
                             );
                             if  $spare_bits == 2  {
-                                res[ 2*$base::size() -1 ] |= u8::conditional_select(&0u8, &IS_IDENTITY_MASK, self.is_identity());
+                                res[ 2*$base::size() -1 ] |= u8::conditional_select(&0u8, &IDENTITY_MASK, self.is_identity());
                             }
 
                             [< $name Uncompressed >](res)

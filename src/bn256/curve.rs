@@ -5,7 +5,7 @@ use crate::arithmetic::EndoParameters;
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
-use crate::derive::curve::{IS_IDENTITY_MASK, IS_IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
+use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::endo;
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
