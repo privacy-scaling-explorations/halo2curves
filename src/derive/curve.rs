@@ -73,10 +73,10 @@ macro_rules! new_curve_impl {
 
         // **Compressed formats**:
         // In these tables, the MSB is in the left side.
-        // The encoding is LE (inhereted from the field encoding), so the MSB is the last byte
+        // The encoding is LE (inherited from the field encoding), so the MSB is the last byte
         // of the array.
-        // According to the number of spare bits.
         //
+        // According to the number of spare bits.
         // 1 Spare bit:
         //
         //     |                  | sign      | x-coordinate |
@@ -288,9 +288,10 @@ macro_rules! new_curve_impl {
 
         // **Uncompressed format**
         // In these tables, the MSB is in the left side.
-        // The encoding is LE (inhereted from the field encoding), so the MSB is the last byte
+        // The encoding is LE (inherited from the field encoding), so the MSB is the last byte
         // of the array. The x-coordinate appears last on the table, first on the array.
         //
+        // According to the number of spare bits:
         // 1 Spare bit:
         //     The sign flag bit is unused.
         //
