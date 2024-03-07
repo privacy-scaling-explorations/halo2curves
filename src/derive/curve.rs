@@ -70,6 +70,36 @@ macro_rules! new_curve_impl {
     $hash_to_curve:expr,
     ) => {
 
+
+        // **Compressed formats**:
+        // In these tables, the MSB is in the left side.
+        // The encoding is LE (inhereted from the field encoding), so the MSB is the last byte
+        // of the array.
+        // According to the number of spare bits.
+        //
+        // 1 Spare bit:
+        //
+        //     |                  | sign      | x-coordinate |
+        //     | ---------------- | --------  | ------------ |
+        //     | Identity         | 0         | 0            |
+        //     | Non-identity $P$ | $sgn0(P)$ | $P.x$        |
+        //
+        // ---
+        // 2 Spare bits:
+        //     |                  | sign      | ident    | x-coordinate |
+        //     | ---------------- | --------  | -------- | --------     |
+        //     | Identity         | 0         | 1        | 0            |
+        //     | Non-identity $P$ | $sgn0(P)$ | 0        | $P.x$        |
+        //
+        // ---
+        // 0 Spare bits:
+        //     Add an extra byte in the compressed format to hold the flags. Then follow the 2 spare bit flag format.
+        //
+        //     |                  | sign      | ident    | 000000 | x-coordinate |
+        //     | ---------------- | --------- | -------- | ------ | ------------ |
+        //     | Identity         | 0         | 1        | 000000 | 0            |
+        //     | Non-identity $P$ | $sgn0(P)$ | 0        | 000000 | $P.x$        |
+        //
         macro_rules! impl_compressed {
             ($spare_bits: expr) => {
                 paste::paste! {
@@ -254,6 +284,39 @@ macro_rules! new_curve_impl {
                 }
             };
         }
+
+
+        // **Uncompressed format**
+        // In these tables, the MSB is in the left side.
+        // The encoding is LE (inhereted from the field encoding), so the MSB is the last byte
+        // of the array. The x-coordinate appears last on the table, first on the array.
+        //
+        // 1 Spare bit:
+        //     The sign flag bit is unused.
+        //
+        //     |                  | 0 | y-coordinate | 0 | x-coordinate |
+        //     | ---------------- | - | ------------ | - | ------------ |
+        //     | Identity         | 0 | 0            | 0 | 0            |
+        //     | Non-identity $P$ | 0 | $P.y$        | 0 | $P.x$        |
+        //
+        // ----
+        // 2 Spare bits:
+        //     The sign flag bit is unused. The identity bit is still used.
+        //
+        //     |                  | 0 | ident | y-coordinate | 0 | 0 | x-coordinate |
+        //     | ---------------- | - | ----- | ------------ | - | - | ------------ |
+        //     | Identity         | 0 | 1     | 0            | 0 | 0 | 0            |
+        //     | Non-identity $P$ | 0 | 0     | $P.y$        | 0 | 0 | $P.x$        |
+        //
+        // ----
+        // 0 Spare bits:
+        //     There are no flag bits.
+        //
+        //     |                  | y-coordinate | x-coordinate |
+        //     | ---------------- | ------------ | ------------ |
+        //     | Identity         | 0            | 0            |
+        //     | Non-identity $P$ | $P.y$        | $P.x$        |
+        //
 
         macro_rules! impl_uncompressed {
             ($spare_bits: expr) => {
