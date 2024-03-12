@@ -72,14 +72,19 @@ macro_rules! new_curve_impl {
 
 
         // **Compressed formats**:
-        // In these tables, the MSB is in the left side.
-        // The encoding is LE (inherited from the field encoding), so the MSB is the last byte
-        // of the array.
+        // The encoding of the x-coordinate can be Little Endian or Big Endian (inherited from the
+        // field encoding).
+        // The bit flags appear in the MSB of the encoded x-coordinate in the 1 and 2 Spare bits
+        // case, and in an extra byte after the encoded x-coordinate in the 0 Spare bits case.
+        // `BS` is the base size: the number of bytes required to encode a coordinate.
         //
         // According to the number of spare bits.
         // 1 Spare bit:
         //
         //     |                  | sign      | x-coordinate |
+        //     | Byte pos. (LE)   | BS-1          ..       0 |
+        //     | Byte pos. (BE)   | 0          ..       BS-1 |
+        //     | Bit pos.         | 7         |              |
         //     | ---------------- | --------  | ------------ |
         //     | Identity         | 0         | 0            |
         //     | Non-identity $P$ | $sgn0(P)$ | $P.x$        |
@@ -87,15 +92,22 @@ macro_rules! new_curve_impl {
         // ---
         // 2 Spare bits:
         //     |                  | sign      | ident    | x-coordinate |
+        //     | Byte pos. (LE)   | BS-1                     ..       0 |
+        //     | Byte pos. (BE)   | 0                     ..       BS-1 |
+        //     | Bit pos.         | 7         | 6        |              |
         //     | ---------------- | --------  | -------- | --------     |
         //     | Identity         | 0         | 1        | 0            |
         //     | Non-identity $P$ | $sgn0(P)$ | 0        | $P.x$        |
         //
         // ---
         // 0 Spare bits:
-        //     Add an extra byte in the compressed format to hold the flags. Then follow the 2 spare bit flag format.
+        //     Add an extra byte after the compressed x-coordinate to hold the flags. Then follow
+        //     the 2 spare bit flag format.
         //
         //     |                  | sign      | ident    | 000000 | x-coordinate |
+        //     | Byte pos. (LE)   | BS                            | BS-1  ..   0 |
+        //     | Byte pos. (BE)   | BS                            | 0  ..   BS-1 |
+        //     | Bit pos.         | 7         | 6        | 5..0   |              |
         //     | ---------------- | --------- | -------- | ------ | ------------ |
         //     | Identity         | 0         | 1        | 000000 | 0            |
         //     | Non-identity $P$ | $sgn0(P)$ | 0        | 000000 | $P.x$        |
@@ -287,15 +299,21 @@ macro_rules! new_curve_impl {
 
 
         // **Uncompressed format**
-        // In these tables, the MSB is in the left side.
-        // The encoding is LE (inherited from the field encoding), so the MSB is the last byte
-        // of the array. The x-coordinate appears last on the table, first on the array.
+        // The encoding of the x-coordinate and y-coordinate can be Little Endian or Big Endian
+        // (inherited from the field encoding).
+        // The x-coordinate appears last on the table, first on the array.
+        // The identity bit flag appears in the MSB of the encoded y-coordinate in the 2 Spare bits
+        // case.
+        // `BS` is the base size: the number of bytes required to encode a coordinate.
         //
         // According to the number of spare bits:
         // 1 Spare bit:
         //     The sign flag bit is unused.
         //
         //     |                  | 0 | y-coordinate | 0 | x-coordinate |
+        //     | Byte pos. (LE)   | 2*BS-1   ..   BS | BS-1   ..      0 |
+        //     | Byte pos. (BE)   | BS   ..   2*BS-1 | 0   ..      BS-1 |
+        //     | Bit pos.         | 7 |              | 7 |              |
         //     | ---------------- | - | ------------ | - | ------------ |
         //     | Identity         | 0 | 0            | 0 | 0            |
         //     | Non-identity $P$ | 0 | $P.y$        | 0 | $P.x$        |
@@ -305,6 +323,9 @@ macro_rules! new_curve_impl {
         //     The sign flag bit is unused. The identity bit is still used.
         //
         //     |                  | 0 | ident | y-coordinate | 0 | 0 | x-coordinate |
+        //     | Byte pos. (LE)   | 2*BS-1       ..       BS | BS-1      ..       0 |
+        //     | Byte pos. (BE)   | BS       ..       2*BS-1 | 0      ..       BS-1 |
+        //     | Bit pos.         | 7 | 8     |              | 7 | 8 |              |
         //     | ---------------- | - | ----- | ------------ | - | - | ------------ |
         //     | Identity         | 0 | 1     | 0            | 0 | 0 | 0            |
         //     | Non-identity $P$ | 0 | 0     | $P.y$        | 0 | 0 | $P.x$        |
@@ -314,6 +335,8 @@ macro_rules! new_curve_impl {
         //     There are no flag bits.
         //
         //     |                  | y-coordinate | x-coordinate |
+        //     | Byte pos. (LE)   | 2*BS-1 .. BS | BS-1  ..   0 |
+        //     | Byte pos. (BE)   | BS .. 2*BS-1 | 0  ..   BS-1 |
         //     | ---------------- | ------------ | ------------ |
         //     | Identity         | 0            | 0            |
         //     | Non-identity $P$ | $P.y$        | $P.x$        |
