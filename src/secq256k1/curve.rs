@@ -1,3 +1,4 @@
+use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::Curve;
@@ -41,7 +42,6 @@ new_curve_impl!(
     (pub),
     Secq256k1,
     Secq256k1Affine,
-    true,
     Fq,
     Fp,
     (SECQ_GENERATOR_X, SECQ_GENERATOR_Y),
@@ -74,6 +74,7 @@ impl Secq256k1 {
 #[cfg(test)]
 mod test {
     use super::*;
+    use group::UncompressedEncoding;
     crate::curve_testing_suite!(Secq256k1);
     crate::curve_testing_suite!(Secq256k1, "endo_consistency");
     crate::curve_testing_suite!(

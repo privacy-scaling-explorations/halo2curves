@@ -1,4 +1,5 @@
 use super::fields::{fp::Fp, fp2::Fp2, fq::Fq};
+use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
@@ -124,7 +125,6 @@ new_curve_impl!(
     (pub),
     G1,
     G1Affine,
-    false,
     Fp,
     Fq,
     (G1_GENERATOR_X,G1_GENERATOR_Y),
@@ -160,7 +160,6 @@ new_curve_impl!(
     (pub),
     Eris,
     ErisAffine,
-    false,
     Fq,
     Fp,
     (ERIS_GENERATOR_X,ERIS_GENERATOR_Y),
@@ -232,7 +231,6 @@ new_curve_impl!(
     (pub),
     G2,
     G2Affine,
-    false,
     Fp2,
     Fq,
     (G2_GENERATOR_X,G2_GENERATOR_Y),
@@ -245,6 +243,7 @@ new_curve_impl!(
 #[cfg(test)]
 mod test {
     use super::*;
+    use group::UncompressedEncoding;
     crate::curve_testing_suite!(G1, Eris, G2);
     crate::curve_testing_suite!(G1, Eris, "hash_to_curve");
     crate::curve_testing_suite!(G1, Eris, "endo_consistency");

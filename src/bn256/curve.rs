@@ -5,6 +5,7 @@ use crate::arithmetic::EndoParameters;
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
+use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::endo;
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
@@ -32,7 +33,6 @@ new_curve_impl!(
     (pub),
     G1,
     G1Affine,
-    false,
     Fq,
     Fr,
     (G1_GENERATOR_X,G1_GENERATOR_Y),
@@ -46,7 +46,6 @@ new_curve_impl!(
     (pub),
     G2,
     G2Affine,
-    false,
     Fq2,
     Fr,
     (G2_GENERATOR_X, G2_GENERATOR_Y),
@@ -201,6 +200,7 @@ impl G1 {
 #[cfg(test)]
 mod test {
     use super::*;
+    use group::UncompressedEncoding;
     crate::curve_testing_suite!(G1, G2);
     crate::curve_testing_suite!(G1, "hash_to_curve");
     crate::curve_testing_suite!(G1, "endo_consistency");
