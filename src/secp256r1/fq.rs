@@ -308,4 +308,5 @@ mod test {
     crate::field_testing_suite!(Fq, "constants", MODULUS_STR);
     crate::field_testing_suite!(Fq, "sqrt");
     crate::field_testing_suite!(Fq, "zeta");
+    crate::field_testing_suite!(Fq, "from_uniform_bytes", 64);
 }

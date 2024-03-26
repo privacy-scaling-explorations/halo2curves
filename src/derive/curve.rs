@@ -724,7 +724,7 @@ macro_rules! new_curve_impl {
 
             #[allow(clippy::redundant_closure_call)]
             fn hash_to_curve<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a> {
-                $hash_to_curve($curve_id, domain_prefix)
+                $hash_to_curve(domain_prefix)
             }
 
             fn is_on_curve(&self) -> Choice {

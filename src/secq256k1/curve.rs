@@ -3,7 +3,6 @@ use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::Curve;
 use crate::group::{prime::PrimeCurveAffine, Group, GroupEncoding};
-use crate::hash_to_curve::svdw_hash_to_curve;
 use crate::secp256k1::{Fp, Fq};
 use crate::{
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
@@ -48,7 +47,7 @@ new_curve_impl!(
     SECQ_A,
     SECQ_B,
     "secq256k1",
-    |curve_id, domain_prefix| svdw_hash_to_curve(curve_id, domain_prefix, Secq256k1::SVDW_Z),
+    |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, Secq256k1::default_hash_to_curve_suite()),
 );
 
 impl group::cofactor::CofactorGroup for Secq256k1 {
@@ -69,6 +68,14 @@ impl group::cofactor::CofactorGroup for Secq256k1 {
 
 impl Secq256k1 {
     const SVDW_Z: Fq = Fq::ONE;
+
+    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Self, sha2::Sha256, 48> {
+        crate::hash_to_curve::Suite::<Self, sha2::Sha256, 48>::new(
+            b"secq256k1_XMD:SHA-256_SWDW_RO_",
+            Self::SVDW_Z,
+            crate::hash_to_curve::Method::SVDW,
+        )
+    }
 }
 
 #[cfg(test)]

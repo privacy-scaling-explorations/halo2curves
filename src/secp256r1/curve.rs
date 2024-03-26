@@ -2,7 +2,6 @@ use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT}
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
-use crate::hash_to_curve::sswu_hash_to_curve;
 use crate::secp256r1::Fp;
 use crate::secp256r1::Fq;
 use crate::{Coordinates, CurveAffine, CurveExt};
@@ -10,6 +9,7 @@ use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
+use ff::FromUniformBytes;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -76,19 +76,43 @@ new_curve_impl!(
     SECP_A,
     SECP_B,
     "secp256r1",
-    |curve_id, domain_prefix| sswu_hash_to_curve(curve_id, domain_prefix, Secp256r1::SSVDW_Z),
+    |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, Secp256r1::default_hash_to_curve_suite()),
 );
 
 impl Secp256r1 {
     // Optimal Z with: <https://datatracker.ietf.org/doc/html/rfc9380#sswu-z-code>
     // 0xffffffff00000001000000000000000000000000fffffffffffffffffffffff5
     // Z = -10 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#section-8.2>)
-    const SSVDW_Z: Fp = Fp::from_raw([
+    const SSWU_Z: Fp = Fp::from_raw([
         0xfffffffffffffff5,
         0x00000000ffffffff,
         0x0000000000000000,
         0xffffffff00000001,
     ]);
+
+    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Secp256r1, sha2::Sha256, 48> {
+        crate::hash_to_curve::Suite::<Secp256r1, sha2::Sha256, 48>::new(
+            b"P256_XMD:SHA-256_SSWU_RO_",
+            Self::SSWU_Z,
+            crate::hash_to_curve::Method::SSWU,
+        )
+    }
+}
+
+impl FromUniformBytes<48> for Fp {
+    fn from_uniform_bytes(bytes: &[u8; 48]) -> Self {
+        let repr = &mut [0u8; Self::size()];
+
+        (*repr)[0..24].copy_from_slice(&bytes[..24]);
+        let e0 = Fp::from_repr(*repr).unwrap();
+        (*repr)[0..24].copy_from_slice(&bytes[24..]);
+        let e1 = Fp::from_repr(*repr).unwrap();
+
+        // 2^192
+        const SHIFTER: Fp = Fp::from_raw([0, 0, 0, 1]);
+
+        e0 + e1 * SHIFTER
+    }
 }
 
 #[cfg(test)]
@@ -107,4 +131,66 @@ mod test {
         SECP_GENERATOR_Y,
         Fq::MODULUS
     );
+
+    #[test]
+    fn test_hash_to_curve() {
+        struct Test<C: CurveAffine> {
+            msg: &'static [u8],
+            expect: C,
+        }
+
+        impl<C: CurveAffine> Test<C> {
+            fn new(msg: &'static [u8], expect: C) -> Self {
+                Self { msg, expect }
+            }
+
+            fn run(&self, domain_prefix: &str) {
+                // default
+                let r0 = C::CurveExt::hash_to_curve(domain_prefix)(self.msg);
+                assert_eq!(r0.to_affine(), self.expect);
+            }
+        }
+
+        let tests = [
+            Test::<Secp256r1Affine>::new(
+                b"",
+                crate::tests::point_from_hex(
+                    "2c15230b26dbc6fc9a37051158c95b79656e17a1a920b11394ca91c44247d3e4",
+                    "8a7a74985cc5c776cdfe4b1f19884970453912e9d31528c060be9ab5c43e8415",
+                ),
+            ),
+            Test::<Secp256r1Affine>::new(
+                b"abc",
+                crate::tests::point_from_hex(
+                    "0bb8b87485551aa43ed54f009230450b492fead5f1cc91658775dac4a3388a0f",
+                    "5c41b3d0731a27a7b14bc0bf0ccded2d8751f83493404c84a88e71ffd424212e",
+                ),
+            ),
+            Test::<Secp256r1Affine>::new(
+                b"abcdef0123456789",
+                crate::tests::point_from_hex(
+                    "65038ac8f2b1def042a5df0b33b1f4eca6bff7cb0f9c6c1526811864e544ed80",
+                    "cad44d40a656e7aff4002a8de287abc8ae0482b5ae825822bb870d6df9b56ca3",
+                ),
+            ),
+            Test::<Secp256r1Affine>::new(
+                b"q128_qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",
+                crate::tests::point_from_hex(
+                    "4be61ee205094282ba8a2042bcb48d88dfbb609301c49aa8b078533dc65a0b5d",
+                    "98f8df449a072c4721d241a3b1236d3caccba603f916ca680f4539d2bfb3c29e",
+                ),
+            ), //
+            Test::<Secp256r1Affine>::new(
+                b"a512_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                crate::tests::point_from_hex(
+                    "457ae2981f70ca85d8e24c308b14db22f3e3862c5ea0f652ca38b5e49cd64bc5",
+                    "ecb9f0eadc9aeed232dabc53235368c1394c78de05dd96893eefa62b0f4757dc",
+                ),
+            ),
+        ];
+
+        tests.iter().for_each(|test| {
+            test.run("QUUX-V01-CS02-with-");
+        });
+    }
 }
