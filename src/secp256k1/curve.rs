@@ -2,7 +2,6 @@ use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT}
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
-use crate::hash_to_curve::{sswu_hash_to_curve, sswu_hash_to_curve_secp256k1};
 use crate::secp256k1::Fp;
 use crate::secp256k1::Fq;
 use crate::{Coordinates, CurveAffine, CurveExt};
@@ -10,6 +9,8 @@ use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
+use ff::FromUniformBytes;
+use group::cofactor::CofactorGroup;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -65,7 +66,7 @@ new_curve_impl!(
     SECP_A,
     SECP_B,
     "secp256k1",
-    |curve_id, domain_prefix| sswu_hash_to_curve_secp256k1(curve_id, domain_prefix),
+    |domain_prefix| hash_to_curve(domain_prefix),
 );
 
 impl Secp256k1 {
@@ -78,6 +79,15 @@ impl Secp256k1 {
         0xffffffffffffffff,
         0xffffffffffffffff,
     ]);
+}
+
+#[allow(clippy::type_complexity)]
+pub(crate) fn hash_to_curve<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Secp256k1 + 'a> {
+    Box::new(move |message| {
+        let r0 = IsoSecp256k1::hash_to_curve(domain_prefix)(message);
+        let r1 = iso_map_secp256k1(r0);
+        r1.clear_cofactor()
+    })
 }
 
 // Simplified SWU for AB == 0 <https://www.rfc-editor.org/rfc/rfc9380.html#name-simplified-swu-for-ab-0>
@@ -133,7 +143,7 @@ new_curve_impl!(
     ISO_SECP_A,
     ISO_SECP_B,
     "secp256k1",
-    |curve_id, domain_prefix| sswu_hash_to_curve(curve_id, domain_prefix, IsoSecp256k1::SSWU_Z),
+    |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, IsoSecp256k1::default_hash_to_curve_suite()),
 );
 
 impl IsoSecp256k1 {
@@ -146,6 +156,47 @@ impl IsoSecp256k1 {
         0xffffffffffffffff,
         0xffffffffffffffff,
     ]);
+
+    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<IsoSecp256k1, sha2::Sha256, 48>
+    {
+        crate::hash_to_curve::Suite::<IsoSecp256k1, sha2::Sha256, 48>::new(
+            b"secp256k1_XMD:SHA-256_SSWU_RO_",
+            Self::SSWU_Z,
+            crate::hash_to_curve::Method::SSWU,
+        )
+    }
+}
+
+impl FromUniformBytes<48> for Fp {
+    fn from_uniform_bytes(bytes: &[u8; 48]) -> Self {
+        let repr = &mut [0u8; Self::size()];
+
+        (*repr)[0..24].copy_from_slice(&bytes[..24]);
+        let e0 = Fp::from_repr(*repr).unwrap();
+        (*repr)[0..24].copy_from_slice(&bytes[24..]);
+        let e1 = Fp::from_repr(*repr).unwrap();
+
+        // 2^192
+        const SHIFTER: Fp = Fp::from_raw([0, 0, 0, 1]);
+
+        e0 + e1 * SHIFTER
+    }
+}
+
+impl FromUniformBytes<48> for Fq {
+    fn from_uniform_bytes(bytes: &[u8; 48]) -> Self {
+        let repr = &mut [0u8; Self::size()];
+
+        (*repr)[0..24].copy_from_slice(&bytes[..24]);
+        let e0 = Fq::from_repr(*repr).unwrap();
+        (*repr)[0..24].copy_from_slice(&bytes[24..]);
+        let e1 = Fq::from_repr(*repr).unwrap();
+
+        // 2^192
+        const SHIFTER: Fq = Fq::from_raw([0, 0, 0, 1]);
+
+        e0 + e1 * SHIFTER
+    }
 }
 
 /// 3-Isogeny Map for Secp256k1
@@ -284,4 +335,66 @@ mod test {
         SECP_GENERATOR_Y,
         Fq::MODULUS
     );
+
+    #[test]
+    fn test_hash_to_curve() {
+        struct Test<C: CurveAffine> {
+            msg: &'static [u8],
+            expect: C,
+        }
+
+        impl<C: CurveAffine> Test<C> {
+            fn new(msg: &'static [u8], expect: C) -> Self {
+                Self { msg, expect }
+            }
+
+            fn run(&self, domain_prefix: &str) {
+                // default
+                let r0 = C::CurveExt::hash_to_curve(domain_prefix)(self.msg);
+                assert_eq!(r0.to_affine(), self.expect);
+            }
+        }
+
+        let tests = [
+            Test::<Secp256k1Affine>::new(
+                b"",
+                crate::tests::point_from_hex(
+                    "c1cae290e291aee617ebaef1be6d73861479c48b841eaba9b7b5852ddfeb1346",
+                    "64fa678e07ae116126f08b022a94af6de15985c996c3a91b64c406a960e51067",
+                ),
+            ),
+            Test::<Secp256k1Affine>::new(
+                b"abc",
+                crate::tests::point_from_hex(
+                    "3377e01eab42db296b512293120c6cee72b6ecf9f9205760bd9ff11fb3cb2c4b",
+                    "7f95890f33efebd1044d382a01b1bee0900fb6116f94688d487c6c7b9c8371f6",
+                ),
+            ),
+            Test::<Secp256k1Affine>::new(
+                b"abcdef0123456789",
+                crate::tests::point_from_hex(
+                    "bac54083f293f1fe08e4a70137260aa90783a5cb84d3f35848b324d0674b0e3a",
+                    "4436476085d4c3c4508b60fcf4389c40176adce756b398bdee27bca19758d828",
+                ),
+            ),
+            Test::<Secp256k1Affine>::new(
+                b"q128_qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",
+                crate::tests::point_from_hex(
+                    "e2167bc785333a37aa562f021f1e881defb853839babf52a7f72b102e41890e9",
+                    "f2401dd95cc35867ffed4f367cd564763719fbc6a53e969fb8496a1e6685d873",
+                ),
+            ), //
+            Test::<Secp256k1Affine>::new(
+                b"a512_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                crate::tests::point_from_hex(
+                    "e3c8d35aaaf0b9b647e88a0a0a7ee5d5bed5ad38238152e4e6fd8c1f8cb7c998",
+                    "8446eeb6181bf12f56a9d24e262221cc2f0c4725c7e3803024b5888ee5823aa6",
+                ),
+            ),
+        ];
+
+        tests.iter().for_each(|test| {
+            test.run("QUUX-V01-CS02-with-");
+        });
+    }
 }

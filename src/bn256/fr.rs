@@ -332,6 +332,7 @@ impl WithSmallOrderMulGroup<3> for Fr {
 
 #[cfg(test)]
 mod test {
+
     use super::*;
     crate::field_testing_suite!(Fr, "field_arithmetic");
     crate::field_testing_suite!(Fr, "conversion");
@@ -342,72 +343,7 @@ mod test {
     crate::field_testing_suite!(Fr, "constants", MODULUS_STR);
     crate::field_testing_suite!(Fr, "sqrt");
     crate::field_testing_suite!(Fr, "zeta");
-    crate::field_testing_suite!(
-        Fr,
-        "from_uniform_bytes",
-        [
-            Fr::from_raw([
-                0x2ca6366467811a07,
-                0x22727e3db430ed7e,
-                0xbdb79bcb97d9e250,
-                0x2cee6d1152d1d7b0
-            ]),
-            Fr::from_raw([
-                0x6ec33f1a3af8cb2d,
-                0x2c8f3330e85dab4b,
-                0xfeeff4ae1b019172,
-                0x095cd2a455dd67b6
-            ]),
-            Fr::from_raw([
-                0x4741eee9c02c9f33,
-                0xfc0111dd8aeb7e7a,
-                0xb1d79e2a22d4ab08,
-                0x0cb7168893a7bbda
-            ]),
-            Fr::from_raw([
-                0xc2ff8410555287f8,
-                0x0927fbea8c6049c8,
-                0xc0edccc8e4d3efe4,
-                0x1d724b76911436c4
-            ]),
-            Fr::from_raw([
-                0xdef98bc8d4db6e5b,
-                0x42f0ea50590d557e,
-                0x1f311a3b8114fd9a,
-                0x0487c555645c67b1
-            ]),
-            Fr::from_raw([
-                0x8ad4879b05ceb610,
-                0x2e4e9a46537c84b0,
-                0x5cfa7c43c9dfcfa1,
-                0x0b6b2a4d122d0bb6
-            ]),
-            Fr::from_raw([
-                0xe7f11ee016df7fe7,
-                0x6419da89bd8aef3d,
-                0x3511f5d293af95c8,
-                0x10379c1d4d49593a
-            ]),
-            Fr::from_raw([
-                0xd63080c8aa3ecd37,
-                0x19c20f30b56fe458,
-                0xc9dbbcb3aa780e06,
-                0x28a4e2b8273762c6
-            ]),
-            Fr::from_raw([
-                0xecea51b521eac0b8,
-                0x65fff58a5881c562,
-                0x603ac7d1e06ef3af,
-                0x1e0c2c51226eecea
-            ]),
-            Fr::from_raw([
-                0xe6ec4779b8bd6516,
-                0x0d5411f3cb9504ae,
-                0xff706ec73df8e92a,
-                0x2c56d60b3e351e56
-            ]),
-        ]
-    );
+    crate::field_testing_suite!(Fr, "from_uniform_bytes", 64);
 
     #[test]
     fn bench_fr_from_u16() {

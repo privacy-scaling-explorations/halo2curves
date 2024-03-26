@@ -343,10 +343,10 @@ macro_rules! curve_testing_suite {
             }
         }
 
-        use crate::ff::Field;
-        use crate::group::prime::PrimeCurveAffine;
-        use crate::{group::GroupEncoding, serde::SerdeObject};
-        use crate::{CurveAffine, CurveExt};
+        use $crate::ff::Field;
+        use $crate::group::prime::PrimeCurveAffine;
+        use $crate::{group::GroupEncoding, serde::SerdeObject};
+        use $crate::{CurveAffine, CurveExt};
         use rand_core::OsRng;
 
 
@@ -506,8 +506,8 @@ macro_rules! curve_testing_suite {
     ($curve: ident, "svdw_map_to_curve", ($precomputed_constants: expr, $test_vector: expr)) => {
         #[test]
         fn test_map_to_curve() {
-            use crate::ff_ext::Legendre;
-            use crate::{hash_to_curve, CurveAffine, CurveExt};
+            use $crate::ff_ext::Legendre;
+            use $crate::{hash_to_curve, CurveAffine, CurveExt};
             use ff::PrimeField;
             use num_bigint::BigUint;
             use num_traits::Num;

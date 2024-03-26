@@ -1,3 +1,6 @@
+use ff::{FromUniformBytes, PrimeField};
+use rand::RngCore;
+
 #[macro_export]
 macro_rules! field_testing_suite {
     ($field: ident, "field_arithmetic") => {
@@ -280,7 +283,7 @@ macro_rules! field_testing_suite {
 
         #[test]
         fn test_serialization() {
-            use crate::serde::SerdeObject;
+            use $crate::serde::SerdeObject;
             random_serialization_test!($field);
             #[cfg(feature = "derive_serde")]
             random_serde_test!($field);
@@ -290,7 +293,7 @@ macro_rules! field_testing_suite {
     ($field: ident, "quadratic_residue") => {
         #[test]
         fn test_quadratic_residue() {
-            use crate::ff_ext::Legendre;
+            use $crate::ff_ext::Legendre;
             use ff::Field;
             use rand_core::SeedableRng;
             use rand_xorshift::XorShiftRng;
@@ -344,7 +347,7 @@ macro_rules! field_testing_suite {
 
         #[test]
         fn test_serialization_check() {
-            use crate::serde::SerdeObject;
+            use $crate::serde::SerdeObject;
             let mut rng = XorShiftRng::from_seed([
                 0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
                 0xbc, 0xe5,
@@ -392,7 +395,7 @@ macro_rules! field_testing_suite {
     ($field: ident, "sqrt") => {
         #[test]
         fn test_sqrt() {
-            use crate::ff_ext::Legendre;
+            use $crate::ff_ext::Legendre;
             use rand_core::OsRng;
 
             let v = ($field::TWO_INV).square().sqrt().unwrap();
@@ -449,25 +452,13 @@ macro_rules! field_testing_suite {
         }
     };
 
-    ($field: ident, "from_uniform_bytes", $test_vectors: expr) => {
+    ($field: ident, "from_uniform_bytes", $($L:expr),* $(,)?) => {
+
         #[test]
         fn test_from_uniform_bytes() {
-            const N_VECS: usize = 10;
-            assert!($test_vectors.len() == N_VECS);
-
-            let mut seeded_rng = XorShiftRng::seed_from_u64(0u64);
-            let uniform_bytes = std::iter::from_fn(|| {
-                let mut bytes = [0u8; 64];
-                seeded_rng.fill_bytes(&mut bytes);
-                Some(bytes)
-            })
-            .take(N_VECS)
-            .collect::<Vec<_>>();
-
-            for i in 0..N_VECS {
-                let q = $field::from_uniform_bytes(&uniform_bytes[i]);
-                assert_eq!($test_vectors[i], q);
-            }
+            $(
+                $crate::tests::field::run_test_from_uniform_bytes::<$field, $L>();
+            )*
         }
     };
 
@@ -732,4 +723,27 @@ macro_rules! field_testing_suite {
             }
         }
     };
+}
+
+pub(crate) fn run_test_from_uniform_bytes<F: PrimeField, const L: usize>()
+where
+    F: FromUniformBytes<L>,
+{
+    use num_bigint::BigUint;
+    use rand_core::OsRng;
+
+    let mut uniform_bytes = [0u8; L];
+    OsRng.fill_bytes(&mut uniform_bytes[..]);
+
+    let e0 = {
+        let e0 = BigUint::from_bytes_le(&uniform_bytes);
+        let e0 = e0 % crate::tests::modulus::<F>();
+        let bytes = e0.to_bytes_le();
+        let mut e0 = F::Repr::default();
+        e0.as_mut()[..bytes.len()].copy_from_slice(&bytes);
+        F::from_repr(e0).unwrap()
+    };
+
+    let e1 = F::from_uniform_bytes(&uniform_bytes);
+    assert_eq!(e0, e1);
 }

@@ -11,7 +11,6 @@ use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::Curve;
 use crate::group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
-use crate::hash_to_curve::svdw_hash_to_curve;
 use crate::{
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
     impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
@@ -39,7 +38,7 @@ new_curve_impl!(
     G1_A,
     G1_B,
     "bn256_g1",
-    |curve_id, domain_prefix| svdw_hash_to_curve(curve_id, domain_prefix, G1::SVDW_Z),
+    |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, G1::default_hash_to_curve_suite()),
 );
 
 new_curve_impl!(
@@ -52,8 +51,17 @@ new_curve_impl!(
     G2_A,
     G2_B,
     "bn256_g2",
-    |_, _| unimplemented!(),
+    |domain_prefix| hash_to_curve_g2(domain_prefix),
 );
+
+#[allow(clippy::type_complexity)]
+pub(crate) fn hash_to_curve_g2<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> G2 + 'a> {
+    let suite = G2::default_hash_to_curve_suite();
+    Box::new(move |message| {
+        let r0 = suite.hash_to_curve(domain_prefix, message);
+        r0.clear_cofactor()
+    })
+}
 
 const G1_GENERATOR_X: Fq = Fq::one();
 const G1_GENERATOR_Y: Fq = Fq::from_raw([2, 0, 0, 0]);
@@ -195,6 +203,26 @@ impl CofactorGroup for G2 {
 
 impl G1 {
     const SVDW_Z: Fq = Fq::ONE;
+
+    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Self, sha2::Sha256, 64> {
+        crate::hash_to_curve::Suite::<G1, sha2::Sha256, 64>::new(
+            b"bn256_g1_XMD:SHA-256_SVDW_RO_",
+            Self::SVDW_Z,
+            crate::hash_to_curve::Method::SVDW,
+        )
+    }
+}
+
+impl G2 {
+    const SVDW_Z: Fq2 = Fq2::ONE;
+
+    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Self, sha2::Sha256, 128> {
+        crate::hash_to_curve::Suite::<G2, sha2::Sha256, 128>::new(
+            b"bn256_g2_XMD:SHA-256_SVDW_RO_",
+            Self::SVDW_Z,
+            crate::hash_to_curve::Method::SVDW,
+        )
+    }
 }
 
 #[cfg(test)]

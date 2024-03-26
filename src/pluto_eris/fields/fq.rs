@@ -84,18 +84,6 @@ const R2: Fq = Fq([
     0x050d7c998f46144e,
 ]);
 
-/// `R^3 = 2^1792 mod q`
-/// `0x2f2c41fb476072baa10b8225e69f7de3b2c1031e6d01279e65191fab1f6ce25295c3c8bd6945406c89b51b218477a6f7252704d7495b38a`
-const R3: Fq = Fq([
-    0x7252704d7495b38a,
-    0xc89b51b218477a6f,
-    0x295c3c8bd6945406,
-    0xe65191fab1f6ce25,
-    0x3b2c1031e6d01279,
-    0xaa10b8225e69f7de,
-    0x02f2c41fb476072b,
-]);
-
 /// `GENERATOR = 7 mod q` is a generator of the `q - 1` order multiplicative
 /// subgroup, or in other words a primitive root of the field.
 const GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
@@ -402,100 +390,6 @@ mod test {
     crate::field_testing_suite!(Fq, "constants", MODULUS_STR);
     crate::field_testing_suite!(Fq, "sqrt");
     crate::field_testing_suite!(Fq, "zeta");
-    crate::field_testing_suite!(
-        Fq,
-        "from_uniform_bytes",
-        [
-            Fq::from_raw([
-                0x93638251ffeffed3,
-                0xb17ab6ae332352b4,
-                0xbf2731af91057325,
-                0x7b700ef5a22260d0,
-                0xc97c59318d325250,
-                0xd7bc83d286537318,
-                0x01d4a87b24f91154,
-            ]),
-            Fq::from_raw([
-                0x63e0a8f1beefc612,
-                0x080f69572a9ddaae,
-                0xb9ff1cf0e1f7c067,
-                0xd8d8bf5b522bc48b,
-                0xa7607085c7065359,
-                0x617d8b0cda3f6328,
-                0x03096ea964e009c0,
-            ]),
-            Fq::from_raw([
-                0x5eaedbda63b3e431,
-                0x90ebbfa6f11a9266,
-                0x4528cf4d506c9f9b,
-                0x8c6ac679e9ac3856,
-                0x001666755d9c2c57,
-                0x9f7f457a48d6d322,
-                0x20b2fadc6bf4004d,
-            ]),
-            Fq::from_raw([
-                0xeeea9cbd68b174cf,
-                0x84af9e4ce5a781a5,
-                0x3578772b5b482647,
-                0x6b202eb54b7df723,
-                0x55f541b1436b7660,
-                0x2045de539849b035,
-                0x1d5d7b5f6e8cc333,
-            ]),
-            Fq::from_raw([
-                0xe73df0f69b71a763,
-                0xbccfb84010979d9d,
-                0x1ce3c87be8bf3247,
-                0x695fde61877cb617,
-                0x5006663bd0944209,
-                0xd7ead2b7c71e460d,
-                0x0f7c36b781cba9ed,
-            ]),
-            Fq::from_raw([
-                0xaeed10e8f00b189d,
-                0x5190807038915743,
-                0x90b840c0a13b0307,
-                0x20fa8cc52c3a9a28,
-                0xc3f229646be29c1d,
-                0xb1d2bb5373270c43,
-                0x0e18a3597be61302,
-            ]),
-            Fq::from_raw([
-                0xffbbc6b3e494ca68,
-                0x30d4a100158c1751,
-                0x0328dae560dff403,
-                0x1495c3ce50cce340,
-                0x93efc4d4d6ea0079,
-                0x0a791ad7698655a7,
-                0x22b10d5c1090eec8,
-            ]),
-            Fq::from_raw([
-                0xd96eec60211ad67b,
-                0x4d081a969b3d8488,
-                0x57c9b5abbeec4cf0,
-                0x13ced15637e4b0eb,
-                0xb98a559f49b0071c,
-                0x819ba919d0b6e9b5,
-                0x20f73876330a90e8,
-            ]),
-            Fq::from_raw([
-                0xbade57a48e2d9868,
-                0xc688e43e21f9d2fc,
-                0x848a82da9e1d75dc,
-                0xae5f4536b9d60aa7,
-                0x7957f2028c96467b,
-                0xf850f49359458652,
-                0x17ba9f9aa08b9ee2,
-            ]),
-            Fq::from_raw([
-                0xd0239c8282ccc372,
-                0x4a777ad0b66181ea,
-                0x53737d5f19e61bfc,
-                0x5340b579fe7c4c83,
-                0x8406f69a0f89f90a,
-                0xd7d5d8bc4497465a,
-                0x08ce8bee1323d4f9,
-            ]),
-        ]
-    );
+    // crate::field_testing_suite!(Fq, "from_uniform_bytes", 64, 72);
+    crate::field_testing_suite!(Fq, "from_uniform_bytes", 64);
 }
