@@ -15,15 +15,18 @@ use pairing::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
+/// The seed U of generating the curve BN256
 pub const BN_X: u64 = 4965661367192848881;
 
-// 6U+2 for in NAF form
+/// 6U+2 for in NAF form
 pub const SIX_U_PLUS_2_NAF: [i8; 65] = [
     0, 0, 0, 1, 0, 1, 0, -1, 0, 0, 1, -1, 0, 0, 1, 0, 0, 1, 1, 0, -1, 0, 0, 1, 0, -1, 0, 0, 0, 0,
     1, 1, 1, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 1, 0, 0, -1, 0, 0, 0, 1, 1, 0, -1, 0,
     0, 1, 0, 1, 1,
 ];
 
+/// Value of (u + 9)^{(q-1)/2} where u^2 + 1 = 0 in Fq2
+/// we use u here to distinguish from U which stands for the seed
 pub const XI_TO_Q_MINUS_1_OVER_2: Fq2 = Fq2 {
     c0: Fq([
         0xe4bbdd0c2936b629,
@@ -202,6 +205,10 @@ impl Group for Gt {
     }
 }
 
+/// The type `G2Prepared`` holds the vector of tuples of coefficients which   
+/// are generated during the process of finding [6U + 2]Q. These coefficients 
+/// will be used for line evaluations in Miller loop. The field of `infinity` is set 
+/// true when the given point Q is the infinity. 
 #[derive(Clone, Debug)]
 pub struct G2Prepared {
     pub(crate) coeffs: Vec<(Fq2, Fq2, Fq2)>,
@@ -221,76 +228,86 @@ impl G2Prepared {
             };
         }
 
+        // Adaptation of Algorithm 26, https://eprint.iacr.org/2010/354.pdf
+        //
+        // Given input r which stands for the point Q in the paper, the output 
+        // is the tuple of three temporary values used for line evaluation in this
+        // round of Miller loop. Meanwhile, the mutable variable r receives the new
+        // G2 point: [2]Q.
         fn doubling_step(r: &mut G2) -> (Fq2, Fq2, Fq2) {
-            // Adaptation of Algorithm 26, https://eprint.iacr.org/2010/354.pdf
+            // line 1
             let mut tmp0 = r.x;
             tmp0.square_assign();
 
+            // line 2
             let mut tmp1 = r.y;
             tmp1.square_assign();
 
+            // line 3
             let mut tmp2 = tmp1;
             tmp2.square_assign();
 
+            // line 4
             let mut tmp3 = tmp1;
             tmp3 += &r.x;
             tmp3.square_assign();
             tmp3 -= &tmp0;
             tmp3 -= &tmp2;
+
+            // line 5
             tmp3.double_assign();
 
+            // line 6
             let mut tmp4 = tmp0;
             tmp4.double_assign();
             tmp4 += &tmp0;
 
+            // line 7
             let mut tmp6 = r.x;
             tmp6 += &tmp4;
 
+            // line 8
             let mut tmp5 = tmp4;
             tmp5.square_assign();
 
             let mut zsquared = r.z;
             zsquared.square_assign();
 
+            // line 9
             r.x = tmp5;
             r.x -= &tmp3;
             r.x -= &tmp3;
 
+            // line 10
             r.z += &r.y;
             r.z.square_assign();
             r.z -= &tmp1;
             r.z -= &zsquared;
 
+            // line 11
             r.y = tmp3;
             r.y -= &r.x;
             r.y.mul_assign(&tmp4);
-
             tmp2.double_assign();
             tmp2.double_assign();
             tmp2.double_assign();
-
             r.y -= &tmp2;
 
-            // up to here everything was by algorithm, line 11
-            // use R instead of new T
-
-            // tmp3 is the first part of line 12
+            // line 12
             tmp3 = tmp4;
             tmp3.mul_assign(&zsquared);
             tmp3.double_assign();
             tmp3 = tmp3.neg();
 
-            // tmp6 is from line 14
+            // line 14
             tmp6.square_assign();
             tmp6 -= &tmp0;
             tmp6 -= &tmp5;
-
             tmp1.double_assign();
             tmp1.double_assign();
-
             tmp6 -= &tmp1;
 
-            // tmp0 is the first part of line 16
+            // line 15, recall r.z stores the value of Z_T from line 10
             tmp0 = r.z;
             tmp0.mul_assign(&zsquared);
             tmp0.double_assign();
@@ -298,11 +315,15 @@ impl G2Prepared {
             (tmp0, tmp3, tmp6)
         }
 
+        // Adaptation of Algorithm 27, https://eprint.iacr.org/2010/354.pdf
+        // 
+        // Given inputs r , q which exactly stand for the points R, Q in the paper, 
+        // the output is the tuple of three temporary values used for line evaluation 
+        // in this round of Miller loop. Meanwhile, the mutable variable r receives the new
+        // G2 point: Q + R.
         fn addition_step(r: &mut G2, q: &G2Affine) -> (Fq2, Fq2, Fq2) {
-            // Adaptation of Algorithm 27, https://eprint.iacr.org/2010/354.pdf
             let mut zsquared = r.z;
             zsquared.square_assign();
-
             let mut ysquared = q.y;
             ysquared.square_assign();
 
@@ -375,14 +396,13 @@ impl G2Prepared {
             t0.mul_assign(&t5);
             t0.double_assign();
 
-            // corresponds to line 12, but assigns to r.y instead of T.y
+            // corresponds to line 16, but assigns to r.y instead of T.y
             r.y = t8;
             r.y -= &t0;
 
             // corresponds to line 17
             t10.square_assign();
             t10 -= &ysquared;
-
             let mut ztsquared = r.z;
             ztsquared.square_assign();
 
@@ -392,26 +412,36 @@ impl G2Prepared {
             t9.double_assign();
             t9 -= &t10;
 
-            // t10 = 2*Zt from Algo 27, line 19
+            // corresponds to 2 Z_T in line 19, used for 
+            // multiplication by y_P in line evaluation
             t10 = r.z;
             t10.double_assign();
 
-            // t1 = first multiplicator of line 21
+            // corresponds to line 20
             t6 = t6.neg();
 
+            // corresponds to 2 t_6 in line 21, used for 
+            // multiplication by x_P in line evaluation
             t1 = t6;
             t1.double_assign();
 
-            // t9 corresponds to t9 from Algo 27
             (t10, t1, t9)
         }
 
         let mut coeffs = vec![];
+
+        // Initialize the temporary point as Q in Miller loop,
+        // see line 2, Algorithm 1 https://eprint.iacr.org/2013/722.pdf
         let mut r: G2 = q.into();
 
         let mut negq = q;
         negq = -negq;
 
+        // The loop starts from the index of len - 2 instead of len - 1,
+        // see line 3, Algorithm 1 https://eprint.iacr.org/2013/722.pdf
+        // since the value of NEG_SIX_U_PLUS_2_NAF[len - 1] should always 
+        // be 1, see the original Optimal Ate Pairing paper:
+        // Algorithm 1, https://eprint.iacr.org/2008/096.pdf.
         for i in (1..SIX_U_PLUS_2_NAF.len()).rev() {
             coeffs.push(doubling_step(&mut r));
             let x = SIX_U_PLUS_2_NAF[i - 1];
@@ -434,11 +464,16 @@ impl G2Prepared {
         q1.y.c1 = q1.y.c1.neg();
         q1.y.mul_assign(&XI_TO_Q_MINUS_1_OVER_2);
 
+        // push the coefficients for later line evaluation l_{T, Q_1}(P)
         coeffs.push(addition_step(&mut r, &q1));
 
         let mut minusq2 = q;
         minusq2.x.mul_assign(&FROBENIUS_COEFF_FQ6_C1[2]);
 
+        // notice (u + 9)^{(p^2 - 1)/2} = -1 as (u + 9) is not quadratic 
+        // residue in Fq2 by assumption, thus y_{-Q_2} = y_Q.
+
+        // push the coefficients for later line evaluation l_{T + Q_1, -Q_2}(P)
         coeffs.push(addition_step(&mut r, &minusq2));
 
         G2Prepared {
@@ -567,7 +602,9 @@ pub fn multi_miller_loop(terms: &[(&G1Affine, &G2Prepared)]) -> Gt {
         }
     }
 
-    // Final steps of the line function on prepared coefficients
+    // Line evaluation using the given coefficients and multiply with the 
+    // accumulated temporary value f, see lines 18, 19 in Algorithm 26 and
+    // lines 23, 24 in Algorithm 27 in https://eprint.iacr.org/2013/722.pdf
     fn ell(f: &mut Fq12, coeffs: &(Fq2, Fq2, Fq2), p: &G1Affine) {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
