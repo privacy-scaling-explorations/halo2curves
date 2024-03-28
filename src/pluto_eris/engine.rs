@@ -15,8 +15,7 @@ use core::ops::{Add, Mul, MulAssign, Neg, Sub};
 use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
-/// Adaptation of Algorithm 1, https://eprint.iacr.org/2013/722.pdf
-/// the parameter for the curve Pluto: u = -0x4000000000001000008780000000
+/// the parameter for the curve Pluto: U = -0x4000000000001000008780000000
 const NEG_PLUTO_U: u128 = 0x4000000000001000008780000000;
 
 const NEG_SIX_U_PLUS_2_NAF: [i8; 114] = [
@@ -27,6 +26,7 @@ const NEG_SIX_U_PLUS_2_NAF: [i8; 114] = [
 ];
 
 /// Value of (57/(u + 3))^((p - 1)/2) where u^2 + 5 = 0 in Fp2.
+/// We use u here to distinguish from U which stands for the seed.
 const XI_TO_P_MINUS_1_OVER_2: Fp2 = Fp2 {
     c0: Fp::from_raw([
         0x54cf5ad1c0926216,
@@ -212,8 +212,10 @@ impl Group for Gt {
     }
 }
 
-/// Points of G2 in Jacobian coordinates.
-/// These are points lie in the twisted curve E'(Fp2).
+/// The type `G2Prepared`` holds the vector of tuples of coefficients which   
+/// are generated during the process of finding [6U + 2]Q. These coefficients 
+/// will be used for line evaluations in Miller loop. The field of `infinity` is set 
+/// true when the given point Q is the infinity. 
 #[derive(Clone, Debug)]
 pub struct G2Prepared {
     pub(crate) coeffs: Vec<(Fp2, Fp2, Fp2)>,
@@ -226,7 +228,7 @@ impl G2Prepared {
         self.infinity
     }
 
-    /// Prepares a G2 point in affine coordinates.
+    /// Given an affine point Q in E'(Fp2), output the coefficients.
     pub fn from_affine(q: G2Affine) -> Self {
         if bool::from(q.is_identity()) {
             return G2Prepared {
@@ -235,76 +237,86 @@ impl G2Prepared {
             };
         }
 
-        /// Adaptation of Algorithm 26, https://eprint.iacr.org/2010/354.pdf
+        // Adaptation of Algorithm 26, https://eprint.iacr.org/2010/354.pdf
+        //
+        // Given input r which stands for the point Q in the paper, the output 
+        // is the tuple of three temporary values used for line evaluation in this
+        // round of Miller loop. Meanwhile, the mutable variable r receives the new
+        // G2 point: [2]Q.
         fn doubling_step(r: &mut G2) -> (Fp2, Fp2, Fp2) {
+            // line 1
             let mut tmp0 = r.x;
             tmp0.square_assign();
 
+            // line 2
             let mut tmp1 = r.y;
             tmp1.square_assign();
 
+            // line 3
             let mut tmp2 = tmp1;
             tmp2.square_assign();
 
+            // line 4
             let mut tmp3 = tmp1;
             tmp3 += &r.x;
             tmp3.square_assign();
             tmp3 -= &tmp0;
             tmp3 -= &tmp2;
+
+            // line 5
             tmp3.double_assign();
 
+            // line 6
             let mut tmp4 = tmp0;
             tmp4.double_assign();
             tmp4 += &tmp0;
 
+            // line 7
             let mut tmp6 = r.x;
             tmp6 += &tmp4;
 
+            // line 8
             let mut tmp5 = tmp4;
             tmp5.square_assign();
 
             let mut zsquared = r.z;
             zsquared.square_assign();
 
+            // line 9
             r.x = tmp5;
             r.x -= &tmp3;
             r.x -= &tmp3;
 
+            // line 10
             r.z += &r.y;
             r.z.square_assign();
             r.z -= &tmp1;
             r.z -= &zsquared;
 
+            // line 11
             r.y = tmp3;
             r.y -= &r.x;
             r.y.mul_assign(&tmp4);
-
             tmp2.double_assign();
             tmp2.double_assign();
             tmp2.double_assign();
-
             r.y -= &tmp2;
 
-            // up to here everything was by algorithm, line 11
-            // use R instead of new T
-
-            // tmp3 is the first part of line 12
+            // line 12
             tmp3 = tmp4;
             tmp3.mul_assign(&zsquared);
             tmp3.double_assign();
             tmp3 = tmp3.neg();
 
-            // tmp6 is from line 14
+            // line 14
             tmp6.square_assign();
             tmp6 -= &tmp0;
             tmp6 -= &tmp5;
-
             tmp1.double_assign();
             tmp1.double_assign();
-
             tmp6 -= &tmp1;
 
-            // tmp0 is the first part of line 16
+            // line 15, recall r.z stores the value of Z_T from line 10
             tmp0 = r.z;
             tmp0.mul_assign(&zsquared);
             tmp0.double_assign();
@@ -313,10 +325,14 @@ impl G2Prepared {
         }
 
         // Adaptation of Algorithm 27, https://eprint.iacr.org/2010/354.pdf
+        // 
+        // Given inputs r , q which exactly stand for the points R, Q in the paper, 
+        // the output is the tuple of three temporary values used for line evaluation 
+        // in this round of Miller loop. Meanwhile, the mutable variable r receives the new
+        // G2 point: Q + R.
         fn addition_step(r: &mut G2, q: &G2Affine) -> (Fp2, Fp2, Fp2) {
             let mut zsquared = r.z;
             zsquared.square_assign();
-
             let mut ysquared = q.y;
             ysquared.square_assign();
 
@@ -389,57 +405,52 @@ impl G2Prepared {
             t0.mul_assign(&t5);
             t0.double_assign();
 
-            // corresponds to line 12, but assigns to r.y instead of T.y
+            // corresponds to line 16, but assigns to r.y instead of T.y
             r.y = t8;
             r.y -= &t0;
 
             // corresponds to line 17
             t10.square_assign();
             t10 -= &ysquared;
-
             let mut ztsquared = r.z;
             ztsquared.square_assign();
-
             t10 -= &ztsquared;
 
             // corresponds to line 18
             t9.double_assign();
             t9 -= &t10;
 
-            // t10 = 2*Zt from Algo 27, line 19
+            // corresponds to 2 Z_T in line 19, used for 
+            // multiplication by y_P in line evaluation
             t10 = r.z;
             t10.double_assign();
 
-            // t1 = first multiplicator of line 21
+            // corresponds to line 20
             t6 = t6.neg();
 
+            // corresponds to 2 t_6 in line 21, used for 
+            // multiplication by x_P in line evaluation
             t1 = t6;
             t1.double_assign();
 
-            // t9 corresponds to t9 from Algo 27
             (t10, t1, t9)
         }
 
         let mut coeffs = vec![];
+
+        // Initialize the temporary point as Q in Miller loop,
+        // see line 2, Algorithm 1 https://eprint.iacr.org/2013/722.pdf
         let mut r: G2 = q.into();
 
         let mut negq = q;
         negq = -negq;
 
-        coeffs.push(doubling_step(&mut r));
-
-        let last_position = NEG_SIX_U_PLUS_2_NAF.len() - 2;
-        match NEG_SIX_U_PLUS_2_NAF[last_position] {
-            1 => {
-                coeffs.push(addition_step(&mut r, &q));
-            }
-            -1 => {
-                coeffs.push(addition_step(&mut r, &negq));
-            }
-            _ => (),
-        }
-
-        for i in (0..last_position).rev() {
+        // The loop starts from the index of len - 2 instead of len - 1,
+        // see line 3, Algorithm 1 https://eprint.iacr.org/2013/722.pdf
+        // since the value of NEG_SIX_U_PLUS_2_NAF[len - 1] should always 
+        // be 1, see the original Optimal Ate Pairing paper:
+        // Algorithm 1, https://eprint.iacr.org/2008/096.pdf.
+        for i in (0..(NEG_SIX_U_PLUS_2_NAF.len() - 1)).rev() {
             coeffs.push(doubling_step(&mut r));
 
             match NEG_SIX_U_PLUS_2_NAF[i] {
@@ -453,6 +464,8 @@ impl G2Prepared {
             }
         }
 
+        // As the seed u < 0, the temporary point r should be replaced 
+        // by -r, see line 9, Algorithm 1 https://eprint.iacr.org/2013/722.pdf
         let mut neg_r = r;
         neg_r = -neg_r;
 
@@ -464,11 +477,15 @@ impl G2Prepared {
         q1.y.c1 = q1.y.c1.neg();
         q1.y.mul_assign(&XI_TO_P_MINUS_1_OVER_2);
 
+        // push the coefficients for later line evaluation l_{T, Q_1}(P)
         coeffs.push(addition_step(&mut neg_r, &q1));
 
         let mut minusq2 = q;
         minusq2.x.mul_assign(&FROBENIUS_COEFF_FP6_C1[2]);
+        // notice (57/(u + 3))^{(p^2 - 1)/2} = -1 as 57/(u + 3) is not quadratic 
+        // residue in Fp2 by assumption, thus y_{-Q_2} = y_Q.
 
+        // push the coefficients for later line evaluation l_{T + Q_1, -Q_2}(P)
         coeffs.push(addition_step(&mut neg_r, &minusq2));
 
         G2Prepared {
@@ -602,7 +619,9 @@ impl MultiMillerLoop for Pluto {
             }
         }
 
-        // Final steps of the line function on prepared coefficients
+        // Line evaluation using the given coefficients and multiply with the 
+        // accumulated temporary value f, see lines 18, 19 in Algorithm 26 and
+        // lines 23, 24 in Algorithm 27 in https://eprint.iacr.org/2013/722.pdf
         fn ell(f: &mut Fp12, coeffs: &(Fp2, Fp2, Fp2), p: &G1Affine) {
             let mut c0 = coeffs.0;
             let mut c1 = coeffs.1;
@@ -619,32 +638,31 @@ impl MultiMillerLoop for Pluto {
 
         let mut f = Fp12::ONE;
 
-        for &mut (p, ref mut coeffs) in &mut pairs {
-            ell(&mut f, coeffs.next().unwrap(), p);
-        }
-
-        // length - 2
-        let len_min2 = NEG_SIX_U_PLUS_2_NAF.len() - 2;
-
-        if NEG_SIX_U_PLUS_2_NAF[len_min2] != 0 {
+        for i in (1..NEG_SIX_U_PLUS_2_NAF.len()).rev() {
+            if i != NEG_SIX_U_PLUS_2_NAF.len() - 1 {
+                f.square_assign();
+            }
             for &mut (p, ref mut coeffs) in &mut pairs {
                 ell(&mut f, coeffs.next().unwrap(), p);
             }
-        }
-
-        for x in NEG_SIX_U_PLUS_2_NAF[..len_min2].iter().rev() {
-            f.square_assign();
-
-            for &mut (p, ref mut coeffs) in &mut pairs {
-                ell(&mut f, coeffs.next().unwrap(), p);
-            }
-            if *x != 0 {
-                for &mut (p, ref mut coeffs) in &mut pairs {
-                    ell(&mut f, coeffs.next().unwrap(), p);
+            let x = NEG_SIX_U_PLUS_2_NAF[i - 1];
+            match x {
+                1 => {
+                    for &mut (p, ref mut coeffs) in &mut pairs {
+                        ell(&mut f, coeffs.next().unwrap(), p);
+                    }
                 }
+                -1 => {
+                    for &mut (p, ref mut coeffs) in &mut pairs {
+                        ell(&mut f, coeffs.next().unwrap(), p);
+                    }
+                }
+                _ => continue,
             }
         }
 
+        // As the seed u < 0, the temporary value f should be replaced by f^{p^6} which is
+        // equal to its conjugate, see line 9, Algorithm 1 https://eprint.iacr.org/2013/722.pdf
         f.conjugate();
 
         for &mut (p, ref mut coeffs) in &mut pairs {
