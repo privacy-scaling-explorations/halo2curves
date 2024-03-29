@@ -221,7 +221,7 @@ impl BandersnatchTEAffine {
 
     /// Determines if this point is the identity.
     pub fn is_identity(&self) -> Choice {
-        BandersnatchTE::from(*self).is_identity()
+        self.x.is_zero() & self.y.is_zero()
     }
 
     pub fn generator() -> Self {
@@ -727,7 +727,7 @@ impl CurveAffine for BandersnatchTEAffine {
         let ax2 = self.x.square() * TE_A_PARAMETER;
         let y2 = self.y.square();
 
-        (ax2 + y2).ct_eq(&(Fp::one() + TE_D_PARAMETER * x2 * y2))
+        (ax2 + y2).ct_eq(&(Fp::one() + TE_D_PARAMETER * x2 * y2)) | self.is_identity()
     }
 
     fn coordinates(&self) -> CtOption<Coordinates<Self>> {
