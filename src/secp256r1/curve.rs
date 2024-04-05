@@ -151,6 +151,8 @@ mod test {
             }
         }
 
+        // Test vectors are taken from
+        // https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-p256_xmdsha-256_sswu_ro_
         let tests = [
             Test::<Secp256r1Affine>::new(
                 b"",

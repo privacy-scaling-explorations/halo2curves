@@ -95,7 +95,7 @@ where
 {
     pub(crate) fn new(domain: &[u8], z: C::Base, method: Method) -> Self {
         // Check for the target bits of  security `k`. Currently, the target security is 128 bits.
-        // See: <https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-10.html#section-5.1>
+        // See: <https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#section-5.1>
         // L = ceil((ceil(log2(p)) + k) / 8)
         assert!((C::Base::NUM_BITS as usize + 128) / 8 <= L);
 
@@ -367,7 +367,8 @@ mod test {
 
     #[test]
     fn test_expand_message() {
-        // https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-10.html#name-expand_message_xmdsha-256-2
+        // Test vectors are taken from:
+        // https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-expand_message_xmdsha-256
 
         struct Test<D: Digest + BlockSizeUser> {
             msg: &'static [u8],
