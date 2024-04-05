@@ -94,7 +94,8 @@ where
     C::Base: Legendre + FromUniformBytes<L>,
 {
     pub(crate) fn new(domain: &[u8], z: C::Base, method: Method) -> Self {
-        // check minimum target security
+        // Check for the target bits of  security `k`. Currently, the target security is 128 bits.
+        // See: <https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-10.html#section-5.1>
         // L = ceil((ceil(log2(p)) + k) / 8)
         assert!((C::Base::NUM_BITS as usize + 128) / 8 <= L);
 
