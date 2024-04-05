@@ -1,7 +1,7 @@
 use super::fp::Fp;
 use super::fp2::Fp2;
 use super::fp6::Fp6;
-use crate::ff::Field;
+use crate::{ff::Field, impl_tower2_common};
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -9,98 +9,18 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 /// -GAMMA is a quadratic non-residue in Fp6. Fp12 = Fp6[X]/(X^2 + GAMMA)
 /// We introduce the variable w such that w^2 = -GAMMA
 /// GAMMA = - v
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
-pub struct Fp12 {
-    c0: Fp6,
-    c1: Fp6,
-}
-
-impl ConditionallySelectable for Fp12 {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Fp12 {
-            c0: Fp6::conditional_select(&a.c0, &b.c0, choice),
-            c1: Fp6::conditional_select(&a.c1, &b.c1, choice),
-        }
-    }
-}
-
-impl ConstantTimeEq for Fp12 {
-    fn ct_eq(&self, other: &Self) -> Choice {
-        self.c0.ct_eq(&other.c0) & self.c1.ct_eq(&other.c1)
-    }
-}
-
-impl Neg for Fp12 {
-    type Output = Fp12;
-
-    #[inline]
-    fn neg(self) -> Fp12 {
-        -&self
-    }
-}
-
-impl<'a> Neg for &'a Fp12 {
-    type Output = Fp12;
-
-    #[inline]
-    fn neg(self) -> Fp12 {
-        self.neg()
-    }
-}
-
-impl<'a, 'b> Sub<&'b Fp12> for &'a Fp12 {
-    type Output = Fp12;
-
-    #[inline]
-    fn sub(self, rhs: &'b Fp12) -> Fp12 {
-        self.sub(rhs)
-    }
-}
-
-impl<'a, 'b> Add<&'b Fp12> for &'a Fp12 {
-    type Output = Fp12;
-
-    #[inline]
-    fn add(self, rhs: &'b Fp12) -> Fp12 {
-        self.add(rhs)
-    }
-}
-
-impl<'a, 'b> Mul<&'b Fp12> for &'a Fp12 {
-    type Output = Fp12;
-
-    #[inline]
-    fn mul(self, rhs: &'b Fp12) -> Fp12 {
-        self.mul(rhs)
-    }
-}
-
 use crate::{
-    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
-    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
-    impl_sum_prod,
+    impl_add_binop_specify_impl, impl_add_binop_specify_output, impl_binops_additive,
+    impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output, impl_sum_prod,
 };
 impl_binops_additive!(Fp12, Fp12);
 impl_binops_multiplicative!(Fp12, Fp12);
+impl_tower2_common!(Fp6, Fp12);
+impl_add_binop_specify_impl!(Fp12);
 impl_sum_prod!(Fp12);
 
 impl Fp12 {
-    #[inline]
-    pub const fn zero() -> Self {
-        Fp12 {
-            c0: Fp6::ZERO,
-            c1: Fp6::ZERO,
-        }
-    }
-
-    #[inline]
-    pub const fn one() -> Self {
-        Fp12 {
-            c0: Fp6::ONE,
-            c1: Fp6::ZERO,
-        }
-    }
-
     pub fn mul_assign(&mut self, other: &Self) {
         let t0 = self.c0 * other.c0;
         let mut t1 = self.c1 * other.c1;
@@ -132,32 +52,6 @@ impl Fp12 {
         self.c0 = c0;
     }
 
-    pub fn double(&self) -> Self {
-        Self {
-            c0: self.c0.double(),
-            c1: self.c1.double(),
-        }
-    }
-
-    pub fn double_assign(&mut self) {
-        self.c0 = self.c0.double();
-        self.c1 = self.c1.double();
-    }
-
-    pub fn add(&self, other: &Self) -> Self {
-        Self {
-            c0: self.c0 + other.c0,
-            c1: self.c1 + other.c1,
-        }
-    }
-
-    pub fn sub(&self, other: &Self) -> Self {
-        Self {
-            c0: self.c0 - other.c0,
-            c1: self.c1 - other.c1,
-        }
-    }
-
     pub fn mul(&self, other: &Self) -> Self {
         let mut t = *other;
         t.mul_assign(self);
@@ -168,14 +62,6 @@ impl Fp12 {
         let mut t = *self;
         t.square_assign();
         t
-    }
-
-    #[inline(always)]
-    pub fn neg(&self) -> Self {
-        Self {
-            c0: -self.c0,
-            c1: -self.c1,
-        }
     }
 
     #[inline(always)]
@@ -262,29 +148,29 @@ impl Fp12 {
 
         fp4_square(&mut t3, &mut t4, &self.c0.c0, &self.c1.c1);
         let mut t2 = t3 - self.c0.c0;
-        t2.double_assign();
+        t2 = t2.double();
         self.c0.c0 = t2 + t3;
 
         t2 = t4 + self.c1.c1;
-        t2.double_assign();
+        t2 = t2.double();
         self.c1.c1 = t2 + t4;
 
         fp4_square(&mut t3, &mut t4, &self.c1.c0, &self.c0.c2);
         fp4_square(&mut t5, &mut t6, &self.c0.c1, &self.c1.c2);
 
         t2 = t3 - self.c0.c1;
-        t2.double_assign();
+        t2 = t2.double();
         self.c0.c1 = t2 + t3;
         t2 = t4 + self.c1.c2;
-        t2.double_assign();
+        t2 = t2.double();
         self.c1.c2 = t2 + t4;
         t3 = t6;
         t3.mul_by_nonresidue();
         t2 = t3 + self.c1.c0;
-        t2.double_assign();
+        t2 = t2.double();
         self.c1.c0 = t2 + t3;
         t2 = t5 - self.c0.c2;
-        t2.double_assign();
+        t2 = t2.double();
         self.c0.c2 = t2 + t5;
     }
 }

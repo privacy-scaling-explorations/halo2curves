@@ -237,10 +237,10 @@ impl G2Prepared {
             tmp3.square_assign();
             tmp3 -= &tmp0;
             tmp3 -= &tmp2;
-            tmp3.double_assign();
+            tmp3 = tmp3.double();
 
             let mut tmp4 = tmp0;
-            tmp4.double_assign();
+            tmp4 = tmp4.double();
             tmp4 += &tmp0;
 
             let mut tmp6 = r.x;
@@ -265,9 +265,9 @@ impl G2Prepared {
             r.y -= &r.x;
             r.y.mul_assign(&tmp4);
 
-            tmp2.double_assign();
-            tmp2.double_assign();
-            tmp2.double_assign();
+            tmp2 = tmp2.double();
+            tmp2 = tmp2.double();
+            tmp2 = tmp2.double();
 
             r.y -= &tmp2;
 
@@ -277,7 +277,7 @@ impl G2Prepared {
             // tmp3 is the first part of line 12
             tmp3 = tmp4;
             tmp3.mul_assign(&zsquared);
-            tmp3.double_assign();
+            tmp3 = tmp3.double();
             tmp3 = tmp3.neg();
 
             // tmp6 is from line 14
@@ -285,15 +285,15 @@ impl G2Prepared {
             tmp6 -= &tmp0;
             tmp6 -= &tmp5;
 
-            tmp1.double_assign();
-            tmp1.double_assign();
+            tmp1 = tmp1.double();
+            tmp1 = tmp1.double();
 
             tmp6 -= &tmp1;
 
             // tmp0 is the first part of line 16
             tmp0 = r.z;
             tmp0.mul_assign(&zsquared);
-            tmp0.double_assign();
+            tmp0 = tmp0.double();
 
             (tmp0, tmp3, tmp6)
         }
@@ -328,8 +328,8 @@ impl G2Prepared {
 
             // t4 corresponds to line 6
             let mut t4 = t3;
-            t4.double_assign();
-            t4.double_assign();
+            t4 = t4.double();
+            t4 = t4.double();
 
             // t5 corresponds to line 7
             let mut t5 = t4;
@@ -373,7 +373,7 @@ impl G2Prepared {
             // corresponds to line 15
             t0 = r.y;
             t0.mul_assign(&t5);
-            t0.double_assign();
+            t0 = t0.double();
 
             // corresponds to line 12, but assigns to r.y instead of T.y
             r.y = t8;
@@ -389,18 +389,18 @@ impl G2Prepared {
             t10 -= &ztsquared;
 
             // corresponds to line 18
-            t9.double_assign();
+            t9 = t9.double();
             t9 -= &t10;
 
             // t10 = 2*Zt from Algo 27, line 19
             t10 = r.z;
-            t10.double_assign();
+            t10 = t10.double();
 
             // t1 = first multiplicator of line 21
             t6 = t6.neg();
 
             t1 = t6;
-            t1.double_assign();
+            t1 = t1.double();
 
             // t9 corresponds to t9 from Algo 27
             (t10, t1, t9)

@@ -1,35 +1,28 @@
 #[cfg(feature = "asm")]
 use crate::bn256::assembly::field_arithmetic_asm;
 #[cfg(not(feature = "asm"))]
-use crate::{arithmetic::macx, field_arithmetic, field_specific};
-
-use crate::arithmetic::{adc, bigint_geq, mac, sbb};
-use crate::extend_field_legendre;
-use crate::ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use crate::{
-    field_bits, field_common, impl_add_binop_specify_output, impl_binops_additive,
-    impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_from_u64, impl_sub_binop_specify_output, impl_sum_prod,
+    arithmetic::{bigint_geq, macx},
+    field_arithmetic_4, field_specific_4,
 };
+
+use crate::arithmetic::{adc, mac, sbb};
+use crate::ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
+use crate::serde::SerdeObject;
 use core::convert::TryInto;
 use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-/// This represents an element of $\mathbb{F}_q$ where
-///
-/// `p = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47`
-///
-/// is the base field of the BN254 curve.
-// The internal representation of this type is four 64-bit unsigned
-// integers in little-endian order. `Fq` values are always in
-// Montgomery form; i.e., Fq(a) = aR mod q, with R = 2^256.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Fq(pub(crate) [u64; 4]);
+// Number of 64 bit limbs to represent the field element
+pub(super) const NUM_BITS: u32 = 254;
 
-#[cfg(feature = "derive_serde")]
-crate::serialize_deserialize_32_byte_primefield!(Fq);
+// Inverter constant
+const BYIL: usize = 6;
+
+// Jabobi constant
+const JACOBI_L: usize = 5;
 
 /// Constant representing the modulus
 /// q = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
@@ -87,7 +80,8 @@ pub const NEGATIVE_ONE: Fq = Fq([
     0x2259d6b14729c0fa,
 ]);
 
-const MODULUS_STR: &str = "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
+pub(crate) const MODULUS_STR: &str =
+    "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
 
 /// Obtained with:
 /// `sage: GF(0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47).primitive_element()`
@@ -127,62 +121,43 @@ const ZETA: Fq = Fq::from_raw([
     0x30644e72e131a029,
 ]);
 
+/// Size of the 2-adic sub-group of the field.
+const S: u32 = 0;
+
+use crate::{
+    const_montgomery_4, extend_field_legendre, field_bits, impl_add_binop_specify_impl,
+    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
+    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_field, impl_from_u64,
+    impl_from_uniform_bytes, impl_prime_field, impl_serde_object, impl_sub_binop_specify_output,
+    impl_sum_prod, pow_vartime,
+};
 impl_binops_additive!(Fq, Fq);
 impl_binops_multiplicative!(Fq, Fq);
-field_common!(
-    Fq,
-    MODULUS,
-    INV,
-    MODULUS_STR,
-    TWO_INV,
-    ROOT_OF_UNITY_INV,
-    DELTA,
-    ZETA,
-    R,
-    R2,
-    R3
-);
+impl_add_binop_specify_impl!(Fq);
+impl_field!(Fq, sparse);
+impl_serde_object!(Fq);
+impl_prime_field!(Fq, [u8; 32], le);
 impl_sum_prod!(Fq);
-impl_from_u64!(Fq, R2);
+extend_field_legendre!(Fq);
+impl_from_uniform_bytes!(Fq, 64);
+impl_from_uniform_bytes!(Fq, 48);
+impl_from_u64!(Fq);
 
+const_montgomery_4!(Fq);
 #[cfg(not(feature = "asm"))]
-field_arithmetic!(Fq, MODULUS, INV, sparse);
+field_arithmetic_4!(Fq, sparse);
 #[cfg(feature = "asm")]
 field_arithmetic_asm!(Fq, MODULUS, INV);
 
 #[cfg(target_pointer_width = "64")]
-field_bits!(Fq, MODULUS);
+field_bits!(Fq);
 #[cfg(not(target_pointer_width = "64"))]
-field_bits!(Fq, MODULUS, MODULUS_LIMBS_32);
+field_bits!(Fq);
+
+#[cfg(feature = "derive_serde")]
+crate::serialize_deserialize_primefield!(Fq, [u8; 32]);
 
 impl Fq {
-    pub const fn size() -> usize {
-        32
-    }
-}
-
-extend_field_legendre!(Fq);
-
-impl ff::Field for Fq {
-    const ZERO: Self = Self::zero();
-    const ONE: Self = Self::one();
-
-    fn random(mut rng: impl RngCore) -> Self {
-        let mut random_bytes = [0; 64];
-        rng.fill_bytes(&mut random_bytes[..]);
-
-        Self::from_uniform_bytes(&random_bytes)
-    }
-
-    fn double(&self) -> Self {
-        self.double()
-    }
-
-    #[inline(always)]
-    fn square(&self) -> Self {
-        self.square()
-    }
-
     /// Computes the square root of this element, if it exists.
     fn sqrt(&self) -> CtOption<Self> {
         let tmp = self.pow([
@@ -194,92 +169,6 @@ impl ff::Field for Fq {
 
         CtOption::new(tmp, tmp.square().ct_eq(self))
     }
-
-    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
-        ff::helpers::sqrt_ratio_generic(num, div)
-    }
-
-    /// Returns the multiplicative inverse of the
-    /// element. If it is zero, the method fails.
-    fn invert(&self) -> CtOption<Self> {
-        self.invert()
-    }
-}
-
-impl ff::PrimeField for Fq {
-    type Repr = [u8; 32];
-
-    const NUM_BITS: u32 = 254;
-    const CAPACITY: u32 = 253;
-    const MODULUS: &'static str = MODULUS_STR;
-    const MULTIPLICATIVE_GENERATOR: Self = MULTIPLICATIVE_GENERATOR;
-    const ROOT_OF_UNITY: Self = ROOT_OF_UNITY;
-    const ROOT_OF_UNITY_INV: Self = ROOT_OF_UNITY_INV;
-    const TWO_INV: Self = TWO_INV;
-    const DELTA: Self = DELTA;
-    const S: u32 = 0;
-
-    fn from_repr(repr: Self::Repr) -> CtOption<Self> {
-        let mut tmp = Fq([0, 0, 0, 0]);
-
-        tmp.0[0] = u64::from_le_bytes(repr[0..8].try_into().unwrap());
-        tmp.0[1] = u64::from_le_bytes(repr[8..16].try_into().unwrap());
-        tmp.0[2] = u64::from_le_bytes(repr[16..24].try_into().unwrap());
-        tmp.0[3] = u64::from_le_bytes(repr[24..32].try_into().unwrap());
-
-        // Try to subtract the modulus
-        let (_, borrow) = sbb(tmp.0[0], MODULUS.0[0], 0);
-        let (_, borrow) = sbb(tmp.0[1], MODULUS.0[1], borrow);
-        let (_, borrow) = sbb(tmp.0[2], MODULUS.0[2], borrow);
-        let (_, borrow) = sbb(tmp.0[3], MODULUS.0[3], borrow);
-
-        // If the element is smaller than MODULUS then the
-        // subtraction will underflow, producing a borrow value
-        // of 0xffff...ffff. Otherwise, it'll be zero.
-        let is_some = (borrow as u8) & 1;
-
-        // Convert to Montgomery form by computing
-        // (a.R^0 * R^2) / R = a.R
-        tmp *= &R2;
-
-        CtOption::new(tmp, Choice::from(is_some))
-    }
-
-    fn to_repr(&self) -> Self::Repr {
-        let tmp: [u64; 4] = (*self).into();
-        let mut res = [0; 32];
-        res[0..8].copy_from_slice(&tmp[0].to_le_bytes());
-        res[8..16].copy_from_slice(&tmp[1].to_le_bytes());
-        res[16..24].copy_from_slice(&tmp[2].to_le_bytes());
-        res[24..32].copy_from_slice(&tmp[3].to_le_bytes());
-
-        res
-    }
-
-    fn is_odd(&self) -> Choice {
-        Choice::from(self.to_repr()[0] & 1)
-    }
-}
-
-impl FromUniformBytes<64> for Fq {
-    /// Converts a 512-bit little endian integer into
-    /// an `Fq` by reducing by the modulus.
-    fn from_uniform_bytes(bytes: &[u8; 64]) -> Self {
-        Self::from_u512([
-            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
-            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
-            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
-            u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
-            u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
-            u64::from_le_bytes(bytes[48..56].try_into().unwrap()),
-            u64::from_le_bytes(bytes[56..64].try_into().unwrap()),
-        ])
-    }
-}
-
-impl WithSmallOrderMulGroup<3> for Fq {
-    const ZETA: Self = ZETA;
 }
 
 #[cfg(test)]
