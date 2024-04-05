@@ -99,7 +99,6 @@ where
         // L = ceil((ceil(log2(p)) + k) / 8)
         assert!((C::Base::NUM_BITS as usize + 128) / 8 <= L);
 
-        // let shifter = find_shifter(modulus, byte_size);
         let map_to_curve: Box<dyn Fn(C::Base) -> C> = match method {
             Method::SSWU => Box::new(move |u| sswu_map_to_curve::<C>(u, z)),
             Method::SVDW => {
