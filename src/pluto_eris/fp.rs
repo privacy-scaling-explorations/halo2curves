@@ -179,13 +179,9 @@ impl_from_u64!(Fp);
 impl_from_uniform_bytes!(Fp, 64);
 impl_from_uniform_bytes!(Fp, 72);
 impl_from_uniform_bytes!(Fp, 112);
+field_bits!(Fp);
 
 field_arithmetic_7!(Fp);
-
-#[cfg(target_pointer_width = "64")]
-field_bits!(Fp);
-#[cfg(not(target_pointer_width = "64"))]
-field_bits!(Fp);
 
 #[cfg(feature = "derive_serde")]
 crate::serialize_deserialize_primefield!(Fp, ReprFp);

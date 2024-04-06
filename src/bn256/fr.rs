@@ -160,17 +160,13 @@ impl_prime_field!(Fr, [u8; 32], le);
 impl_sum_prod!(Fr);
 extend_field_legendre!(Fr);
 impl_from_uniform_bytes!(Fr, 64);
+field_bits!(Fr);
 
 const_montgomery_4!(Fr);
 #[cfg(not(feature = "asm"))]
 field_arithmetic_4!(Fr, sparse);
 #[cfg(feature = "asm")]
 field_arithmetic_asm!(Fr, MODULUS, INV);
-
-#[cfg(target_pointer_width = "64")]
-field_bits!(Fr);
-#[cfg(not(target_pointer_width = "64"))]
-field_bits!(Fr);
 
 #[cfg(not(feature = "bn256-table"))]
 impl_from_u64!(Fr);

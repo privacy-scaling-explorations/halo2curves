@@ -122,14 +122,10 @@ extend_field_legendre!(Fp);
 impl_from_uniform_bytes!(Fp, 64);
 impl_from_uniform_bytes!(Fp, 48);
 impl_from_u64!(Fp);
+field_bits!(Fp);
 
 const_montgomery_4!(Fp);
 field_arithmetic_4!(Fp, dense);
-
-#[cfg(target_pointer_width = "64")]
-field_bits!(Fp);
-#[cfg(not(target_pointer_width = "64"))]
-field_bits!(Fp);
 
 #[cfg(feature = "derive_serde")]
 crate::serialize_deserialize_primefield!(Fp, [u8; 32]);

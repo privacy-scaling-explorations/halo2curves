@@ -424,19 +424,26 @@ macro_rules! impl_serde_object {
 
 #[macro_export]
 macro_rules! field_bits {
-    // For #[cfg(target_pointer_width = "64")]
     ($field:ident) => {
         #[cfg(feature = "bits")]
         #[cfg_attr(docsrs, doc(cfg(feature = "bits")))]
         impl ff::PrimeFieldBits for $field {
+            #[cfg(target_pointer_width = "64")]
             type ReprBits = [u64; NUM_LIMBS];
+            #[cfg(not(target_pointer_width = "64"))]
+            type ReprBits = [u32; NUM_LIMBS * 2];
 
             fn to_le_bits(&self) -> ff::FieldBits<Self::ReprBits> {
                 let bytes: [u8; Self::SIZE] = self.to_repr().into();
 
-                let limbs = (0..NUM_LIMBS)
+                #[cfg(target_pointer_width = "64")]
+                const STEP: usize = 8;
+                #[cfg(not(target_pointer_width = "64"))]
+                const STEP: usize = 4;
+
+                let limbs = (0..NUM_LIMBS * 8 / STEP)
                     .map(|off| {
-                        u64::from_le_bytes(bytes[off * 8..(off + 1) * 8].try_into().unwrap())
+                        u64::from_le_bytes(bytes[off * STEP..(off + 1) * STEP].try_into().unwrap())
                     })
                     .collect::<Vec<_>>();
 
@@ -444,31 +451,12 @@ macro_rules! field_bits {
             }
 
             fn char_le_bits() -> ff::FieldBits<Self::ReprBits> {
-                ff::FieldBits::new(MODULUS.0)
-            }
-        }
-    };
-    // For #[cfg(not(target_pointer_width = "64"))]
-    ($field:ident) => {
-        #[cfg(feature = "bits")]
-        #[cfg_attr(docsrs, doc(cfg(feature = "bits")))]
-        impl ff::PrimeFieldBits for $field {
-            type ReprBits = [u32; NUM_LIMBS * 2];
+                #[cfg(target_pointer_width = "64")]
+                let bits = ff::FieldBits::new(MODULUS.0);
+                #[cfg(not(target_pointer_width = "64"))]
+                let bits = ff::FieldBits::new(MODULUS_LIMBS_32.0);
 
-            fn to_le_bits(&self) -> ff::FieldBits<Self::ReprBits> {
-                let bytes = self.to_repr();
-
-                let limbs = (0..NUM_LIMBS * 2)
-                    .map(|off| {
-                        u64::from_le_bytes(bytes[off * 4..(off + 1) * 4].try_into().unwrap())
-                    })
-                    .collect::<Vec<_>>();
-
-                ff::FieldBits::new(limbs.try_into().unwrap())
-            }
-
-            fn char_le_bits() -> ff::FieldBits<Self::ReprBits> {
-                ff::FieldBits::new(MODULUS_LIMBS_32)
+                bits
             }
         }
     };
