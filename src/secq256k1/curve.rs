@@ -71,7 +71,7 @@ impl Secq256k1 {
 
     fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Self, sha2::Sha256, 48> {
         crate::hash_to_curve::Suite::<Self, sha2::Sha256, 48>::new(
-            b"secq256k1_XMD:SHA-256_SWDW_RO_",
+            b"secq256k1_XMD:SHA-256_SVDW_RO_",
             Self::SVDW_Z,
             crate::hash_to_curve::Method::SVDW,
         )
