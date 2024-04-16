@@ -1,6 +1,8 @@
 use std::ops::Neg;
 
 use crate::CurveAffine;
+use bitvec::slice::BitSlice;
+// use bitvec::vec::BitVec;
 use ff::Field;
 use ff::PrimeField;
 use group::Group;
@@ -286,6 +288,89 @@ impl<C: CurveAffine> Schedule<C> {
     }
 }
 
+pub fn multiexp_serial_bit<C: CurveAffine>(coeffs: &BitSlice, bases: &[C], acc: &mut C::Curve) {
+    for (coeff, base) in coeffs.iter().zip(bases.iter()) {
+        if *coeff {
+            *acc += base;
+        }
+    }
+}
+
+pub fn multiexp_serial_small<C: CurveAffine, const N: usize>(
+    coeffs: &[[u8; N]],
+    bases: &[C],
+    acc: &mut C::Curve,
+) {
+    let c = if bases.len() < 4 {
+        1
+    } else if bases.len() < 32 {
+        3
+    } else {
+        (f64::from(bases.len() as u32)).ln().ceil() as usize
+    };
+
+    let number_of_windows = N * 8 / c + 1;
+
+    for current_window in (0..number_of_windows).rev() {
+        for _ in 0..c {
+            *acc = acc.double();
+        }
+
+        #[derive(Clone, Copy)]
+        enum Bucket<C: CurveAffine> {
+            None,
+            Affine(C),
+            Projective(C::Curve),
+        }
+
+        impl<C: CurveAffine> Bucket<C> {
+            fn add_assign(&mut self, other: &C) {
+                *self = match *self {
+                    Bucket::None => Bucket::Affine(*other),
+                    Bucket::Affine(a) => Bucket::Projective(a + *other),
+                    Bucket::Projective(mut a) => {
+                        a += *other;
+                        Bucket::Projective(a)
+                    }
+                }
+            }
+
+            fn add(self, mut other: C::Curve) -> C::Curve {
+                match self {
+                    Bucket::None => other,
+                    Bucket::Affine(a) => {
+                        other += a;
+                        other
+                    }
+                    Bucket::Projective(a) => other + a,
+                }
+            }
+        }
+
+        let mut buckets: Vec<Bucket<C>> = vec![Bucket::None; 1 << (c - 1)];
+
+        for (coeff, base) in coeffs.iter().zip(bases.iter()) {
+            let coeff = get_booth_index(current_window, c, coeff.as_ref());
+            if coeff.is_positive() {
+                buckets[coeff as usize - 1].add_assign(base);
+            }
+            if coeff.is_negative() {
+                buckets[coeff.unsigned_abs() as usize - 1].add_assign(&base.neg());
+            }
+        }
+
+        // Summation by parts
+        // e.g. 3a + 2b + 1c = a +
+        //                    (a) + b +
+        //                    ((a) + b) + c
+        let mut running_sum = C::Curve::identity();
+        for exp in buckets.into_iter().rev() {
+            running_sum = exp.add(running_sum);
+            *acc += &running_sum;
+        }
+    }
+}
+
 pub fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C::Curve) {
     let coeffs: Vec<_> = coeffs.iter().map(|a| a.to_repr()).collect();
 
@@ -356,6 +441,67 @@ pub fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &
             running_sum = exp.add(running_sum);
             *acc += &running_sum;
         }
+    }
+}
+
+pub fn best_multiexp_bit<C: CurveAffine>(coeffs: &BitSlice, bases: &[C]) -> C::Curve {
+    assert_eq!(coeffs.len(), bases.len());
+
+    let num_threads = rayon::current_num_threads();
+    if coeffs.len() > num_threads {
+        let chunk = coeffs.len() / num_threads;
+        let num_chunks = coeffs.chunks(chunk).len();
+        let mut results = vec![C::Curve::identity(); num_chunks];
+        rayon::scope(|scope| {
+            let chunk = coeffs.len() / num_threads;
+
+            for ((coeffs, bases), acc) in coeffs
+                .chunks(chunk)
+                .zip(bases.chunks(chunk))
+                .zip(results.iter_mut())
+            {
+                scope.spawn(move |_| {
+                    multiexp_serial_bit(coeffs, bases, acc);
+                });
+            }
+        });
+        results.iter().fold(C::Curve::identity(), |a, b| a + b)
+    } else {
+        let mut acc = C::Curve::identity();
+        multiexp_serial_bit(coeffs, bases, &mut acc);
+        acc
+    }
+}
+
+pub fn best_multiexp_small<C: CurveAffine, const N: usize>(
+    coeffs: &[[u8; N]],
+    bases: &[C],
+) -> C::Curve {
+    assert_eq!(coeffs.len(), bases.len());
+
+    let num_threads = rayon::current_num_threads();
+    if coeffs.len() > num_threads {
+        let chunk = coeffs.len() / num_threads;
+        let num_chunks = coeffs.chunks(chunk).len();
+        let mut results = vec![C::Curve::identity(); num_chunks];
+        rayon::scope(|scope| {
+            let chunk = coeffs.len() / num_threads;
+
+            for ((coeffs, bases), acc) in coeffs
+                .chunks(chunk)
+                .zip(bases.chunks(chunk))
+                .zip(results.iter_mut())
+            {
+                scope.spawn(move |_| {
+                    multiexp_serial_small(coeffs, bases, acc);
+                });
+            }
+        });
+        results.iter().fold(C::Curve::identity(), |a, b| a + b)
+    } else {
+        let mut acc = C::Curve::identity();
+        multiexp_serial_small(coeffs, bases, &mut acc);
+        acc
     }
 }
 
@@ -478,10 +624,11 @@ mod test {
 
     use crate::bn256::{Fr, G1Affine, G1};
     use ark_std::{end_timer, start_timer};
+    use bitvec::bitvec;
     use ff::{Field, PrimeField};
     use group::{Curve, Group};
     use pasta_curves::arithmetic::CurveAffine;
-    use rand_core::OsRng;
+    use rand_core::{OsRng, RngCore};
 
     #[test]
     fn test_booth_encoding() {
@@ -529,7 +676,7 @@ mod test {
         }
     }
 
-    fn run_msm_cross<C: CurveAffine>(min_k: usize, max_k: usize) {
+    fn run_msm_cross_bit<C: CurveAffine>(min_k: usize, max_k: usize) {
         let points = (0..1 << max_k)
             .map(|_| C::Curve::random(OsRng))
             .collect::<Vec<_>>();
@@ -537,13 +684,20 @@ mod test {
         C::Curve::batch_normalize(&points[..], &mut affine_points[..]);
         let points = affine_points;
 
-        let scalars = (0..1 << max_k)
-            .map(|_| C::Scalar::random(OsRng))
-            .collect::<Vec<_>>();
+        let bits = 1;
+        let max_val = 2u64.pow(bits);
+        let mut scalars = vec![C::Scalar::ZERO; 1 << max_k];
+        let mut scalars_bit = bitvec![0; 1 << max_k];
+        for i in 0..1 << max_k {
+            let v = OsRng.next_u64() % max_val;
+            scalars[i] = C::Scalar::from(v);
+            scalars_bit.set(i, v != 0);
+        }
 
         for k in min_k..=max_k {
             let points = &points[..1 << k];
             let scalars = &scalars[..1 << k];
+            let scalars_bit = &scalars_bit[..1 << k];
 
             let t0 = start_timer!(|| format!("cyclone k={}", k));
             let e0 = super::best_multiexp_independent_points(scalars, points);
@@ -553,11 +707,64 @@ mod test {
             let e1 = super::best_multiexp(scalars, points);
             end_timer!(t1);
             assert_eq!(e0, e1);
+
+            let t11 = start_timer!(|| format!("older_bit k={}", k));
+            let e11 = super::best_multiexp_bit(scalars_bit, points);
+            end_timer!(t11);
+            assert_eq!(e11, e1);
+        }
+    }
+
+    fn run_msm_cross_small<C: CurveAffine>(min_k: usize, max_k: usize) {
+        let points = (0..1 << max_k)
+            .map(|_| C::Curve::random(OsRng))
+            .collect::<Vec<_>>();
+        let mut affine_points = vec![C::identity(); 1 << max_k];
+        C::Curve::batch_normalize(&points[..], &mut affine_points[..]);
+        let points = affine_points;
+
+        const BYTES: usize = 4;
+        let max_val = 2u128.pow((BYTES * 8) as u32);
+        let mut scalars = vec![C::Scalar::ZERO; 1 << max_k];
+        let mut scalars_small = vec![[0; BYTES]; 1 << max_k];
+        for i in 0..1 << max_k {
+            let v_lo = OsRng.next_u64() as u128;
+            let v_hi = OsRng.next_u64() as u128;
+            let v = (v_lo + v_hi << 64) % max_val;
+            scalars[i] = C::Scalar::from_u128(v);
+            scalars_small[i] = v.to_le_bytes()[..BYTES].try_into().unwrap();
+        }
+
+        for k in min_k..=max_k {
+            let points = &points[..1 << k];
+            let scalars = &scalars[..1 << k];
+            let scalars_small = &scalars_small[..1 << k];
+
+            let t0 = start_timer!(|| format!("cyclone k={}", k));
+            let e0 = super::best_multiexp_independent_points(scalars, points);
+            end_timer!(t0);
+
+            let t1 = start_timer!(|| format!("older k={}", k));
+            let e1 = super::best_multiexp(scalars, points);
+            end_timer!(t1);
+            assert_eq!(e0, e1);
+
+            let t11 = start_timer!(|| format!("older_small k={}", k));
+            let e11 = super::best_multiexp_small(scalars_small, points);
+            end_timer!(t11);
+            assert_eq!(e11, e1);
         }
     }
 
     #[test]
-    fn test_msm_cross() {
-        run_msm_cross::<G1Affine>(14, 22);
+    fn test_msm_cross_bit() {
+        run_msm_cross_bit::<G1Affine>(14, 22);
+        // run_msm_cross::<G1Affine>(18, 20);
+    }
+
+    #[test]
+    fn test_msm_cross_small() {
+        run_msm_cross_small::<G1Affine>(14, 22);
+        // run_msm_cross::<G1Affine>(18, 20);
     }
 }
