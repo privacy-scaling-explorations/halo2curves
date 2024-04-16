@@ -538,6 +538,7 @@ pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Cu
         acc
     }
 }
+
 ///
 /// This function will panic if coeffs and bases have a different length.
 ///
@@ -568,6 +569,85 @@ pub fn best_multiexp_independent_points<C: CurveAffine>(
 
     // number of windows
     let number_of_windows = C::Scalar::NUM_BITS as usize / c + 1;
+    // accumumator for each window
+    let mut acc = vec![C::Curve::identity(); number_of_windows];
+    acc.par_iter_mut().enumerate().rev().for_each(|(w, acc)| {
+        // jacobian buckets for already scheduled points
+        let mut j_bucks = vec![Bucket::<C>::None; 1 << (c - 1)];
+
+        // schedular for affine addition
+        let mut sched = Schedule::new(c);
+
+        for (base_idx, coeff) in coeffs.iter().enumerate() {
+            let buck_idx = get_booth_index(w, c, coeff.as_ref());
+
+            if buck_idx != 0 {
+                // parse bucket index
+                let sign = buck_idx.is_positive();
+                let buck_idx = buck_idx.unsigned_abs() as usize - 1;
+
+                if sched.contains(buck_idx) {
+                    // greedy accumulation
+                    // we use original bases here
+                    j_bucks[buck_idx].add_assign(&bases[base_idx], sign);
+                } else {
+                    // also flushes the schedule if full
+                    sched.add(&bases_local, base_idx, buck_idx, sign);
+                }
+            }
+        }
+
+        // flush the schedule
+        sched.execute(&bases_local);
+
+        // summation by parts
+        // e.g. 3a + 2b + 1c = a +
+        //                    (a) + b +
+        //                    ((a) + b) + c
+        let mut running_sum = C::Curve::identity();
+        for (j_buck, a_buck) in j_bucks.iter().zip(sched.buckets.iter()).rev() {
+            running_sum += j_buck.add(a_buck);
+            *acc += running_sum;
+        }
+
+        // shift accumulator to the window position
+        for _ in 0..c * w {
+            *acc = acc.double();
+        }
+    });
+    acc.into_iter().sum::<_>()
+}
+
+///
+/// This function will panic if coeffs and bases have a different length.
+///
+/// This will use multithreading if beneficial.
+pub fn best_multiexp_independent_points_small<C: CurveAffine, const N: usize>(
+    coeffs: &[[u8; N]],
+    bases: &[C],
+) -> C::Curve {
+    assert_eq!(coeffs.len(), bases.len());
+
+    // TODO: consider adjusting it with emprical data?
+    let c = if bases.len() < 4 {
+        1
+    } else if bases.len() < 32 {
+        3
+    } else {
+        (f64::from(bases.len() as u32)).ln().ceil() as usize
+    };
+
+    if c < 10 {
+        return best_multiexp_small(coeffs, bases);
+    }
+
+    // coeffs to byte representation
+    // let coeffs: Vec<_> = coeffs.par_iter().map(|a| a.to_repr()).collect();
+    // copy bases into `Affine` to skip in on curve check for every access
+    let bases_local: Vec<_> = bases.par_iter().map(Affine::from).collect();
+
+    // number of windows
+    let number_of_windows = N * 8 / c + 1;
     // accumumator for each window
     let mut acc = vec![C::Curve::identity(); number_of_windows];
     acc.par_iter_mut().enumerate().rev().for_each(|(w, acc)| {
@@ -723,14 +803,18 @@ mod test {
         C::Curve::batch_normalize(&points[..], &mut affine_points[..]);
         let points = affine_points;
 
-        const BYTES: usize = 4;
+        const BYTES: usize = 1;
+        assert!(BYTES <= 16);
         let max_val = 2u128.pow((BYTES * 8) as u32);
         let mut scalars = vec![C::Scalar::ZERO; 1 << max_k];
         let mut scalars_small = vec![[0; BYTES]; 1 << max_k];
         for i in 0..1 << max_k {
             let v_lo = OsRng.next_u64() as u128;
             let v_hi = OsRng.next_u64() as u128;
-            let v = (v_lo + v_hi << 64) % max_val;
+            let mut v = v_lo + v_hi << 64;
+            if BYTES < 16 {
+                v %= max_val;
+            }
             scalars[i] = C::Scalar::from_u128(v);
             scalars_small[i] = v.to_le_bytes()[..BYTES].try_into().unwrap();
         }
@@ -743,6 +827,11 @@ mod test {
             let t0 = start_timer!(|| format!("cyclone k={}", k));
             let e0 = super::best_multiexp_independent_points(scalars, points);
             end_timer!(t0);
+
+            let t01 = start_timer!(|| format!("cyclone_small k={}", k));
+            let e01 = super::best_multiexp_independent_points_small(scalars_small, points);
+            end_timer!(t01);
+            assert_eq!(e01, e0);
 
             let t1 = start_timer!(|| format!("older k={}", k));
             let e1 = super::best_multiexp(scalars, points);
