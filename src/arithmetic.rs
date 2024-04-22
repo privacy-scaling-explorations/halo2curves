@@ -70,3 +70,12 @@ pub(crate) fn mul_512(a: [u64; 4], b: [u64; 4]) -> [u64; 8] {
 
     [r0, r1, r2, r3, r4, r5, r6, carry_out]
 }
+
+pub trait CurveAffineExt: pasta_curves::arithmetic::CurveAffine {
+    /// Unlike the `Coordinates` trait, this just returns the raw affine coordinates without checking `is_on_curve`
+    fn into_coordinates(self) -> (Self::Base, Self::Base) {
+        // fallback implementation
+        let coordinates = self.coordinates().unwrap();
+        (*coordinates.x(), *coordinates.y())
+    }
+}
