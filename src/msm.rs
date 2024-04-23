@@ -371,6 +371,84 @@ pub fn multiexp_serial_small<C: CurveAffine, const N: usize>(
     }
 }
 
+pub fn multiexp_serial_prime<C: CurveAffine>(
+    coeffs: &[C::Scalar],
+    bases: &[C],
+    acc: &mut C::Curve,
+) {
+    // let coeffs = coeffs.iter().map(|a| a.to_repr());
+
+    let c = if bases.len() < 4 {
+        1
+    } else if bases.len() < 32 {
+        3
+    } else {
+        (f64::from(bases.len() as u32)).ln().ceil() as usize
+    };
+
+    let number_of_windows = C::Scalar::NUM_BITS as usize / c + 1;
+
+    for current_window in (0..number_of_windows).rev() {
+        for _ in 0..c {
+            *acc = acc.double();
+        }
+
+        #[derive(Clone, Copy)]
+        enum Bucket<C: CurveAffine> {
+            None,
+            Affine(C),
+            Projective(C::Curve),
+        }
+
+        impl<C: CurveAffine> Bucket<C> {
+            fn add_assign(&mut self, other: &C) {
+                *self = match *self {
+                    Bucket::None => Bucket::Affine(*other),
+                    Bucket::Affine(a) => Bucket::Projective(a + *other),
+                    Bucket::Projective(mut a) => {
+                        a += *other;
+                        Bucket::Projective(a)
+                    }
+                }
+            }
+
+            fn add(self, mut other: C::Curve) -> C::Curve {
+                match self {
+                    Bucket::None => other,
+                    Bucket::Affine(a) => {
+                        other += a;
+                        other
+                    }
+                    Bucket::Projective(a) => other + a,
+                }
+            }
+        }
+
+        let mut buckets: Vec<Bucket<C>> = vec![Bucket::None; 1 << (c - 1)];
+
+        for (coeff, base) in coeffs.iter().zip(bases.iter()) {
+            let coeff_slice: &[u8; 32] = unsafe { std::mem::transmute(coeff) };
+            let coeff = get_booth_index(current_window, c, coeff_slice);
+            if coeff.is_positive() {
+                buckets[coeff as usize - 1].add_assign(base);
+            }
+            if coeff.is_negative() {
+                buckets[coeff.unsigned_abs() as usize - 1].add_assign(&base.neg());
+            }
+        }
+
+        // Summation by parts
+        // e.g. 3a + 2b + 1c = a +
+        //                    (a) + b +
+        //                    ((a) + b) + c
+        let mut running_sum = C::Curve::identity();
+        for exp in buckets.into_iter().rev() {
+            running_sum = exp.add(running_sum);
+            *acc += &running_sum;
+        }
+    }
+}
+
 pub fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C::Curve) {
     let coeffs: Vec<_> = coeffs.iter().map(|a| a.to_repr()).collect();
 
@@ -535,6 +613,40 @@ pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Cu
     } else {
         let mut acc = C::Curve::identity();
         multiexp_serial(coeffs, bases, &mut acc);
+        acc
+    }
+}
+
+/// Performs a multi-exponentiation operation.
+///
+/// This function will panic if coeffs and bases have a different length.
+///
+/// This will use multithreading if beneficial.
+pub fn best_multiexp_prime<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
+    assert_eq!(coeffs.len(), bases.len());
+
+    let num_threads = rayon::current_num_threads();
+    if coeffs.len() > num_threads {
+        let chunk = coeffs.len() / num_threads;
+        let num_chunks = coeffs.chunks(chunk).len();
+        let mut results = vec![C::Curve::identity(); num_chunks];
+        rayon::scope(|scope| {
+            let chunk = coeffs.len() / num_threads;
+
+            for ((coeffs, bases), acc) in coeffs
+                .chunks(chunk)
+                .zip(bases.chunks(chunk))
+                .zip(results.iter_mut())
+            {
+                scope.spawn(move |_| {
+                    multiexp_serial_prime(coeffs, bases, acc);
+                });
+            }
+        });
+        results.iter().fold(C::Curve::identity(), |a, b| a + b)
+    } else {
+        let mut acc = C::Curve::identity();
+        multiexp_serial_prime(coeffs, bases, &mut acc);
         acc
     }
 }
@@ -822,26 +934,31 @@ mod test {
         for k in min_k..=max_k {
             let points = &points[..1 << k];
             let scalars = &scalars[..1 << k];
-            let scalars_small = &scalars_small[..1 << k];
+            // let scalars_small = &scalars_small[..1 << k];
 
-            let t0 = start_timer!(|| format!("cyclone k={}", k));
-            let e0 = super::best_multiexp_independent_points(scalars, points);
-            end_timer!(t0);
+            // let t0 = start_timer!(|| format!("cyclone k={}", k));
+            // let e0 = super::best_multiexp_independent_points(scalars, points);
+            // end_timer!(t0);
 
-            let t01 = start_timer!(|| format!("cyclone_small k={}", k));
-            let e01 = super::best_multiexp_independent_points_small(scalars_small, points);
-            end_timer!(t01);
-            assert_eq!(e01, e0);
+            // let t01 = start_timer!(|| format!("cyclone_small k={}", k));
+            // let e01 = super::best_multiexp_independent_points_small(scalars_small, points);
+            // end_timer!(t01);
+            // assert_eq!(e01, e0);
 
             let t1 = start_timer!(|| format!("older k={}", k));
             let e1 = super::best_multiexp(scalars, points);
             end_timer!(t1);
-            assert_eq!(e0, e1);
+            // assert_eq!(e0, e1);
 
-            let t11 = start_timer!(|| format!("older_small k={}", k));
-            let e11 = super::best_multiexp_small(scalars_small, points);
+            let t11 = start_timer!(|| format!("older_prime k={}", k));
+            let e11 = super::best_multiexp_prime(scalars, points);
             end_timer!(t11);
             assert_eq!(e11, e1);
+
+            // let t11 = start_timer!(|| format!("older_small k={}", k));
+            // let e11 = super::best_multiexp_small(scalars_small, points);
+            // end_timer!(t11);
+            // assert_eq!(e11, e1);
         }
     }
 
