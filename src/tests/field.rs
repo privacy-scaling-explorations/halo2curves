@@ -1,10 +1,9 @@
 use ff::{FromUniformBytes, PrimeField};
-use rand::RngCore;
 
 #[macro_export]
 macro_rules! field_testing_suite {
     ($field: ident, "field_arithmetic") => {
-        fn random_multiplication_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+        fn random_multiplication_tests<F: Field, R: rand_core::RngCore>(mut rng: R, n: usize) {
             for _ in 0..n {
                 let a = F::random(&mut rng);
                 let b = F::random(&mut rng);
@@ -27,7 +26,7 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn random_addition_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+        fn random_addition_tests<F: Field, R: rand_core::RngCore>(mut rng: R, n: usize) {
             for _ in 0..n {
                 let a = F::random(&mut rng);
                 let b = F::random(&mut rng);
@@ -50,7 +49,7 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn random_subtraction_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+        fn random_subtraction_tests<F: Field, R: rand_core::RngCore>(mut rng: R, n: usize) {
             for _ in 0..n {
                 let a = F::random(&mut rng);
                 let b = F::random(&mut rng);
@@ -68,7 +67,7 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn random_negation_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+        fn random_negation_tests<F: Field, R: rand_core::RngCore>(mut rng: R, n: usize) {
             for _ in 0..n {
                 let a = F::random(&mut rng);
                 let mut b = a;
@@ -79,7 +78,7 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn random_doubling_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+        fn random_doubling_tests<F: Field, R: rand_core::RngCore>(mut rng: R, n: usize) {
             for _ in 0..n {
                 let mut a = F::random(&mut rng);
                 let mut b = a;
@@ -90,7 +89,7 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn random_squaring_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+        fn random_squaring_tests<F: Field, R: rand_core::RngCore>(mut rng: R, n: usize) {
             for _ in 0..n {
                 let mut a = F::random(&mut rng);
                 let mut b = a;
@@ -101,7 +100,7 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn random_inversion_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+        fn random_inversion_tests<F: Field, R: rand_core::RngCore>(mut rng: R, n: usize) {
             assert!(bool::from(F::ZERO.invert().is_none()));
 
             for _ in 0..n {
@@ -113,7 +112,7 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn random_expansion_tests<F: Field, R: RngCore>(mut rng: R, n: usize) {
+        fn random_expansion_tests<F: Field, R: rand_core::RngCore>(mut rng: R, n: usize) {
             for _ in 0..n {
                 // Compare (a + b)(c + d) and (a*c + b*c + a*d + b*d)
 
@@ -145,7 +144,7 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn zero_tests<F: Field, R: RngCore>(mut rng: R) {
+        fn zero_tests<F: Field, R: rand_core::RngCore>(mut rng: R) {
             assert_eq!(F::ZERO.is_zero().unwrap_u8(), 1);
             {
                 let mut z = F::ZERO;
@@ -171,7 +170,7 @@ macro_rules! field_testing_suite {
             }
         }
 
-        fn one_tests<F: Field, R: RngCore>(mut rng: R)  {
+        fn one_tests<F: Field, R: rand_core::RngCore>(mut rng: R)  {
             assert!(bool::from(F::ONE.invert().is_some()));
 
             // Multiplication by one
@@ -224,6 +223,7 @@ macro_rules! field_testing_suite {
     ($field: ident, "conversion") => {
         #[test]
         fn test_conversion() {
+            use ff::PrimeField;
             let mut rng = XorShiftRng::from_seed([
                 0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54,
                 0x06, 0xbc, 0xe5,
@@ -316,7 +316,7 @@ macro_rules! field_testing_suite {
         #[test]
         #[cfg(feature = "bits")]
         fn test_bits() {
-            use ff::PrimeFieldBits;
+            use ff::{PrimeFieldBits,PrimeField};
             // random bit test
             let mut rng = XorShiftRng::from_seed([
                 0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54,
@@ -334,17 +334,6 @@ macro_rules! field_testing_suite {
     };
 
     ($field: ident, "serialization_check") => {
-        fn is_less_than<const N: usize>(x: &[u64; N], y: &[u64; N]) -> bool {
-            for i in (1..N).rev() {
-                match x[i].cmp(&y[i]) {
-                    core::cmp::Ordering::Less => return true,
-                    core::cmp::Ordering::Greater => return false,
-                    _ => {}
-                }
-            }
-            x[0].lt(&y[0])
-        }
-
         #[test]
         fn test_serialization_check() {
             use $crate::serde::SerdeObject;
@@ -352,13 +341,14 @@ macro_rules! field_testing_suite {
                 0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
                 0xbc, 0xe5,
             ]);
-            const LIMBS: usize = $field::size() / 8;
+            const LIMBS: usize = $field::SIZE / 8;
             // failure check
             for _ in 0..1000000 {
                 let rand_word = [(); LIMBS].map(|_| rng.next_u64());
                 let a = $field(rand_word);
                 let rand_bytes = a.to_raw_bytes();
-                match is_less_than::<LIMBS>(&rand_word, &MODULUS.0) {
+
+                match $field::is_less_than_modulus(&rand_word) {
                     false => {
                         assert!($field::from_raw_bytes(&rand_bytes).is_none());
                     }
@@ -370,10 +360,10 @@ macro_rules! field_testing_suite {
         }
     };
 
-    ($field: ident, "constants", $modulus_str: expr) => {
+    ($field: ident, "constants") => {
         #[test]
         fn test_primefield_constants() {
-            assert_eq!($field::MODULUS, $modulus_str);
+            use ff::PrimeField;
             assert_eq!(
                 $field::ROOT_OF_UNITY_INV,
                 $field::ROOT_OF_UNITY.invert().unwrap()
@@ -396,6 +386,7 @@ macro_rules! field_testing_suite {
         #[test]
         fn test_sqrt() {
             use $crate::ff_ext::Legendre;
+            use ff::PrimeField;
             use rand_core::OsRng;
 
             let v = ($field::TWO_INV).square().sqrt().unwrap();
@@ -443,6 +434,7 @@ macro_rules! field_testing_suite {
     ($field: ident, "zeta" $(, $base_field: ident)*) => {
         #[test]
         fn test_zeta() {
+            use ff::WithSmallOrderMulGroup;
             assert_eq!($field::ZETA * $field::ZETA * $field::ZETA, $field::ONE);
             assert_ne!($field::ZETA * $field::ZETA, $field::ONE);
             $(
@@ -731,6 +723,7 @@ where
 {
     use num_bigint::BigUint;
     use rand_core::OsRng;
+    use rand_core::RngCore;
 
     let mut uniform_bytes = [0u8; L];
     OsRng.fill_bytes(&mut uniform_bytes[..]);

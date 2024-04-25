@@ -11,12 +11,12 @@ use crate::{
 };
 
 impl_field!(
-    secp256r1_base,
+    pluto_eris_fp,
     Fp,
-    modulus = "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff",
-    mul_gen = "6",
-    zeta = "4d6ea8928adb86cf62388a8e0ef623312e68c59bdef3e53fd964598eb819acce",
-    from_uniform = [48, 64],
+    modulus = "24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5cda8a6c7be4a7a5fe8fadffd6a2a7e8c30006b9459ffffcd300000001",
+    mul_gen = "a",
+    zeta = "480000000000360001c950000d7ee0e4a803c956d01c903d720dc8ad8b38dffaf50c100004c37ffffffe",
+    from_uniform = [64, 72, 112],
 );
 
 extend_field_legendre!(Fp);
@@ -29,6 +29,7 @@ crate::impl_from_u64!(Fp);
 
 #[cfg(test)]
 mod test {
+
     use super::*;
     crate::field_testing_suite!(Fp, "field_arithmetic");
     crate::field_testing_suite!(Fp, "conversion");
@@ -39,5 +40,5 @@ mod test {
     crate::field_testing_suite!(Fp, "constants");
     crate::field_testing_suite!(Fp, "sqrt");
     crate::field_testing_suite!(Fp, "zeta");
-    crate::field_testing_suite!(Fp, "from_uniform_bytes", 48, 64);
+    crate::field_testing_suite!(Fp, "from_uniform_bytes", 64, 72, 112);
 }

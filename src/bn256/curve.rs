@@ -63,14 +63,14 @@ pub(crate) fn hash_to_curve_g2<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) 
     })
 }
 
-const G1_GENERATOR_X: Fq = Fq::one();
+const G1_GENERATOR_X: Fq = Fq::ONE;
 const G1_GENERATOR_Y: Fq = Fq::from_raw([2, 0, 0, 0]);
-const G1_A: Fq = Fq::from_raw([0, 0, 0, 0]);
+const G1_A: Fq = Fq::ZERO;
 const G1_B: Fq = Fq::from_raw([3, 0, 0, 0]);
 
 const G2_A: Fq2 = Fq2 {
-    c0: Fq::from_raw([0, 0, 0, 0]),
-    c1: Fq::from_raw([0, 0, 0, 0]),
+    c0: Fq::ZERO,
+    c1: Fq::ZERO,
 };
 
 const G2_B: Fq2 = Fq2 {

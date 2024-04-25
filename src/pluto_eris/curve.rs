@@ -1,4 +1,4 @@
-use super::fields::{fp::Fp, fp2::Fp2, fq::Fq};
+use super::{fp::Fp, fp2::Fp2, fq::Fq};
 use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
@@ -8,7 +8,6 @@ use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::FromUniformBytes;
 use group::cofactor::CofactorGroup;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -164,22 +163,6 @@ impl G1 {
     }
 }
 
-impl FromUniformBytes<72> for Fp {
-    fn from_uniform_bytes(bytes: &[u8; 72]) -> Self {
-        let repr = &mut [0u8; Self::size()];
-
-        (*repr)[0..36].copy_from_slice(&bytes[..36]);
-        let e0 = Fp::from_repr((*repr).into()).unwrap();
-        (*repr)[0..36].copy_from_slice(&bytes[36..]);
-        let e1 = Fp::from_repr((*repr).into()).unwrap();
-
-        // 2^(36*8)
-        const SHIFTER: Fp = Fp::from_raw([0, 0, 0, 0, 0x100000000, 0, 0]);
-
-        e0 + e1 * SHIFTER
-    }
-}
-
 new_curve_impl!(
     (pub),
     Eris,
@@ -256,22 +239,6 @@ impl Eris {
             Self::SVDW_Z,
             crate::hash_to_curve::Method::SVDW,
         )
-    }
-}
-
-impl FromUniformBytes<72> for Fq {
-    fn from_uniform_bytes(bytes: &[u8; 72]) -> Self {
-        let repr = &mut [0u8; Self::size()];
-
-        (*repr)[0..36].copy_from_slice(&bytes[..36]);
-        let e0 = Fq::from_repr((*repr).into()).unwrap();
-        (*repr)[0..36].copy_from_slice(&bytes[36..]);
-        let e1 = Fq::from_repr((*repr).into()).unwrap();
-
-        // 2^(36*8)
-        const SHIFTER: Fq = Fq::from_raw([0, 0, 0, 0, 0x100000000, 0, 0]);
-
-        e0 + e1 * SHIFTER
     }
 }
 

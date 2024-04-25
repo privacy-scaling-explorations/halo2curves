@@ -1,8 +1,8 @@
-use super::fq::{Fq, NEGATIVE_ONE};
+use super::fq::Fq;
 use crate::ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use crate::ff_ext::Legendre;
 use core::convert::TryInto;
-use core::ops::{Add, Mul, Neg, Sub};
+use core::ops::{Add, Neg, Sub};
 use rand::RngCore;
 use std::cmp::Ordering;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -10,168 +10,22 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
 
-/// An element of Fq2, represented by c0 + c1 * u; where u^2 = -1.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
-pub struct Fq2 {
-    pub c0: Fq,
-    pub c1: Fq,
-}
-
-/// `Fq2` elements are ordered lexicographically.
-impl Ord for Fq2 {
-    #[inline(always)]
-    fn cmp(&self, other: &Fq2) -> Ordering {
-        match self.c1.cmp(&other.c1) {
-            Ordering::Greater => Ordering::Greater,
-            Ordering::Less => Ordering::Less,
-            Ordering::Equal => self.c0.cmp(&other.c0),
-        }
-    }
-}
-
-impl PartialOrd for Fq2 {
-    #[inline(always)]
-    fn partial_cmp(&self, other: &Fq2) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl ConditionallySelectable for Fq2 {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Fq2 {
-            c0: Fq::conditional_select(&a.c0, &b.c0, choice),
-            c1: Fq::conditional_select(&a.c1, &b.c1, choice),
-        }
-    }
-}
-
-impl ConstantTimeEq for Fq2 {
-    fn ct_eq(&self, other: &Self) -> Choice {
-        self.c0.ct_eq(&other.c0) & self.c1.ct_eq(&other.c1)
-    }
-}
-
-impl Default for Fq2 {
-    #[inline]
-    fn default() -> Self {
-        Self::ZERO
-    }
-}
-
-impl From<Fq2> for [u8; 64] {
-    fn from(value: Fq2) -> [u8; 64] {
-        value.to_bytes()
-    }
-}
-
-impl<'a> From<&'a Fq2> for [u8; 64] {
-    fn from(value: &'a Fq2) -> [u8; 64] {
-        value.to_bytes()
-    }
-}
-
-impl Neg for Fq2 {
-    type Output = Fq2;
-
-    #[inline]
-    fn neg(self) -> Fq2 {
-        -&self
-    }
-}
-
-impl<'a> Neg for &'a Fq2 {
-    type Output = Fq2;
-
-    #[inline]
-    fn neg(self) -> Fq2 {
-        self.neg()
-    }
-}
-
-impl<'a, 'b> Sub<&'b Fq2> for &'a Fq2 {
-    type Output = Fq2;
-
-    #[inline]
-    fn sub(self, rhs: &'b Fq2) -> Fq2 {
-        self.sub(rhs)
-    }
-}
-
-impl<'a, 'b> Add<&'b Fq2> for &'a Fq2 {
-    type Output = Fq2;
-
-    #[inline]
-    fn add(self, rhs: &'b Fq2) -> Fq2 {
-        self.add(rhs)
-    }
-}
-
-impl<'a, 'b> Mul<&'b Fq2> for &'a Fq2 {
-    type Output = Fq2;
-
-    #[inline]
-    fn mul(self, rhs: &'b Fq2) -> Fq2 {
-        self.mul(rhs)
-    }
-}
-
 use crate::{
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
-    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
-    impl_sum_prod,
+    impl_binops_calls, impl_binops_multiplicative, impl_binops_multiplicative_mixed,
+    impl_sub_binop_specify_output, impl_sum_prod, impl_tower2, impl_tower2_common,
 };
+impl_tower2_common!(Fq, Fq2, serde);
+impl_tower2!(Fq, Fq2, ReprFq2);
 impl_binops_additive!(Fq2, Fq2);
 impl_binops_multiplicative!(Fq2, Fq2);
+impl_binops_calls!(Fq2);
 impl_sum_prod!(Fq2);
 
 impl Fq2 {
-    #[inline]
-    pub const fn zero() -> Fq2 {
-        Fq2 {
-            c0: Fq::zero(),
-            c1: Fq::zero(),
-        }
-    }
-
-    #[inline]
-    pub const fn one() -> Fq2 {
-        Fq2 {
-            c0: Fq::one(),
-            c1: Fq::zero(),
-        }
-    }
-
-    pub const fn new(c0: Fq, c1: Fq) -> Self {
-        Fq2 { c0, c1 }
-    }
-
-    pub const fn size() -> usize {
-        64
-    }
-    /// Attempts to convert a little-endian byte representation of
-    /// a scalar into a `Fq`, failing if the input is not canonical.
-    pub fn from_bytes(bytes: &[u8; 64]) -> CtOption<Fq2> {
-        let c0 = Fq::from_bytes(bytes[0..32].try_into().unwrap());
-        let c1 = Fq::from_bytes(bytes[32..64].try_into().unwrap());
-        CtOption::new(
-            Fq2 {
-                c0: c0.unwrap(),
-                c1: c1.unwrap(),
-            },
-            c0.is_some() & c1.is_some(),
-        )
-    }
-
-    /// Converts an element of `Fq` into a byte representation in
-    /// little-endian byte order.
-    pub fn to_bytes(&self) -> [u8; 64] {
-        let mut res = [0u8; 64];
-        let c0_bytes = self.c0.to_bytes();
-        let c1_bytes = self.c1.to_bytes();
-        res[0..32].copy_from_slice(&c0_bytes[..]);
-        res[32..64].copy_from_slice(&c1_bytes[..]);
-        res
+    pub fn double_assign(&mut self) {
+        self.c0 = self.c0.double();
+        self.c1 = self.c1.double();
     }
 
     pub fn mul_assign(&mut self, other: &Self) {
@@ -197,51 +51,6 @@ impl Fq2 {
         self.c0 = c0 + ab;
     }
 
-    pub fn double(&self) -> Self {
-        Self {
-            c0: self.c0.double(),
-            c1: self.c1.double(),
-        }
-    }
-
-    pub fn double_assign(&mut self) {
-        self.c0 = self.c0.double();
-        self.c1 = self.c1.double();
-    }
-
-    pub fn add(&self, other: &Self) -> Self {
-        Self {
-            c0: self.c0.add(&other.c0),
-            c1: self.c1.add(&other.c1),
-        }
-    }
-
-    pub fn sub(&self, other: &Self) -> Self {
-        Self {
-            c0: self.c0.sub(&other.c0),
-            c1: self.c1.sub(&other.c1),
-        }
-    }
-
-    pub fn mul(&self, other: &Self) -> Self {
-        let mut t = *other;
-        t.mul_assign(self);
-        t
-    }
-
-    pub fn square(&self) -> Self {
-        let mut t = *self;
-        t.square_assign();
-        t
-    }
-
-    pub fn neg(&self) -> Self {
-        Self {
-            c0: self.c0.neg(),
-            c1: self.c1.neg(),
-        }
-    }
-
     // conjugate by negating c1
     pub fn conjugate(&mut self) {
         self.c1 = -self.c1;
@@ -260,9 +69,9 @@ impl Fq2 {
         let t1 = self.c1;
 
         // 8*x*i + 8*y
-        self.double_assign();
-        self.double_assign();
-        self.double_assign();
+        *self = self.double();
+        *self = self.double();
+        *self = self.double();
 
         // 9*y
         self.c0 += &t0;
@@ -303,38 +112,8 @@ impl Fq2 {
         t1 = t1.square();
         t1 + t0
     }
-}
 
-impl Legendre for Fq2 {
-    fn legendre(&self) -> i64 {
-        self.norm().legendre()
-    }
-}
-
-impl Field for Fq2 {
-    const ZERO: Self = Self::zero();
-    const ONE: Self = Self::one();
-
-    fn random(mut rng: impl RngCore) -> Self {
-        Fq2 {
-            c0: Fq::random(&mut rng),
-            c1: Fq::random(&mut rng),
-        }
-    }
-
-    fn is_zero(&self) -> Choice {
-        self.c0.is_zero() & self.c1.is_zero()
-    }
-
-    fn square(&self) -> Self {
-        self.square()
-    }
-
-    fn double(&self) -> Self {
-        self.double()
-    }
-
-    fn sqrt(&self) -> CtOption<Self> {
+    pub fn sqrt(&self) -> CtOption<Self> {
         // Algorithm 9, https://eprint.iacr.org/2012/685.pdf
 
         if self.is_zero().into() {
@@ -357,6 +136,7 @@ impl Field for Fq2 {
             a0.frobenius_map(1);
             a0.mul_assign(&alpha);
 
+            const NEGATIVE_ONE: Fq = Fq::ZERO.sub_const(&Fq::ONE);
             let neg1 = Fq2 {
                 c0: NEGATIVE_ONE,
                 c1: Fq::zero(),
@@ -389,82 +169,6 @@ impl Field for Fq2 {
             }
         }
     }
-
-    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
-        ff::helpers::sqrt_ratio_generic(num, div)
-    }
-
-    fn invert(&self) -> CtOption<Self> {
-        self.invert()
-    }
-}
-
-impl From<bool> for Fq2 {
-    fn from(bit: bool) -> Fq2 {
-        if bit {
-            Fq2::ONE
-        } else {
-            Fq2::ZERO
-        }
-    }
-}
-
-impl From<u64> for Fq2 {
-    fn from(val: u64) -> Self {
-        Fq2 {
-            c0: Fq::from(val),
-            c1: Fq::zero(),
-        }
-    }
-}
-
-// This trait is only implemented to satisfy the requirement of CurveExt
-impl PrimeField for Fq2 {
-    type Repr = Fq2Bytes;
-
-    const MODULUS: &'static str =
-        "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47";
-    const MULTIPLICATIVE_GENERATOR: Self = Fq2 {
-        c0: Fq::from_raw([0x03, 0x0, 0x0, 0x0]),
-        c1: Fq::ZERO,
-    };
-    const NUM_BITS: u32 = 254;
-    const CAPACITY: u32 = 253;
-    const S: u32 = 0;
-    // TODO: Check that we can just 0 this and forget.
-    const ROOT_OF_UNITY: Self = Fq2::zero();
-    const ROOT_OF_UNITY_INV: Self = Fq2 {
-        c0: Fq::zero(),
-        c1: Fq::zero(),
-    };
-    const DELTA: Self = Fq2 {
-        c0: Fq::zero(),
-        c1: Fq::zero(),
-    };
-    const TWO_INV: Self = Fq2 {
-        c0: Fq::from_raw([
-            0x9e10460b6c3e7ea4,
-            0xcbc0b548b438e546,
-            0xdc2822db40c0ac2e,
-            0x183227397098d014,
-        ]),
-        c1: Fq([0, 0, 0, 0]),
-    };
-
-    fn from_repr(repr: Self::Repr) -> CtOption<Self> {
-        let c0 = Fq::from_bytes(&repr.0[..32].try_into().unwrap());
-        let c1 = Fq::from_bytes(&repr.0[32..].try_into().unwrap());
-        // Disallow overflow representation
-        CtOption::new(Fq2::new(c0.unwrap(), c1.unwrap()), Choice::from(1))
-    }
-
-    fn to_repr(&self) -> Self::Repr {
-        Fq2Bytes(self.to_bytes())
-    }
-
-    fn is_odd(&self) -> Choice {
-        self.c0.is_odd() | (self.c0.is_zero() & self.c1.is_odd())
-    }
 }
 
 impl FromUniformBytes<96> for Fq2 {
@@ -475,74 +179,12 @@ impl FromUniformBytes<96> for Fq2 {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct Fq2Bytes([u8; 64]);
-
-impl Default for Fq2Bytes {
-    fn default() -> Self {
-        Self([0u8; 64])
-    }
-}
-
-impl AsMut<[u8]> for Fq2Bytes {
-    fn as_mut(&mut self) -> &mut [u8] {
-        &mut self.0
-    }
-}
-
-impl AsRef<[u8]> for Fq2Bytes {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-}
-
-impl crate::serde::SerdeObject for Fq2 {
-    fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
-        debug_assert_eq!(bytes.len(), 64);
-        let [c0, c1] = [0, 32].map(|i| Fq::from_raw_bytes_unchecked(&bytes[i..i + 32]));
-        Self { c0, c1 }
-    }
-    fn from_raw_bytes(bytes: &[u8]) -> Option<Self> {
-        if bytes.len() != 64 {
-            return None;
-        }
-        let [c0, c1] = [0, 32].map(|i| Fq::from_raw_bytes(&bytes[i..i + 32]));
-        c0.zip(c1).map(|(c0, c1)| Self { c0, c1 })
-    }
-    fn to_raw_bytes(&self) -> Vec<u8> {
-        let mut res = Vec::with_capacity(64);
-        for limb in self.c0.0.iter().chain(self.c1.0.iter()) {
-            res.extend_from_slice(&limb.to_le_bytes());
-        }
-        res
-    }
-    fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
-        let [c0, c1] = [(); 2].map(|_| Fq::read_raw_unchecked(reader));
-        Self { c0, c1 }
-    }
-    fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
-        let c0 = Fq::read_raw(reader)?;
-        let c1 = Fq::read_raw(reader)?;
-        Ok(Self { c0, c1 })
-    }
-    fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        self.c0.write_raw(writer)?;
-        self.c1.write_raw(writer)
-    }
-}
-
-impl WithSmallOrderMulGroup<3> for Fq2 {
-    // Fq::ZETA ^2
-    const ZETA: Self = Fq2 {
-        c0: Fq::from_raw([
-            0x5763473177fffffe,
-            0xd4f263f1acdb5c4f,
-            0x59e26bcea0d48bac,
-            0x0000000000000000,
-        ]),
-        c1: Fq::zero(),
-    };
-}
+const ZETA: Fq = Fq::from_raw([
+    0x5763473177fffffe,
+    0xd4f263f1acdb5c4f,
+    0x59e26bcea0d48bac,
+    0x0000000000000000,
+]);
 
 #[cfg(test)]
 mod test {
