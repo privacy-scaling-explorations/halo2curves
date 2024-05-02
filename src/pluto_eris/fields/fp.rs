@@ -86,6 +86,18 @@ const R2: Fp = Fp([
     0x1a4b16581f66e3cc,
 ]);
 
+/// `R^3 = 2^1792 mod p`
+/// `0x1f51e40a048ddc1789010189f4df0ae1f3bc57efac4b3280b25aa8b46a40b225e5446680e4c4ea0449937d6b40e58f05c67afa3fe916dd69`
+const R3: Fp = Fp([
+    0xc67afa3fe916dd69,
+    0x49937d6b40e58f05,
+    0xe5446680e4c4ea04,
+    0xb25aa8b46a40b225,
+    0xf3bc57efac4b3280,
+    0x89010189f4df0ae1,
+    0x1f51e40a048ddc17,
+]);
+
 /// `GENERATOR = 10 mod p` is a generator of the `p - 1` order multiplicative
 /// subgroup, or in other words a primitive root of the field.
 const GENERATOR: Fp = Fp::from_raw([0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);

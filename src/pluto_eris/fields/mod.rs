@@ -55,13 +55,12 @@ macro_rules! field_common_7_limbs {
             }
 
             fn from_u512(limbs: [u64; 8]) -> $field {
-                let d0 = $field([limbs[0], limbs[1], limbs[2], limbs[3], 0, 0, 0]);
-                let d1 = $field([limbs[4], limbs[5], limbs[6], limbs[7], 0, 0, 0]);
+                let d0 = $field([
+                    limbs[0], limbs[1], limbs[2], limbs[3], limbs[4], limbs[5], limbs[6],
+                ]);
+                let d1 = $field([limbs[7], 0, 0, 0, 0, 0, 0]);
 
-                // 2^256
-                let shifter = $field([0, 0, 0, 0, 1, 0, 0]);
-
-                (d0 + d1 * $r2 * shifter) * $r2
+                d0 * $r2 + d1 * $r3
             }
 
             /// Converts from an integer represented in little endian

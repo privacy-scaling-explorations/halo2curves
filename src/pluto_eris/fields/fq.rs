@@ -84,6 +84,18 @@ const R2: Fq = Fq([
     0x050d7c998f46144e,
 ]);
 
+/// `R^3 = 2^1792 mod q`
+/// `0x2f2c41fb476072baa10b8225e69f7de3b2c1031e6d01279e65191fab1f6ce25295c3c8bd6945406c89b51b218477a6f7252704d7495b38a`
+const R3: Fq = Fq([
+    0x7252704d7495b38a,
+    0xc89b51b218477a6f,
+    0x295c3c8bd6945406,
+    0xe65191fab1f6ce25,
+    0x3b2c1031e6d01279,
+    0xaa10b8225e69f7de,
+    0x02f2c41fb476072b,
+]);
+
 /// `GENERATOR = 7 mod q` is a generator of the `q - 1` order multiplicative
 /// subgroup, or in other words a primitive root of the field.
 const GENERATOR: Fq = Fq::from_raw([0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
