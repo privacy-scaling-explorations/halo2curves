@@ -173,7 +173,7 @@ impl CofactorGroup for G2 {
     type Subgroup = G2;
 
     fn clear_cofactor(&self) -> Self {
-        // cofactor = 2*p - q
+        // cofactor = 2*q - p
         //0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5d3a8a6c7be4a7d5fe91447fd6a8a7e928a00867971ffffcd300000001
         let e: [u8; 56] = [
             0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x24, 0x00, 0x01, 0x30, 0xe0, 0x00, 0x0d, 0x7f,
@@ -196,16 +196,17 @@ impl CofactorGroup for G2 {
     }
 
     fn into_subgroup(self) -> CtOption<Self::Subgroup> {
+        // TODO: Handle the case where the point is already in the subgroup.
         CtOption::new(self.clear_cofactor(), 1.into())
     }
 
     fn is_torsion_free(&self) -> Choice {
-        // group order = p
+        // group order = q
         let e: [u8; 56] = [
             0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x24, 0x00, 0x01, 0x30, 0xe0, 0x00, 0x0d, 0x7f,
             0x70, 0xe4, 0xa8, 0x03, 0xca, 0x76, 0xf4, 0x39, 0x26, 0x6f, 0x44, 0x3f, 0x9a, 0x5c,
-            0xda, 0x8a, 0x6c, 0x7b, 0xe4, 0xa7, 0xa5, 0xfe, 0x8f, 0xad, 0xff, 0xd6, 0xa2, 0xa7,
-            0xe8, 0xc3, 0x00, 0x06, 0xb9, 0x45, 0x9f, 0xff, 0xfc, 0xd3, 0x00, 0x00, 0x00, 0x01,
+            0x7a, 0x8a, 0x6c, 0x7b, 0xe4, 0xa7, 0x75, 0xfe, 0x8e, 0x17, 0x7f, 0xd6, 0x9c, 0xa7,
+            0xe8, 0x5d, 0x60, 0x05, 0x0a, 0xf4, 0x1f, 0xff, 0xfc, 0xd3, 0x00, 0x00, 0x00, 0x01,
         ];
         // self * GROUP_ORDER;
         let mut acc = G2::identity();
@@ -244,6 +245,16 @@ new_curve_impl!(
 mod test {
     use super::*;
     use group::UncompressedEncoding;
+
+    #[test]
+    fn test_cofactor_clearing() {
+        for _ in 0..50 {
+            let point = G2::random(OsRng);
+            assert!(bool::from(point.is_on_curve()));
+            use group::cofactor::CofactorGroup;
+            assert!(bool::from(point.is_torsion_free()));
+        }
+    }
     crate::curve_testing_suite!(G1, Eris, G2);
     crate::curve_testing_suite!(G1, Eris, "hash_to_curve");
     crate::curve_testing_suite!(G1, Eris, "endo_consistency");
