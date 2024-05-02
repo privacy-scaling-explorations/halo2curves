@@ -173,7 +173,7 @@ impl CofactorGroup for G2 {
     type Subgroup = G2;
 
     fn clear_cofactor(&self) -> Self {
-        // cofactor = 2*q - p
+        // cofactor = 2*p - q
         //0x24000000000024000130e0000d7f70e4a803ca76f439266f443f9a5d3a8a6c7be4a7d5fe91447fd6a8a7e928a00867971ffffcd300000001
         let e: [u8; 56] = [
             0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x24, 0x00, 0x01, 0x30, 0xe0, 0x00, 0x0d, 0x7f,
