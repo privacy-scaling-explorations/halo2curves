@@ -246,15 +246,7 @@ mod test {
     use super::*;
     use group::UncompressedEncoding;
 
-    #[test]
-    fn test_cofactor_clearing() {
-        for _ in 0..50 {
-            let point = G2::random(OsRng);
-            assert!(bool::from(point.is_on_curve()));
-            use group::cofactor::CofactorGroup;
-            assert!(bool::from(point.is_torsion_free()));
-        }
-    }
+    crate::curve_testing_suite!(G2, "clear_cofactor");
     crate::curve_testing_suite!(G1, Eris, G2);
     crate::curve_testing_suite!(G1, Eris, "hash_to_curve");
     crate::curve_testing_suite!(G1, Eris, "endo_consistency");
