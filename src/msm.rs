@@ -538,38 +538,28 @@ pub fn multiexp_serial_skip_zeros<C: CurveAffine>(
         (f64::from(bases.len() as u32)).ln().ceil() as usize
     };
 
-    let number_of_windows = C::Scalar::NUM_BITS as usize / c + 1;
-    // println!("c = {}, num_win = {}", c, number_of_windows);
-
-    // In each window, get the booth index of each coefficient
-    let mut coeffs_in_windows = Vec::with_capacity(number_of_windows);
-    // Track what is the last window where we actually have nonzero booth index, so we completely skip buckets where the scalar bits for all coeffs are 0
-    let mut max_nonzero_window = None;
-    for current_window in 0..number_of_windows {
-        let coeffs_in_window: Vec<i32> = coeffs
-            .iter()
-            .map(|coeff| {
-                let coeff = get_booth_index(current_window, c, coeff.as_ref());
-                if coeff != 0 {
-                    max_nonzero_window = Some(current_window);
-                }
-                coeff
-            })
-            .collect();
-        coeffs_in_windows.push(coeffs_in_window);
+    let field_byte_size = coeffs[0].as_ref().len();
+    let mut acc_or = vec![0; field_byte_size];
+    for coeff in &coeffs {
+        for (acc_limb, limb) in acc_or.iter_mut().zip(coeff.as_ref().iter()) {
+            *acc_limb = *acc_limb | *limb;
+        }
     }
-    // Save memory and drop coeffs as bytes since it's not needed anymore
-    drop(coeffs);
+    let max_byte_size = field_byte_size
+        - acc_or
+            .iter()
+            .rev()
+            .position(|v| *v != 0)
+            .unwrap_or(field_byte_size);
 
-    if max_nonzero_window.is_none() {
+    if max_byte_size == 0 {
         return;
     }
-    // println!("max_nonzero_win = {:?}", max_nonzero_window);
-    for coeffs_in_window in coeffs_in_windows
-        .into_iter()
-        .take(max_nonzero_window.unwrap() + 1)
-        .rev()
-    {
+
+    let number_of_windows = max_byte_size * 8 as usize / c + 1;
+    // println!("c = {}, num_win = {}", c, number_of_windows);
+
+    for current_window in (0..number_of_windows).rev() {
         for _ in 0..c {
             *acc = acc.double();
         }
@@ -607,7 +597,8 @@ pub fn multiexp_serial_skip_zeros<C: CurveAffine>(
 
         let mut buckets: Vec<Bucket<C>> = vec![Bucket::None; 1 << (c - 1)];
 
-        for (coeff, base) in coeffs_in_window.into_iter().zip(bases.iter()) {
+        for (coeff, base) in coeffs.iter().zip(bases.iter()) {
+            let coeff = get_booth_index(current_window, c, coeff.as_ref());
             if coeff.is_positive() {
                 buckets[coeff as usize - 1].add_assign(base);
             }
