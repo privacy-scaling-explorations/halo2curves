@@ -399,6 +399,22 @@ macro_rules! curve_testing_suite {
         }
     };
 
+    ($($curve: ident),*, "clear_cofactor") => {
+        #[test]
+        fn test_cofactor_clearing() {
+            use rand_core::OsRng;
+            $(
+                for _ in 0..50 {
+                let point = $curve::random(OsRng);
+                assert!(bool::from(point.is_on_curve()));
+                use group::cofactor::CofactorGroup;
+                assert!(bool::from(point.is_torsion_free()));
+                }
+
+            )*
+        }
+    };
+
     ($($curve: ident),*, "endo_consistency") => {
         #[test]
         fn test_endo_consistency() {

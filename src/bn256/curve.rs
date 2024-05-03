@@ -201,6 +201,8 @@ impl G1 {
 mod test {
     use super::*;
     use group::UncompressedEncoding;
+
+    crate::curve_testing_suite!(G2, "clear_cofactor");
     crate::curve_testing_suite!(G1, G2);
     crate::curve_testing_suite!(G1, "hash_to_curve");
     crate::curve_testing_suite!(G1, "endo_consistency");
