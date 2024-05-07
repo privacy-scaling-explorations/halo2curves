@@ -321,7 +321,7 @@ impl Fp2 {
         // norm = self * self.conjugate()
         let t0 = self.c0.square();
         let t1 = self.c1.square() * U_SQUARE;
-        t1 - t0
+        t0 - t1
     }
 }
 
