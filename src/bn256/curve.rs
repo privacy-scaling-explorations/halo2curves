@@ -204,9 +204,9 @@ impl CofactorGroup for G2 {
 impl G1 {
     const SVDW_Z: Fq = Fq::ONE;
 
-    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Self, sha2::Sha256, 64> {
-        crate::hash_to_curve::Suite::<G1, sha2::Sha256, 64>::new(
-            b"bn256_g1_XMD:SHA-256_SVDW_RO_",
+    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Self, sha2::Sha256, 48> {
+        crate::hash_to_curve::Suite::<G1, sha2::Sha256, 48>::new(
+            b"BN254G1_XMD:SHA-256_SVDW_RO_",
             Self::SVDW_Z,
             crate::hash_to_curve::Method::SVDW,
         )
@@ -218,7 +218,7 @@ impl G2 {
 
     fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Self, sha2::Sha256, 128> {
         crate::hash_to_curve::Suite::<G2, sha2::Sha256, 128>::new(
-            b"bn256_g2_XMD:SHA-256_SVDW_RO_",
+            b"BN254G2_XMD:SHA-256_SVDW_RO_",
             Self::SVDW_Z,
             crate::hash_to_curve::Method::SVDW,
         )
@@ -244,57 +244,69 @@ mod test {
             0x00,
         ]
     );
-    crate::curve_testing_suite!(
-        G1,
-        "svdw_map_to_curve",
-        (
-            // Precomputed constants taken from https://github.com/ConsenSys/gnark-crypto/blob/441dc0ffe639294b8d09e394f24ba7575577229c/internal/generator/config/bn254.go#L26-L32.
-            [
-                "4",
-                "10944121435919637611123202872628637544348155578648911831344518947322613104291",
-                "8815841940592487685674414971303048083897117035520822607866",
-                "7296080957279758407415468581752425029565437052432607887563012631548408736189",
-            ],
-            // List of (u, (Q.x, Q.y)) taken from https://github.com/ConsenSys/gnark-crypto/blob/441dc0ffe639294b8d09e394f24ba7575577229c/ecc/bn254/hash_vectors_test.go#L4-L28
-            [
-                (
-                    "0xcb81538a98a2e3580076eed495256611813f6dae9e16d3d4f8de7af0e9833e1",
-                    (
-                        "0x1bb8810e2ceaf04786d4efd216fc2820ddd9363712efc736ada11049d8af5925",
-                        "0x1efbf8d54c60d865cce08437668ea30f5bf90d287dbd9b5af31da852915e8f11",
-                    ),
+    #[test]
+    fn test_hash_to_curve_2() {
+        struct Test<C: CurveAffine> {
+            msg: &'static [u8],
+            expect: C,
+        }
+
+        impl<C: CurveAffine> Test<C> {
+            fn new(msg: &'static [u8], expect: C) -> Self {
+                Self { msg, expect }
+            }
+
+            fn run(&self, domain_prefix: &str) {
+                // default
+                let r0 = C::CurveExt::hash_to_curve(domain_prefix)(self.msg);
+                assert_eq!(r0.to_affine(), self.expect);
+            }
+        }
+
+        // Test vectors are taken from gnark-crypto
+        let tests = [
+            Test::<G1Affine>::new(
+                b"",
+                crate::tests::point_from_hex(
+                    "0a976ab906170db1f9638d376514dbf8c42aef256a54bbd48521f20749e59e86",
+                    "02925ead66b9e68bfc309b014398640ab55f6619ab59bc1fab2210ad4c4d53d5",
                 ),
-                (
-                    "0xba35e127276e9000b33011860904ddee28f1d48ddd3577e2a797ef4a5e62319",
-                    (
-                        "0xda4a96147df1f35b0f820bd35c6fac3b80e8e320de7c536b1e054667b22c332",
-                        "0x189bd3fbffe4c8740d6543754d95c790e44cd2d162858e3b733d2b8387983bb7",
-                    ),
+            ),
+            Test::<G1Affine>::new(
+                b"abc",
+                crate::tests::point_from_hex(
+                    "23f717bee89b1003957139f193e6be7da1df5f1374b26a4643b0378b5baf53d1",
+                    "04142f826b71ee574452dbc47e05bc3e1a647478403a7ba38b7b93948f4e151d",
                 ),
-                (
-                    "0x11852286660cd970e9d7f46f99c7cca2b75554245e91b9b19d537aa6147c28fc",
-                    (
-                        "0x2ff727cfaaadb3acab713fa22d91f5fddab3ed77948f3ef6233d7ea9b03f4da1",
-                        "0x304080768fd2f87a852155b727f97db84b191e41970506f0326ed4046d1141aa",
-                    ),
+            ),
+            Test::<G1Affine>::new(
+                b"abcdef0123456789",
+                crate::tests::point_from_hex(
+                    "187dbf1c3c89aceceef254d6548d7163fdfa43084145f92c4c91c85c21442d4a",
+                    "0abd99d5b0000910b56058f9cc3b0ab0a22d47cf27615f588924fac1e5c63b4d",
                 ),
-                (
-                    "0x174d1c85d8a690a876cc1deba0166d30569fafdb49cb3ed28405bd1c5357a1cc",
-                    (
-                        "0x11a2eaa8e3e89de056d1b3a288a7f733c8a1282efa41d28e71af065ab245df9b",
-                        "0x60f37c447ac29fd97b9bb83be98ddccf15e34831a9cdf5493b7fede0777ae06",
-                    ),
+            ),
+            Test::<G1Affine>::new(
+                b"q128_qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",
+                crate::tests::point_from_hex(
+                    "00fe2b0743575324fc452d590d217390ad48e5a16cf051bee5c40a2eba233f5c",
+                    "0794211e0cc72d3cbbdf8e4e5cd6e7d7e78d101ff94862caae8acbe63e9fdc78",
                 ),
-                (
-                    "0x73b81432b4cf3a8a9076201500d1b94159539f052a6e0928db7f2df74bff672",
-                    (
-                        "0x27409dccc6ee4ce90e24744fda8d72c0bc64e79766f778da0c1c0ef1c186ea84",
-                        "0x1ac201a542feca15e77f30370da183514dc99d8a0b2c136d64ede35cd0b51dc0",
-                    ),
+            ), //
+            Test::<G1Affine>::new(
+                b"512_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                crate::tests::point_from_hex(
+                    "01b05dc540bd79fd0fea4fbb07de08e94fc2e7bd171fe025c479dc212a2173ce",
+                    "1bf028afc00c0f843d113758968f580640541728cfc6d32ced9779aa613cd9b0",
                 ),
-            ]
-        )
-    );
+            ),
+        ];
+
+        tests.iter().for_each(|test| {
+            test.run("QUUX-V01-CS02-with-");
+        });
+    }
+
     crate::curve_testing_suite!(
         G1,
         "constants",

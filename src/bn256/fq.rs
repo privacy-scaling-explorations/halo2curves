@@ -278,6 +278,22 @@ impl FromUniformBytes<64> for Fq {
     }
 }
 
+impl FromUniformBytes<48> for Fq {
+    fn from_uniform_bytes(bytes: &[u8; 48]) -> Self {
+        let repr = &mut [0u8; Self::size()];
+
+        (*repr)[0..24].copy_from_slice(&bytes[..24]);
+        let e0 = Fq::from_repr(*repr).unwrap();
+        (*repr)[0..24].copy_from_slice(&bytes[24..]);
+        let e1 = Fq::from_repr(*repr).unwrap();
+
+        // 2^192
+        const SHIFTER: Fq = Fq::from_raw([0, 0, 0, 1]);
+
+        e0 + e1 * SHIFTER
+    }
+}
+
 impl WithSmallOrderMulGroup<3> for Fq {
     const ZETA: Self = ZETA;
 }

@@ -475,9 +475,9 @@ impl FromUniformBytes<64> for Fq2 {
 
 impl FromUniformBytes<128> for Fq2 {
     fn from_uniform_bytes(bytes: &[u8; 128]) -> Self {
-        let c0 = bytes[..64].try_into().unwrap();
-        let c1 = bytes[64..].try_into().unwrap();
-        Self::new(Fq::from_uniform_bytes(c0), Fq::from_uniform_bytes(c1))
+        let c0: [u8; 64] = bytes[..64].try_into().unwrap();
+        let c1: [u8; 64] = bytes[64..].try_into().unwrap();
+        Self::new(Fq::from_uniform_bytes(&c0), Fq::from_uniform_bytes(&c1))
     }
 }
 
