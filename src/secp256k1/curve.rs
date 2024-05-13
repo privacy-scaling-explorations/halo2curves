@@ -320,6 +320,8 @@ pub(crate) fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
 
 #[cfg(test)]
 mod test {
+    use crate::tests::curve::TestH2C;
+
     use super::*;
     use group::UncompressedEncoding;
     crate::curve_testing_suite!(Secp256k1);
@@ -338,64 +340,45 @@ mod test {
 
     #[test]
     fn test_hash_to_curve() {
-        struct Test<C: CurveAffine> {
-            msg: &'static [u8],
-            expect: C,
-        }
-
-        impl<C: CurveAffine> Test<C> {
-            fn new(msg: &'static [u8], expect: C) -> Self {
-                Self { msg, expect }
-            }
-
-            fn run(&self, domain_prefix: &str) {
-                // default
-                let r0 = C::CurveExt::hash_to_curve(domain_prefix)(self.msg);
-                assert_eq!(r0.to_affine(), self.expect);
-            }
-        }
-
         // Test vectors are taken from
         // https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-expand_message_xmdsha-256
-        let tests = [
-            Test::<Secp256k1Affine>::new(
+        [
+            TestH2C::<Secp256k1Affine>::new(
                 b"",
                 crate::tests::point_from_hex(
                     "c1cae290e291aee617ebaef1be6d73861479c48b841eaba9b7b5852ddfeb1346",
                     "64fa678e07ae116126f08b022a94af6de15985c996c3a91b64c406a960e51067",
                 ),
             ),
-            Test::<Secp256k1Affine>::new(
+            TestH2C::<Secp256k1Affine>::new(
                 b"abc",
                 crate::tests::point_from_hex(
                     "3377e01eab42db296b512293120c6cee72b6ecf9f9205760bd9ff11fb3cb2c4b",
                     "7f95890f33efebd1044d382a01b1bee0900fb6116f94688d487c6c7b9c8371f6",
                 ),
             ),
-            Test::<Secp256k1Affine>::new(
+            TestH2C::<Secp256k1Affine>::new(
                 b"abcdef0123456789",
                 crate::tests::point_from_hex(
                     "bac54083f293f1fe08e4a70137260aa90783a5cb84d3f35848b324d0674b0e3a",
                     "4436476085d4c3c4508b60fcf4389c40176adce756b398bdee27bca19758d828",
                 ),
             ),
-            Test::<Secp256k1Affine>::new(
+            TestH2C::<Secp256k1Affine>::new(
                 b"q128_qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",
                 crate::tests::point_from_hex(
                     "e2167bc785333a37aa562f021f1e881defb853839babf52a7f72b102e41890e9",
                     "f2401dd95cc35867ffed4f367cd564763719fbc6a53e969fb8496a1e6685d873",
                 ),
             ), //
-            Test::<Secp256k1Affine>::new(
+            TestH2C::<Secp256k1Affine>::new(
                 b"a512_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 crate::tests::point_from_hex(
                     "e3c8d35aaaf0b9b647e88a0a0a7ee5d5bed5ad38238152e4e6fd8c1f8cb7c998",
                     "8446eeb6181bf12f56a9d24e262221cc2f0c4725c7e3803024b5888ee5823aa6",
                 ),
             ),
-        ];
-
-        tests.iter().for_each(|test| {
+        ].iter().for_each(|test| {
             test.run("QUUX-V01-CS02-with-");
         });
     }
