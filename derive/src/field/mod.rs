@@ -589,7 +589,9 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                             .unwrap();
                         let a1 = #field(a1);
 
-                        a0 * Self::R2 + a1 * Self::R3
+                        // enforce non assmebly impl since asm is likely to be optimized for sparse fields
+                        a0.mul_const(&Self::R2) + a1.mul_const(&Self::R3)
+
                     }
                 }
             }

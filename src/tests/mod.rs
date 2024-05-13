@@ -31,6 +31,14 @@ pub(crate) fn fe_to_big<F: PrimeField>(fe: &F) -> BigUint {
     BigUint::from_bytes_le(fe.to_repr().as_ref())
 }
 
+pub fn big_to_fe<F: PrimeField>(e: &BigUint) -> F {
+    let e = e % modulus::<F>();
+    let bytes = e.to_bytes_le();
+    let mut repr = F::Repr::default();
+    repr.as_mut()[..bytes.len()].copy_from_slice(&bytes[..]);
+    F::from_repr(repr).unwrap()
+}
+
 pub(crate) fn modulus<F: PrimeField>() -> BigUint {
     fe_to_big(&-F::ONE) + 1usize
 }

@@ -725,18 +725,18 @@ where
     use rand_core::OsRng;
     use rand_core::RngCore;
 
-    let mut uniform_bytes = [0u8; L];
-    OsRng.fill_bytes(&mut uniform_bytes[..]);
+    let uniform_bytes = [0u8; L];
+    assert_eq!(F::from_uniform_bytes(&uniform_bytes), F::ZERO);
 
-    let e0 = {
+    let mut uniform_bytes = [u8::MAX; L];
+
+    for _ in 0..10000 {
         let e0 = BigUint::from_bytes_le(&uniform_bytes);
-        let e0 = e0 % crate::tests::modulus::<F>();
-        let bytes = e0.to_bytes_le();
-        let mut e0 = F::Repr::default();
-        e0.as_mut()[..bytes.len()].copy_from_slice(&bytes);
-        F::from_repr(e0).unwrap()
-    };
+        let e0: F = crate::tests::big_to_fe(&e0);
 
-    let e1 = F::from_uniform_bytes(&uniform_bytes);
-    assert_eq!(e0, e1);
+        let e1 = F::from_uniform_bytes(&uniform_bytes);
+        assert_eq!(e0, e1);
+
+        OsRng.fill_bytes(&mut uniform_bytes[..]);
+    }
 }
