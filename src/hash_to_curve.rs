@@ -27,12 +27,11 @@ pub(crate) fn expand_message<D: Digest + BlockSizeUser>(
         domain_prefix.len() + domain.len() < 256,
         "long dst is not supported yet"
     );
-    assert!(out_len < 256, "larger output length is not supported yet");
 
     let mut h = D::new();
     h.update(vec![0; D::block_size()]);
     h.update(message);
-    h.update([0, out_len as u8, 0]);
+    h.update([(out_len >> 8) as u8, out_len as u8, 0]);
     h.update(domain_prefix);
     h.update(domain);
     h.update([(domain.len() + domain_prefix.len()) as u8]);

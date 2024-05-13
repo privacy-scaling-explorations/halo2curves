@@ -523,3 +523,22 @@ macro_rules! curve_testing_suite {
         }
     };
 }
+
+use crate::{CurveAffine, CurveExt};
+use group::Curve;
+
+pub(crate) struct TestH2C<C: CurveAffine> {
+    msg: &'static [u8],
+    expect: C,
+}
+
+impl<C: CurveAffine> TestH2C<C> {
+    pub(crate) fn new(msg: &'static [u8], expect: C) -> Self {
+        Self { msg, expect }
+    }
+
+    pub(crate) fn run(&self, domain_prefix: &str) {
+        let r0 = C::CurveExt::hash_to_curve(domain_prefix)(self.msg);
+        assert_eq!(r0.to_affine(), self.expect);
+    }
+}
