@@ -87,9 +87,9 @@ impl group::cofactor::CofactorGroup for G1 {
 impl G1 {
     const SVDW_Z: Fq = Fq::ONE;
 
-    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Self, sha2::Sha256, 64> {
-        crate::hash_to_curve::Suite::<G1, sha2::Sha256, 64>::new(
-            b"grumpkin_g1_XMD:SHA-256_SVDW_RO_",
+    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Self, sha2::Sha256, 48> {
+        crate::hash_to_curve::Suite::<G1, sha2::Sha256, 48>::new(
+            b"GRUMPKIN_XMD:SHA-256_SVDW_RO_",
             Self::SVDW_Z,
             crate::hash_to_curve::Method::SVDW,
         )

@@ -467,12 +467,6 @@ impl PrimeField for Fq2 {
     }
 }
 
-impl FromUniformBytes<64> for Fq2 {
-    fn from_uniform_bytes(bytes: &[u8; 64]) -> Self {
-        Self::new(Fq::from_uniform_bytes(bytes), Fq::zero())
-    }
-}
-
 impl FromUniformBytes<96> for Fq2 {
     fn from_uniform_bytes(bytes: &[u8; 96]) -> Self {
         let c0: [u8; 48] = bytes[..48].try_into().unwrap();
