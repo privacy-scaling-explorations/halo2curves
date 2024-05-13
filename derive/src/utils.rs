@@ -18,6 +18,13 @@ pub(crate) fn big_to_limbs(e: &BigUint, number_of_limbs: usize) -> Vec<u64> {
         .collect()
 }
 
+pub(crate) fn big_to_limbs_32(e: &BigUint, number_of_limbs: usize) -> Vec<u32> {
+    decompose(e, number_of_limbs, 32)
+        .iter()
+        .map(|x| x.to_u32().unwrap())
+        .collect()
+}
+
 pub(crate) fn big_to_token(e: &BigUint, number_of_limbs: usize) -> proc_macro2::TokenStream {
     let limbs = big_to_limbs(e, number_of_limbs);
     quote::quote! {[#(#limbs,)*]}

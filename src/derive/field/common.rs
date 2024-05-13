@@ -20,7 +20,16 @@ macro_rules! field_bits {
 
                 let limbs = (0..Self::NUM_LIMBS * 8 / STEP)
                     .map(|off| {
-                        u64::from_le_bytes(bytes[off * STEP..(off + 1) * STEP].try_into().unwrap())
+                        #[cfg(target_pointer_width = "64")]
+                        let limb = u64::from_le_bytes(
+                            bytes[off * STEP..(off + 1) * STEP].try_into().unwrap(),
+                        );
+                        #[cfg(not(target_pointer_width = "64"))]
+                        let limb = u32::from_le_bytes(
+                            bytes[off * STEP..(off + 1) * STEP].try_into().unwrap(),
+                        );
+
+                        limb
                     })
                     .collect::<Vec<_>>();
 
@@ -31,7 +40,7 @@ macro_rules! field_bits {
                 #[cfg(target_pointer_width = "64")]
                 let bits = ff::FieldBits::new(Self::MODULUS_LIMBS);
                 #[cfg(not(target_pointer_width = "64"))]
-                let bits = ff::FieldBits::new(MODULUS_LIMBS_32.0);
+                let bits = ff::FieldBits::new(Self::MODULUS_LIMBS_32);
 
                 bits
             }

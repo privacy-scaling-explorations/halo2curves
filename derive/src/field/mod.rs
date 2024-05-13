@@ -94,6 +94,10 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
     let modulus_limbs = crate::utils::big_to_limbs(&modulus, num_limbs);
     let modulus_str = format!("0x{}", modulus.to_str_radix(16));
     let modulus_limbs_ident = quote! {[#(#modulus_limbs,)*]};
+
+    let modulus_limbs_32 = crate::utils::big_to_limbs_32(&modulus, num_limbs * 2);
+    let modulus_limbs_32_ident = quote! {[#(#modulus_limbs_32,)*]};
+
     let to_token = |e: &BigUint| big_to_token(e, num_limbs);
 
     // binary modulus
@@ -265,6 +269,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
             pub const SIZE: usize = #num_limbs * 8;
             pub const NUM_LIMBS: usize = #num_limbs;
             pub(crate) const MODULUS_LIMBS: [u64; Self::NUM_LIMBS] = #modulus_limbs_ident;
+            pub(crate) const MODULUS_LIMBS_32: [u32; Self::NUM_LIMBS*2] = #modulus_limbs_32_ident;
             const R: Self = Self(#r1);
             const R2: Self = Self(#r2);
             const R3: Self = Self(#r3);
