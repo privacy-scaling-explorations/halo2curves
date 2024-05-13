@@ -41,6 +41,13 @@ impl From<u64> for Fr {
     }
 }
 
+#[cfg(feature = "bn256-table")]
+#[rustfmt::skip]
+mod table;
+#[cfg(feature = "bn256-table")]
+#[cfg(test)]
+mod table_tests;
+
 #[cfg(test)]
 mod test {
 
