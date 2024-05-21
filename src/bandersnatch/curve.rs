@@ -102,7 +102,7 @@ impl Bandersnatch {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bandersnatch::{Bandersnatch, Fp, Fr};
+    use crate::bandersnatch::{Fp, Fr};
     use crate::group::Curve;
     use ff::FromUniformBytes;
     use rand_core::OsRng;

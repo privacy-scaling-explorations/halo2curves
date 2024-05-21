@@ -1002,14 +1002,14 @@ impl TwistedEdwardsCurveAffineExt for BandersnatchTEAffine {
 }
 #[cfg(test)]
 mod tests {
-    use crate::bandersnatch::BandersnatchTEAffine;
-    use pasta_curves::arithmetic::CurveAffine;
     use crate::bandersnatch::te_curve::TE_D_PARAMETER;
-    use ff::Field;
     use crate::bandersnatch::BandersnatchTE;
-    use ff::PrimeField;
-    use pasta_curves::arithmetic::CurveExt;
+    use crate::bandersnatch::BandersnatchTEAffine;
     use crate::bandersnatch::Fr;
+    use ff::Field;
+    use ff::PrimeField;
+    use pasta_curves::arithmetic::CurveAffine;
+    use pasta_curves::arithmetic::CurveExt;
 
     #[test]
     fn test_is_on_curve() {
