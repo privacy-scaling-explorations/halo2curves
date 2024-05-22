@@ -29,26 +29,19 @@ impl Fq2 {
     }
 
     pub fn mul_assign(&mut self, other: &Self) {
-        let mut t0 = self.c0 + self.c1;
-        let mut t1 = self.c0 * other.c0;
+        let t1 = self.c0 * other.c0;
         let t2 = self.c1 * other.c1;
 
+        self.c1 = (self.c0 + self.c1) * (other.c0 + other.c1) - (t1 + t2);
         self.c0 = t1 - t2;
-        self.c1 = other.c0 + other.c1;
-        t1 += t2;
-        t0 *= self.c1;
-        self.c1 = t0 - t1;
     }
 
     pub fn square_assign(&mut self) {
-        let ab = self.c0 * self.c1;
-        let c0c1 = self.c0 + self.c1;
-        let mut c0 = -self.c1;
-        c0 += self.c0;
-        c0 *= c0c1;
-        c0 -= ab;
-        self.c1 = ab.double();
-        self.c0 = c0 + ab;
+        let a = self.c0 + self.c1;
+        let b = self.c0 - self.c1;
+        let c = self.c0.double();
+        self.c0 = a * b;
+        self.c1 = c * self.c1;
     }
 
     // conjugate by negating c1
@@ -63,54 +56,35 @@ impl Fq2 {
     }
 
     /// Multiply this element by quadratic nonresidue 9 + u.
-    pub fn mul_by_nonresidue(&mut self) {
+    pub fn mul_by_nonresidue(&self) -> Self {
         // (xu+y)(u+9) = (9x+y)u+(9y-x)
         let t0 = self.c0;
         let t1 = self.c1;
 
         // 8*x*i + 8*y
-        *self = self.double();
-        *self = self.double();
-        *self = self.double();
+        let t = self.double().double().double();
 
-        // 9*y
-        self.c0 += &t0;
-        // (9*y - x)
-        self.c0 -= &t1;
-
-        // (9*x)u
-        self.c1 += &t1;
-        // (9*x + y)
-        self.c1 += &t0;
+        Self {
+            // 9*y
+            c0: t.c0 + t0 - t1,
+            // (9*x + y)
+            c1: t.c1 + t0 + t1,
+        }
     }
 
     pub fn invert(&self) -> CtOption<Self> {
-        let mut t1 = self.c1;
-        t1 = t1.square();
-        let mut t0 = self.c0;
-        t0 = t0.square();
-        t0 += &t1;
-        t0.invert().map(|t| {
-            let mut tmp = Fq2 {
-                c0: self.c0,
-                c1: self.c1,
-            };
-            tmp.c0 *= &t;
-            tmp.c1 *= &t;
-            tmp.c1 = -tmp.c1;
-
-            tmp
-        })
+        (self.c0.square() + self.c1.square())
+            .invert()
+            .map(|t| Self {
+                c0: self.c0 * t,
+                c1: self.c1 * -t,
+            })
     }
 
     /// Norm of Fq2 as extension field in i over Fq
     #[inline]
     fn norm(&self) -> Fq {
-        let mut t0 = self.c0;
-        let mut t1 = self.c1;
-        t0 = t0.square();
-        t1 = t1.square();
-        t1 + t0
+        self.c0.square() + self.c1.square()
     }
 
     pub fn sqrt(&self) -> CtOption<Self> {
@@ -136,9 +110,8 @@ impl Fq2 {
             a0.frobenius_map(1);
             a0.mul_assign(&alpha);
 
-            const NEGATIVE_ONE: Fq = Fq::ZERO.sub_const(&Fq::ONE);
             let neg1 = Fq2 {
-                c0: NEGATIVE_ONE,
+                c0: Fq::ZERO.sub_const(&Fq::ONE),
                 c1: Fq::zero(),
             };
 
@@ -254,12 +227,12 @@ mod test {
         };
 
         for _ in 0..1000 {
-            let mut a = Fq2::random(&mut rng);
-            let mut b = a;
-            a.mul_by_nonresidue();
-            b.mul_assign(&nqr);
+            let e = Fq2::random(&mut rng);
 
-            assert_eq!(a, b);
+            let a0 = e.mul_by_nonresidue();
+            let a1 = e * nqr;
+
+            assert_eq!(a0, a1);
         }
     }
 }

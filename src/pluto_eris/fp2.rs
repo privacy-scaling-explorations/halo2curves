@@ -84,9 +84,9 @@ impl Fp2 {
     }
 
     /// Multiply this element by cubic nonresidue: V_CUBE = 57/(u+3)
-    pub fn mul_by_nonresidue(&mut self) {
+    pub fn mul_by_nonresidue(&self) -> Self {
         // (x + y * u) * 57/(u + 3)
-        self.mul_assign(&super::fp6::V_CUBE)
+        self * super::fp6::V_CUBE
     }
 
     pub fn invert(&self) -> CtOption<Self> {
@@ -266,12 +266,12 @@ mod test {
         ]);
         let nqr = crate::pluto_eris::fp6::V_CUBE;
         for _ in 0..1000 {
-            let mut a = Fp2::random(&mut rng);
-            let mut b = a;
-            a.mul_by_nonresidue();
-            b.mul_assign(&nqr);
+            let e = Fp2::random(&mut rng);
 
-            assert_eq!(a, b);
+            let a0 = e.mul_by_nonresidue();
+            let a1 = e * nqr;
+
+            assert_eq!(a0, a1);
         }
     }
 }

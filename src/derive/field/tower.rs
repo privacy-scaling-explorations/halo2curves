@@ -124,6 +124,28 @@ macro_rules! impl_tower2_common {
 }
 
 #[macro_export]
+macro_rules! impl_tower2_from_uniform_bytes {
+    (
+        $field:ident,
+        $tower:ident,
+        $size:expr
+    ) => {
+        impl FromUniformBytes<{ $size }> for $tower {
+            fn from_uniform_bytes(bytes: &[u8; $size]) -> Self {
+                assert!($size % 2 == 0);
+                const SIZE: usize = $size / 2;
+                let c0: [u8; SIZE] = bytes[SIZE..].try_into().unwrap();
+                let c1: [u8; SIZE] = bytes[..SIZE].try_into().unwrap();
+                Self::new(
+                    $field::from_uniform_bytes(&c0),
+                    $field::from_uniform_bytes(&c1),
+                )
+            }
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! impl_tower2 {
     (
         $field:ident,
@@ -190,6 +212,18 @@ macro_rules! impl_tower2 {
                 res[$field::SIZE..$field::SIZE * 2].copy_from_slice(&c1_bytes[..]);
                 res
             }
+
+            #[inline]
+            pub fn lexicographically_largest(&self) -> Choice {
+                // If this element's c1 coefficient is lexicographically largest
+                // then it is lexicographically largest. Otherwise, in the event
+                // the c1 coefficient is zero and the c0 coefficient is
+                // lexicographically largest, then this element is lexicographically
+                // largest.
+
+                self.c1.lexicographically_largest()
+                    | (self.c1.is_zero() & self.c0.lexicographically_largest())
+            }
         }
 
         impl ff::Field for $tower {
@@ -251,17 +285,28 @@ macro_rules! impl_tower2 {
             };
 
             fn from_repr(repr: Self::Repr) -> CtOption<Self> {
-                let c0 = $field::from_bytes(&repr.0[..$field::SIZE].try_into().unwrap());
-                let c1 = $field::from_bytes(&repr.0[$field::SIZE..].try_into().unwrap());
+                let c0: [u8; $field::SIZE] = repr.0[..$field::SIZE].try_into().unwrap();
+                let c0: <$field as PrimeField>::Repr = c0.into();
+                let c0 = $field::from_repr(c0);
+
+                let c1: [u8; $field::SIZE] = repr.0[$field::SIZE..].try_into().unwrap();
+                let c1: <$field as PrimeField>::Repr = c1.into();
+                let c1 = $field::from_repr(c1);
+
                 CtOption::new($tower::new(c0.unwrap(), c1.unwrap()), Choice::from(1))
             }
 
             fn to_repr(&self) -> Self::Repr {
-                $repr(self.to_bytes())
+                let mut res = [0u8; Self::SIZE];
+                let c0 = self.c0.to_repr();
+                let c1 = self.c1.to_repr();
+                res[0..$field::SIZE].copy_from_slice(&c0.as_ref()[..]);
+                res[$field::SIZE..$field::SIZE * 2].copy_from_slice(&c1.as_ref()[..]);
+                $repr(res.into())
             }
 
             fn is_odd(&self) -> Choice {
-                Choice::from(self.to_repr().as_ref()[0] & 1)
+                self.c0.is_odd() | (self.c0.is_zero() & self.c1.is_odd())
             }
         }
 
@@ -370,7 +415,9 @@ macro_rules! impl_tower6 {
     (
         $field:ident,
         $tower2:ident,
-        $tower6:ident
+        $tower6:ident,
+        $frobenius_c1:expr,
+        $frobenius_c2:expr
     ) => {
         #[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
         pub struct $tower6 {
@@ -480,7 +527,98 @@ macro_rules! impl_tower6 {
             }
         }
 
-        #[cfg(test)]
+        impl $tower6 {
+            pub fn mul_assign(&mut self, other: &Self) {
+                let a_a = self.c0 * other.c0;
+                let b_b = self.c1 * other.c1;
+                let c_c = self.c2 * other.c2;
+
+                let t1 = (other.c1 + other.c2) * (self.c1 + self.c2) - (c_c + b_b);
+                let t1 = t1.mul_by_nonresidue() + a_a;
+
+                let t3 = (other.c0 + other.c2) * (self.c0 + self.c2) - (a_a - b_b + c_c);
+
+                let t2 = (other.c0 + other.c1) * (self.c0 + self.c1) - (a_a + b_b);
+                let t2 = t2 + c_c.mul_by_nonresidue();
+
+                self.c0 = t1;
+                self.c1 = t2;
+                self.c2 = t3;
+            }
+
+            pub fn square_assign(&mut self) {
+                let s0 = self.c0.square();
+                let s1 = (self.c0 * &self.c1).double();
+                let s2 = (self.c0 - self.c1 + &self.c2).square();
+                let s3 = (self.c1 * self.c2).double();
+                let s4 = self.c2.square();
+
+                self.c0 = s3.mul_by_nonresidue() + s0;
+                self.c1 = s4.mul_by_nonresidue() + s1;
+                self.c2 = s1 + s2 + s3 - s0 - s4;
+            }
+
+            pub fn frobenius_map(&mut self, power: usize) {
+                self.c0.frobenius_map(power);
+                self.c1.frobenius_map(power);
+                self.c2.frobenius_map(power);
+                self.c1.mul_assign(&$frobenius_c1[power % 6]);
+                self.c2.mul_assign(&$frobenius_c2[power % 6]);
+            }
+
+            pub fn mul_by_nonresidue(&self) -> Self {
+                let c0 = self.c2.mul_by_nonresidue();
+                let c1 = self.c0;
+                let c2 = self.c1;
+                Self { c0, c1, c2 }
+            }
+
+            pub fn mul_by_1(&self, c1: &$tower2) -> Self {
+                let b_b = self.c1 * c1;
+
+                let t1 = c1 * (self.c1 + self.c2) - b_b;
+                let t1 = t1.mul_by_nonresidue();
+                let t2 = c1 * (self.c0 + self.c1) - b_b;
+
+                Self {
+                    c0: t1,
+                    c1: t2,
+                    c2: b_b,
+                }
+            }
+
+            pub fn mul_by_01(&self, c0: &$tower2, c1: &$tower2) -> Self {
+                let a_a = self.c0 * c0;
+                let b_b = self.c1 * c1;
+
+                let t1 = *c1 * (self.c1 + self.c2) - b_b;
+                let t1 = a_a + t1.mul_by_nonresidue();
+                let t3 = *c0 * (self.c0 + self.c2) - a_a + b_b;
+                let t2 = (c0 + c1) * (self.c0 + self.c1) - a_a - b_b;
+
+                Self {
+                    c0: t1,
+                    c1: t2,
+                    c2: t3,
+                }
+            }
+
+            pub fn invert(&self) -> CtOption<Self> {
+                let c0 = self.c2.mul_by_nonresidue() * self.c1.neg() + self.c0.square();
+                let c1 = self.c2.square().mul_by_nonresidue() - (self.c0 * self.c1);
+                let c2 = self.c1.square() - (self.c0 * self.c2);
+
+                let t = (self.c2 * c1) + (self.c1 * c2);
+                let t = t.mul_by_nonresidue() + (self.c0 * c0);
+
+                t.invert().map(|t| $tower6 {
+                    c0: t * c0,
+                    c1: t * c1,
+                    c2: t * c2,
+                })
+            }
+        }
+
         impl Field for $tower6 {
             const ZERO: Self = Self::zero();
             const ONE: Self = Self::one();
@@ -511,6 +649,140 @@ macro_rules! impl_tower6 {
 
             fn invert(&self) -> CtOption<Self> {
                 self.invert()
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_tower12 {
+    (
+        $field:ident,
+        $tower2:ident,
+        $tower6:ident,
+        $tower12:ident,
+        $frobenius:expr
+    ) => {
+        impl ff::Field for $tower12 {
+            const ZERO: Self = Self::zero();
+            const ONE: Self = Self::one();
+
+            fn random(mut rng: impl rand_core::RngCore) -> Self {
+                Self {
+                    c0: $tower6::random(&mut rng),
+                    c1: $tower6::random(&mut rng),
+                }
+            }
+
+            fn is_zero(&self) -> Choice {
+                self.c0.is_zero() & self.c1.is_zero()
+            }
+
+            fn square(&self) -> Self {
+                self.square()
+            }
+
+            fn double(&self) -> Self {
+                self.double()
+            }
+
+            fn sqrt(&self) -> CtOption<Self> {
+                unimplemented!()
+            }
+
+            fn sqrt_ratio(_num: &Self, _div: &Self) -> (Choice, Self) {
+                unimplemented!()
+            }
+
+            fn invert(&self) -> CtOption<Self> {
+                self.invert()
+            }
+        }
+
+        impl $tower12 {
+            pub fn mul_assign(&mut self, other: &Self) {
+                let t1 = self.c0 * other.c0;
+                let t2 = self.c1 * other.c1;
+
+                self.c1 = (self.c0 + self.c1) * (other.c0 + other.c1) - (t1 + t2);
+                self.c0 = t1 + t2.mul_by_nonresidue();
+            }
+
+            pub fn square_assign(&mut self) {
+                let ab = self.c0 * self.c1;
+                let c0c1 = self.c0 + self.c1;
+                let c0 = (self.c1.mul_by_nonresidue() + self.c0) * c0c1 - ab;
+
+                self.c1 = ab.double();
+                self.c0 = c0 - ab.mul_by_nonresidue();
+            }
+
+            pub fn mul_by_014(&mut self, c0: &$tower2, c1: &$tower2, c4: &$tower2) {
+                let aa = self.c0.mul_by_01(c0, c1);
+                let bb = self.c1.mul_by_1(c4);
+                self.c1 = (self.c1 + &self.c0).mul_by_01(c0, &(c1 + c4)) - (aa + bb);
+                self.c0 = bb.mul_by_nonresidue() + aa;
+            }
+
+            pub fn mul_by_034(&mut self, c0: &$tower2, c3: &$tower2, c4: &$tower2) {
+                let t0 = $tower6 {
+                    c0: self.c0.c0 * c0,
+                    c1: self.c0.c1 * c0,
+                    c2: self.c0.c2 * c0,
+                };
+                let t1 = self.c1.mul_by_01(c3, c4);
+                self.c1 = (self.c0 + self.c1).mul_by_01(&(c0 + c3), c4) - t0 - t1;
+                self.c0 = t0 + t1.mul_by_nonresidue();
+            }
+
+            pub fn invert(&self) -> CtOption<Self> {
+                let c0 = self.c0.square();
+                let c1 = self.c1.square().mul_by_nonresidue();
+                (c0 - c1).invert().map(|t| $tower12 {
+                    c0: self.c0 * t,
+                    c1: self.c1 * -t,
+                })
+            }
+
+            pub fn conjugate(&mut self) {
+                self.c1 = -self.c1;
+            }
+
+            pub fn frobenius_map(&mut self, power: usize) {
+                self.c0.frobenius_map(power);
+                self.c1.frobenius_map(power);
+
+                self.c1.c0.mul_assign(&$frobenius[power % 12]);
+                self.c1.c1.mul_assign(&$frobenius[power % 12]);
+                self.c1.c2.mul_assign(&$frobenius[power % 12]);
+            }
+
+            pub fn cyclotomic_square(&mut self) {
+                fn fp4_square(c0: &mut $tower2, c1: &mut $tower2, a0: &$tower2, a1: &$tower2) {
+                    let t0 = a0.square();
+                    let t1 = a1.square();
+                    *c0 = t1.mul_by_nonresidue() + t0;
+                    *c1 = (a0 + a1).square() - t0 - t1;
+                }
+
+                let mut t3 = $tower2::zero();
+                let mut t4 = $tower2::zero();
+                let mut t5 = $tower2::zero();
+                let mut t6 = $tower2::zero();
+                fp4_square(&mut t3, &mut t4, &self.c0.c0, &self.c1.c1);
+
+                self.c0.c0 = (t3 - self.c0.c0).double() + t3;
+                self.c1.c1 = (t4 + self.c1.c1).double() + t4;
+
+                fp4_square(&mut t3, &mut t4, &self.c1.c0, &self.c0.c2);
+                fp4_square(&mut t5, &mut t6, &self.c0.c1, &self.c1.c2);
+
+                self.c0.c1 = (t3 - self.c0.c1).double() + t3;
+                self.c1.c2 = (t4 + self.c1.c2).double() + t4;
+
+                let t3 = t6.mul_by_nonresidue();
+                self.c1.c0 = (t3 + self.c1.c0).double() + t3;
+                self.c0.c2 = (t5 - self.c0.c2).double() + t5;
             }
         }
     };
