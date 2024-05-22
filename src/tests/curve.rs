@@ -9,6 +9,7 @@ macro_rules! curve_testing_suite {
                 for _ in 0..100 {
                     let point = $c::random(OsRng);
                     assert!(bool::from(point.is_on_curve()));
+                    // assert!(bool::from(point.is_torsion_free())); // TODO: open after rebasing onto the fix PR
                     let affine_point: <$c as CurveExt>::AffineExt = point.into();
                     assert!(bool::from(affine_point.is_on_curve()));
                 }
@@ -419,6 +420,7 @@ macro_rules! curve_testing_suite {
         #[test]
         fn test_endo() {
             use rand_core::OsRng;
+            use $crate::arithmetic::CurveEndo;
 
             let z_impl = <$curve as CurveExt>::ScalarExt::ZETA;
             assert_eq!(z_impl * z_impl + z_impl, -<$curve as CurveExt>::ScalarExt::ONE);

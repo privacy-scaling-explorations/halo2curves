@@ -232,6 +232,10 @@ macro_rules! field_testing_suite {
                 let a = $field::random(&mut rng);
                 let bytes = a.to_repr();
                 let b = $field::from_repr(bytes).unwrap();
+
+                assert_eq!(a, b);
+                let bytes = a.to_bytes();
+                let b = $field::from_bytes(&bytes).unwrap();
                 assert_eq!(a, b);
             }
         }
@@ -537,12 +541,10 @@ macro_rules! field_testing_suite {
             };
 
             for _ in 0..1000 {
-                let mut a = $ext_field::random(&mut rng);
-                let mut b = a;
-                a.mul_by_nonresidue();
-                b.mul_assign(&nqr);
-
-                assert_eq!(a, b);
+                let e = $ext_field::random(&mut rng);
+                let a0 = e.mul_by_nonresidue();
+                let a1 = e * &nqr;
+                assert_eq!(a0, a1);
             }
         }
 
@@ -555,17 +557,16 @@ macro_rules! field_testing_suite {
 
             for _ in 0..1000 {
                 let c1 = $base_field::random(&mut rng);
-                let mut a = $ext_field::random(&mut rng);
-                let mut b = a;
+                let e = $ext_field::random(&mut rng);
 
-                a.mul_by_1(&c1);
-                b.mul_assign(&$ext_field {
+                let a0 = e.mul_by_1(&c1);
+                let a1 = e * $ext_field {
                     c0: $base_field::zero(),
                     c1,
                     c2: $base_field::zero(),
-                });
+                };
 
-                assert_eq!(a, b);
+                assert_eq!(a0, a1);
             }
         }
 
@@ -579,17 +580,15 @@ macro_rules! field_testing_suite {
             for _ in 0..1000 {
                 let c0 = $base_field::random(&mut rng);
                 let c1 = $base_field::random(&mut rng);
-                let mut a = $ext_field::random(&mut rng);
-                let mut b = a;
+                let e = $ext_field::random(&mut rng);
 
-                a.mul_by_01(&c0, &c1);
-                b.mul_assign(&$ext_field {
+                let a0 = e.mul_by_01(&c0, &c1);
+                let a1 = e * $ext_field {
                     c0,
                     c1,
                     c2: $base_field::zero(),
-                });
-
-                assert_eq!(a, b);
+                };
+                assert_eq!(a0, a1);
             }
         }
 

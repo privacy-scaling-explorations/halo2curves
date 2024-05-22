@@ -366,6 +366,16 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                 });
                 (borrow as u8) & 1 == 1
             }
+
+            pub fn lexicographically_largest(&self) -> Choice {
+                const HALF_MODULUS: [u64; #num_limbs]= #half_modulus;
+                let tmp = self.from_mont();
+                let borrow = tmp
+                    .into_iter()
+                    .zip(HALF_MODULUS.into_iter())
+                    .fold(0, |borrow, (t, m)| crate::arithmetic::sbb(t, m, borrow).1);
+                !Choice::from((borrow as u8) & 1)
+            }
         }
 
         impl ff::Field for #field {
