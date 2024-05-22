@@ -56,6 +56,425 @@ pub(crate) const SIGN_SHIFT: u8 = 7;
 pub(crate) const IDENTITY_MASK: u8 = 0b0100_0000;
 pub(crate) const IDENTITY_SHIFT: u8 = 6;
 
+// **Compressed formats**:
+// The encoding of the x-coordinate can be Little Endian or Big Endian (inherited from the
+// field encoding).
+// The bit flags appear in the MSB of the encoded x-coordinate in the 1 and 2 Spare bits
+// case, and in an extra byte after the encoded x-coordinate in the 0 Spare bits case.
+// `BS` is the base size: the number of bytes required to encode a coordinate.
+//
+// According to the number of spare bits.
+// 1 Spare bit:
+//
+//     |                  | sign      | x-coordinate |
+//     | Byte pos. (LE)   | BS-1          ..       0 |
+//     | Byte pos. (BE)   | 0          ..       BS-1 |
+//     | Bit pos.         | 7         |              |
+//     | ---------------- | --------  | ------------ |
+//     | Identity         | 0         | 0            |
+//     | Non-identity $P$ | $sgn0(P)$ | $P.x$        |
+//
+// ---
+// 2 Spare bits:
+//     |                  | sign      | ident    | x-coordinate |
+//     | Byte pos. (LE)   | BS-1                     ..       0 |
+//     | Byte pos. (BE)   | 0                     ..       BS-1 |
+//     | Bit pos.         | 7         | 6        |              |
+//     | ---------------- | --------  | -------- | --------     |
+//     | Identity         | 0         | 1        | 0            |
+//     | Non-identity $P$ | $sgn0(P)$ | 0        | $P.x$        |
+//
+// ---
+// 0 Spare bits:
+//     Add an extra byte after the compressed x-coordinate to hold the flags. Then follow
+//     the 2 spare bit flag format.
+//
+//     |                  | sign      | ident    | 000000 | x-coordinate |
+//     | Byte pos. (LE)   | BS                            | BS-1  ..   0 |
+//     | Byte pos. (BE)   | BS                            | 0  ..   BS-1 |
+//     | Bit pos.         | 7         | 6        | 5..0   |              |
+//     | ---------------- | --------- | -------- | ------ | ------------ |
+//     | Identity         | 0         | 1        | 000000 | 0            |
+//     | Non-identity $P$ | $sgn0(P)$ | 0        | 000000 | $P.x$        |
+//
+
+#[macro_export]
+macro_rules! impl_compressed {
+    (
+        $name:ident,
+        $name_affine:ident,
+        $base:ident,
+        $scalar:ident,
+        $spare_bits: expr
+    ) => {
+        paste::paste! {
+
+            // The compressed size is the size of the x-coordinate (one base field element)
+            // when there is at least 1 spare bit. When there is no spare bits (secp256k1)
+            // the size is increased by 1 byte.
+            #[allow(non_upper_case_globals)]
+            const [< $name _COMPRESSED_SIZE >]: usize =
+                if $spare_bits == 0 {
+                    $base::SIZE + 1
+                } else {
+                    $base::SIZE
+                };
+
+            #[derive(Copy, Clone, PartialEq, Eq)]
+            #[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
+            pub struct [<$name Compressed >](
+                #[cfg_attr(feature = "derive_serde", serde(with = "serde_arrays"))]
+                [u8; [< $name _COMPRESSED_SIZE >]]
+            );
+
+            impl std::fmt::Debug for [< $name Compressed >] {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    self.0[..].fmt(f)
+                }
+            }
+
+            impl Default for [< $name Compressed >] {
+                fn default() -> Self {
+                    [< $name Compressed >]([0; [< $name _COMPRESSED_SIZE >]])
+                }
+            }
+
+            impl AsRef<[u8]> for [< $name Compressed >] {
+                fn as_ref(&self) -> &[u8] {
+                    &self.0
+                }
+            }
+
+            impl AsMut<[u8]> for [< $name Compressed >] {
+                fn as_mut(&mut self) -> &mut [u8] {
+                    &mut self.0
+                }
+            }
+
+            impl GroupEncoding for $name {
+                type Repr = [< $name Compressed >];
+
+                fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
+                    $name_affine::from_bytes(bytes).map(Self::from)
+                }
+
+                fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
+                    $name_affine::from_bytes_unchecked(bytes).map(Self::from)
+                }
+
+                fn to_bytes(&self) -> Self::Repr {
+                    $name_affine::from(self).to_bytes()
+                }
+            }
+
+
+            // The flags are placed in the last byte (the most significant byte).
+            #[allow(non_upper_case_globals)]
+            const [< $name _FLAG_BYTE_INDEX>]: usize= [< $name _COMPRESSED_SIZE >]-1 ;
+
+            #[allow(non_upper_case_globals)]
+            const [< $name _FLAG_BITS >]: u8 =
+            if $spare_bits == 1 {
+                0b1000_0000
+            } else if $spare_bits == 2 {
+                0b1100_0000
+            } else {
+                //$spare_bits == 0
+                0b1111_1111
+            };
+
+            impl group::GroupEncoding for $name_affine {
+                type Repr = [< $name Compressed >];
+
+
+                fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
+                    let mut tmp = bytes.0;
+
+                    let flag_byte = tmp[[< $name _FLAG_BYTE_INDEX>]];
+                    // Get identity and sign flags.
+                    let identity_flag = if $spare_bits == 0  || $spare_bits == 2 {
+                        Choice::from((flag_byte & IDENTITY_MASK) >> IDENTITY_SHIFT )
+                    } else {
+                        Choice::from(0u8)
+                    };
+
+                    let sign_flag = Choice::from( (flag_byte  & SIGN_MASK) >> SIGN_SHIFT );
+
+                    let extra_bits = if $spare_bits == 0 {
+                        // In the case of 0 spare bits, an extra byte is added to hold the flags.
+                        // In this byte, the 6 least significant bits must be set to 0.
+                        Choice::from(u8::from((flag_byte & 0b0011_1111) !=0) )
+                    } else {
+                        // There are no extra bits in the rest of cases.
+                        Choice::from(0u8)
+                    };
+
+                    // Clear flag bits
+                    tmp[[< $name _FLAG_BYTE_INDEX>]] &= ![< $name _FLAG_BITS >];
+
+                    // Get x-coordinate
+                    let mut xbytes = [0u8; $base::SIZE];
+                    xbytes.copy_from_slice(&tmp[..$base::SIZE]);
+
+
+
+                    $base::from_bytes(&xbytes).and_then(|x| {
+
+                        // Decide if the point is the identity and the validity of the encoding.
+                        let (is_valid, is_identity) =
+                        if $spare_bits   == 0  || $spare_bits == 2 {
+                            // Correct encoding follows one of the following:
+                            // 1. Identity:
+                            //  identity_flag = 1, sign = 0, x = 0, extra_bits = 0
+                            // 2. Non-identity:
+                            //  identity_flag = 0, , extra_bits = 0
+                            //
+                            // is_valid = !identity_flag \/ (!sign /\ x.is_zero()) /\ !extra_bits
+                            ( (!identity_flag | (!sign_flag & x.is_zero())) & !extra_bits, identity_flag)
+                        } else {
+                            // Correct encoding follows one of the following:
+                            // 1. Identity:
+                            //  sign = 0, x = 0
+                            // 2. Non-identity:
+                            //  x!=0
+                            //
+                            // is_valid = !(x.is_zero() /\ sign_flag)
+                            ( !(x.is_zero() & sign_flag), x.is_zero())
+                        };
+
+
+                        CtOption::new(
+                            Self::identity(),
+                            is_identity)
+                        .or_else(|| {
+                            // Computes corresponding y coordinate.
+                            $name_affine::y2(x).sqrt().and_then(|y| {
+                                // Get sign of obtained solution. sign = y % 2.
+                                let sign = Choice::from(y.to_bytes()[0] & 1);
+                                // Adjust sign if necessary.
+                                let y = $base::conditional_select(&y, &-y, sign_flag ^ sign);
+                                CtOption::new(
+                                    $name_affine {
+                                        x,
+                                        y,
+                                    },
+                                    is_valid,
+                                )
+                            })
+                        })
+                    })
+                }
+
+                fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
+                    // In compressed form we cannot skip the curve check.
+                    Self::from_bytes(bytes)
+                }
+
+                fn to_bytes(&self) -> Self::Repr {
+                    let mut res = [0; [< $name _COMPRESSED_SIZE >]];
+
+                    let x_bytes = $base::conditional_select(&self.x, &$base::zero(), self.is_identity()).to_bytes();
+                    res[..$base::SIZE].copy_from_slice(&x_bytes);
+
+                    // Set identity flag if necessary.
+                    res[ [< $name _FLAG_BYTE_INDEX>]] |= u8::conditional_select(&0u8, &IDENTITY_MASK, self.is_identity());
+
+                    // Set sign flag if point is not identity, and has negative sign.
+                    res[ [< $name _FLAG_BYTE_INDEX>]] |= u8::conditional_select(&0u8, &SIGN_MASK, !self.is_identity() & Choice::from(self.y.to_bytes()[0] & 1));
+                    [< $name Compressed >](res)
+                }
+            }
+        }
+    };
+}
+
+// **Uncompressed format**
+// The encoding of the x-coordinate and y-coordinate can be Little Endian or Big Endian
+// (inherited from the field encoding).
+//
+// There are no flag bits, the spare bits must be 0.
+// `BS` is the base size: the number of bytes required to encode a coordinate.
+//
+// According to the number of spare bits:
+// 1 Spare bit:
+//
+//     |                  | 0 | x-coordinate | 0 | y-coordinate |
+//     | Byte pos. (LE)   | BS-1   ..      0 | 2*BS-1   ..   BS |
+//     | Byte pos. (BE)   | 0   ..      BS-1 | BS   ..   2*BS-1 |
+//     | Bit pos.         | 7 |              | 7 |              |
+//     | ---------------- | - | ------------ | - | ------------ |
+//     | Identity         | 0 | 0            | 0 | 0            |
+//     | Non-identity $P$ | 0 | $P.x$        | 0 | $P.y$        |
+//
+// ----
+// 2 Spare bits:
+//
+//     |                  | 0 | 0 | x-coordinate | 0 | 0 | y-coordinate |
+//     | Byte pos. (LE)   | BS-1      ..       0 | 2*BS-1       ..   BS |
+//     | Byte pos. (BE)   | 0      ..       BS-1 | BS       ..   2*BS-1 |
+//     | Bit pos.         | 7 | 6 |              | 7 | 6 |              |
+//     | ---------------- | - | - | ------------ | - | - | ------------ |
+//     | Identity         | 0 | 0 | 0            | 0 | 0 | 0            |
+//     | Non-identity $P$ | 0 | 0 | $P.x$        | 0 | 0 | $P.y$        |
+//
+// ----
+// 0 Spare bits:
+//
+//     |                  | x-coordinate | y-coordinate |
+//     | Byte pos. (LE)   | BS-1  ..   0 | 2*BS-1 .. BS |
+//     | Byte pos. (BE)   | 0  ..   BS-1 | BS .. 2*BS-1 |
+//     | ---------------- | ------------ | ------------ |
+//     | Identity         | 0            | 0            |
+//     | Non-identity $P$ | $P.x$        | $P.y$        |
+//
+
+#[macro_export]
+macro_rules! impl_uncompressed {
+    (
+        $name:ident,
+        $name_affine:ident,
+        $base:ident,
+        $scalar:ident,
+        $spare_bits: expr
+    ) => {
+        paste::paste! {
+
+            #[derive(Copy, Clone)]
+            pub struct [< $name Uncompressed >]([u8; 2*$base::SIZE]);
+
+            impl std::fmt::Debug for [< $name Uncompressed >] {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    self.0[..].fmt(f)
+                }
+            }
+
+            impl Default for [< $name Uncompressed >] {
+                fn default() -> Self {
+                    [< $name Uncompressed >]([0; 2*$base::SIZE ])
+                }
+            }
+
+            impl AsRef<[u8]> for [< $name Uncompressed >] {
+                fn as_ref(&self) -> &[u8] {
+                    &self.0
+                }
+            }
+
+            impl AsMut<[u8]> for [< $name Uncompressed >] {
+                fn as_mut(&mut self) -> &mut [u8] {
+                    &mut self.0
+                }
+            }
+
+            impl ConstantTimeEq for [< $name Uncompressed >] {
+                fn ct_eq(&self, other: &Self) -> Choice {
+                    self.0.ct_eq(&other.0)
+                }
+            }
+
+            impl Eq for [< $name Uncompressed >] {}
+
+            impl PartialEq for [< $name Uncompressed >] {
+                #[inline]
+                fn eq(&self, other: &Self) -> bool {
+                    bool::from(self.ct_eq(other))
+                }
+            }
+
+            impl group::UncompressedEncoding for $name_affine {
+
+                type Uncompressed = [< $name Uncompressed >];
+
+                fn from_uncompressed(bytes: &Self::Uncompressed) -> CtOption<Self> {
+                    Self::from_uncompressed_unchecked(bytes).and_then(|p| CtOption::new(p, p.is_on_curve()))
+                }
+
+                fn from_uncompressed_unchecked(bytes: &Self::Uncompressed) -> CtOption<Self> {
+                    let mut bytes = bytes.0;
+
+                    let flag_idx_x = $base::SIZE -1;
+                    let flag_idx_y = 2* $base::SIZE -1;
+
+                    // In the uncompressed format, the spare bits in both coordinates must be 0.
+                    let mut any_flag_set = Choice::from(0u8);
+
+                    // Get sign flag to check they are set to 0.
+                    if $spare_bits == 2 || $spare_bits == 1 {
+                        any_flag_set |=  Choice::from( (bytes[ flag_idx_x ] & SIGN_MASK) >> SIGN_SHIFT  |
+                        (bytes[ flag_idx_y ] & SIGN_MASK) >> SIGN_SHIFT )
+                    }
+
+                    // Get identity flag to check they are set to 0.
+                    if $spare_bits == 2 {
+                        any_flag_set |= Choice::from( (( bytes[ flag_idx_x ] & IDENTITY_MASK) >> IDENTITY_SHIFT) | (( bytes[ flag_idx_y ] & IDENTITY_MASK) >> IDENTITY_SHIFT) );
+                    }
+
+                    // Clear spare bits.
+                    if $spare_bits == 2 || $spare_bits == 1 {
+                        bytes[flag_idx_x] &= ![< $name _FLAG_BITS >];
+                        bytes[flag_idx_y] &= ![< $name _FLAG_BITS >];
+                    }
+
+
+                    // Get x, y coordinates.
+                    let mut repr = [0u8; $base::SIZE];
+                    let x = {
+                        repr.copy_from_slice(&bytes[0..$base::SIZE]);
+                        $base::from_bytes(&repr)
+                    };
+
+                    let y = {
+                        repr.copy_from_slice(&bytes[$base::SIZE..2*$base::SIZE]);
+                        $base::from_bytes(&repr)
+                    };
+
+
+                    x.and_then(|x| {
+                        y.and_then(|y| {
+                            let zero_coords = x.is_zero() & y.is_zero();
+
+                            // Check  identity condition and encoding validity:
+                            // The point is the identity if both coordinates are zero.
+                            // The encoding is valid if both coordinates represent valid field elements and
+                            // the spare bits are all zero.
+                            let (is_valid, is_identity) =
+                                ( !any_flag_set, zero_coords);
+
+
+                            let p = $name_affine::conditional_select(
+                                &$name_affine{
+                                    x,
+                                    y,
+                                },
+                                &$name_affine::identity(),
+                                is_identity,
+                            );
+
+                            CtOption::new(
+                                p,
+                                is_valid
+                            )
+                        })
+                    })
+                }
+
+                fn to_uncompressed(&self) -> Self::Uncompressed {
+                    let mut res = [0; 2*$base::SIZE];
+
+                    res[0..$base::SIZE].copy_from_slice(
+                        &$base::conditional_select(&self.x, &$base::zero(), self.is_identity()).to_bytes()[..],
+                    );
+                    res[$base::SIZE.. 2*$base::SIZE].copy_from_slice(
+                        &$base::conditional_select(&self.y, &$base::zero(), self.is_identity()).to_bytes()[..],
+                    );
+
+                    [< $name Uncompressed >](res)
+                }
+            }
+        }
+    };
+}
+
 #[macro_export]
 macro_rules! new_curve_impl {
     (($($privacy:tt)*),
@@ -69,412 +488,6 @@ macro_rules! new_curve_impl {
     $curve_id:literal,
     $hash_to_curve:expr,
     ) => {
-
-
-        // **Compressed formats**:
-        // The encoding of the x-coordinate can be Little Endian or Big Endian (inherited from the
-        // field encoding).
-        // The bit flags appear in the MSB of the encoded x-coordinate in the 1 and 2 Spare bits
-        // case, and in an extra byte after the encoded x-coordinate in the 0 Spare bits case.
-        // `BS` is the base size: the number of bytes required to encode a coordinate.
-        //
-        // According to the number of spare bits.
-        // 1 Spare bit:
-        //
-        //     |                  | sign      | x-coordinate |
-        //     | Byte pos. (LE)   | BS-1          ..       0 |
-        //     | Byte pos. (BE)   | 0          ..       BS-1 |
-        //     | Bit pos.         | 7         |              |
-        //     | ---------------- | --------  | ------------ |
-        //     | Identity         | 0         | 0            |
-        //     | Non-identity $P$ | $sgn0(P)$ | $P.x$        |
-        //
-        // ---
-        // 2 Spare bits:
-        //     |                  | sign      | ident    | x-coordinate |
-        //     | Byte pos. (LE)   | BS-1                     ..       0 |
-        //     | Byte pos. (BE)   | 0                     ..       BS-1 |
-        //     | Bit pos.         | 7         | 6        |              |
-        //     | ---------------- | --------  | -------- | --------     |
-        //     | Identity         | 0         | 1        | 0            |
-        //     | Non-identity $P$ | $sgn0(P)$ | 0        | $P.x$        |
-        //
-        // ---
-        // 0 Spare bits:
-        //     Add an extra byte after the compressed x-coordinate to hold the flags. Then follow
-        //     the 2 spare bit flag format.
-        //
-        //     |                  | sign      | ident    | 000000 | x-coordinate |
-        //     | Byte pos. (LE)   | BS                            | BS-1  ..   0 |
-        //     | Byte pos. (BE)   | BS                            | 0  ..   BS-1 |
-        //     | Bit pos.         | 7         | 6        | 5..0   |              |
-        //     | ---------------- | --------- | -------- | ------ | ------------ |
-        //     | Identity         | 0         | 1        | 000000 | 0            |
-        //     | Non-identity $P$ | $sgn0(P)$ | 0        | 000000 | $P.x$        |
-        //
-        macro_rules! impl_compressed {
-            ($spare_bits: expr) => {
-                paste::paste! {
-
-                // The compressed size is the size of the x-coordinate (one base field element)
-                // when there is at least 1 spare bit. When there is no spare bits (secp256k1)
-                // the size is increased by 1 byte.
-                #[allow(non_upper_case_globals)]
-                const [< $name _COMPRESSED_SIZE >]: usize =
-                    if $spare_bits == 0 {
-                        $base::SIZE + 1
-                    } else {
-                        $base::SIZE
-                    };
-
-                #[derive(Copy, Clone, PartialEq, Eq)]
-                #[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
-                pub struct [<$name Compressed >](
-                    #[cfg_attr(feature = "derive_serde", serde(with = "serde_arrays"))]
-                    [u8; [< $name _COMPRESSED_SIZE >]]
-                );
-
-                impl std::fmt::Debug for [< $name Compressed >] {
-                    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        self.0[..].fmt(f)
-                    }
-                }
-
-                impl Default for [< $name Compressed >] {
-                    fn default() -> Self {
-                        [< $name Compressed >]([0; [< $name _COMPRESSED_SIZE >]])
-                    }
-                }
-
-                impl AsRef<[u8]> for [< $name Compressed >] {
-                    fn as_ref(&self) -> &[u8] {
-                        &self.0
-                    }
-                }
-
-                impl AsMut<[u8]> for [< $name Compressed >] {
-                    fn as_mut(&mut self) -> &mut [u8] {
-                        &mut self.0
-                    }
-                }
-
-                impl GroupEncoding for $name {
-                    type Repr = [< $name Compressed >];
-
-                    fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
-                        $name_affine::from_bytes(bytes).map(Self::from)
-                    }
-
-                    fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
-                        $name_affine::from_bytes_unchecked(bytes).map(Self::from)
-                    }
-
-                    fn to_bytes(&self) -> Self::Repr {
-                        $name_affine::from(self).to_bytes()
-                    }
-                }
-
-
-                // The flags are placed in the last byte (the most significant byte).
-                #[allow(non_upper_case_globals)]
-                const [< $name _FLAG_BYTE_INDEX>]: usize= [< $name _COMPRESSED_SIZE >]-1 ;
-
-                #[allow(non_upper_case_globals)]
-                const [< $name _FLAG_BITS >]: u8 =
-                if $spare_bits == 1 {
-                    0b1000_0000
-                } else if $spare_bits == 2 {
-                    0b1100_0000
-                } else {
-                    //$spare_bits == 0
-                    0b1111_1111
-                };
-
-                impl group::GroupEncoding for $name_affine {
-                    type Repr = [< $name Compressed >];
-
-
-                    fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
-                        let mut tmp = bytes.0;
-
-                        let flag_byte = tmp[[< $name _FLAG_BYTE_INDEX>]];
-                        // Get identity and sign flags.
-                        let identity_flag = if $spare_bits == 0  || $spare_bits == 2 {
-                            Choice::from((flag_byte & IDENTITY_MASK) >> IDENTITY_SHIFT )
-                        } else {
-                            Choice::from(0u8)
-                        };
-
-                        let sign_flag = Choice::from( (flag_byte  & SIGN_MASK) >> SIGN_SHIFT );
-
-                        let extra_bits = if $spare_bits == 0 {
-                            // In the case of 0 spare bits, an extra byte is added to hold the flags.
-                            // In this byte, the 6 least significant bits must be set to 0.
-                            Choice::from(u8::from((flag_byte & 0b0011_1111) !=0) )
-                        } else {
-                            // There are no extra bits in the rest of cases.
-                            Choice::from(0u8)
-                        };
-
-                        // Clear flag bits
-                        tmp[[< $name _FLAG_BYTE_INDEX>]] &= ![< $name _FLAG_BITS >];
-
-                        // Get x-coordinate
-                        let mut xbytes = [0u8; $base::SIZE];
-                        xbytes.copy_from_slice(&tmp[..$base::SIZE]);
-
-
-
-                        $base::from_bytes(&xbytes).and_then(|x| {
-
-                            // Decide if the point is the identity and the validity of the encoding.
-                            let (is_valid, is_identity) =
-                            if $spare_bits   == 0  || $spare_bits == 2 {
-                                // Correct encoding follows one of the following:
-                                // 1. Identity:
-                                //  identity_flag = 1, sign = 0, x = 0, extra_bits = 0
-                                // 2. Non-identity:
-                                //  identity_flag = 0, , extra_bits = 0
-                                //
-                                // is_valid = !identity_flag \/ (!sign /\ x.is_zero()) /\ !extra_bits
-                                ( (!identity_flag | (!sign_flag & x.is_zero())) & !extra_bits, identity_flag)
-                            } else {
-                                // Correct encoding follows one of the following:
-                                // 1. Identity:
-                                //  sign = 0, x = 0
-                                // 2. Non-identity:
-                                //  x!=0
-                                //
-                                // is_valid = !(x.is_zero() /\ sign_flag)
-                                ( !(x.is_zero() & sign_flag), x.is_zero())
-                            };
-
-
-                            CtOption::new(
-                                Self::identity(),
-                                is_identity)
-                            .or_else(|| {
-                                // Computes corresponding y coordinate.
-                                $name_affine::y2(x).sqrt().and_then(|y| {
-                                    // Get sign of obtained solution. sign = y % 2.
-                                    let sign = Choice::from(y.to_bytes()[0] & 1);
-                                    // Adjust sign if necessary.
-                                    let y = $base::conditional_select(&y, &-y, sign_flag ^ sign);
-                                    CtOption::new(
-                                        $name_affine {
-                                            x,
-                                            y,
-                                        },
-                                        is_valid,
-                                    )
-                                })
-                            })
-                        })
-                    }
-
-                    fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
-                        // In compressed form we cannot skip the curve check.
-                        Self::from_bytes(bytes)
-                    }
-
-                    fn to_bytes(&self) -> Self::Repr {
-                        let mut res = [0; [< $name _COMPRESSED_SIZE >]];
-
-                        let x_bytes = $base::conditional_select(&self.x, &$base::zero(), self.is_identity()).to_bytes();
-                        res[..$base::SIZE].copy_from_slice(&x_bytes);
-
-                        // Set identity flag if necessary.
-                        res[ [< $name _FLAG_BYTE_INDEX>]] |= u8::conditional_select(&0u8, &IDENTITY_MASK, self.is_identity());
-
-                        // Set sign flag if point is not identity, and has negative sign.
-                        res[ [< $name _FLAG_BYTE_INDEX>]] |= u8::conditional_select(&0u8, &SIGN_MASK, !self.is_identity() & Choice::from(self.y.to_bytes()[0] & 1));
-                        [< $name Compressed >](res)
-                    }
-                }
-
-
-                }
-            };
-        }
-
-
-        // **Uncompressed format**
-        // The encoding of the x-coordinate and y-coordinate can be Little Endian or Big Endian
-        // (inherited from the field encoding).
-        //
-        // There are no flag bits, the spare bits must be 0.
-        // `BS` is the base size: the number of bytes required to encode a coordinate.
-        //
-        // According to the number of spare bits:
-        // 1 Spare bit:
-        //
-        //     |                  | 0 | x-coordinate | 0 | y-coordinate |
-        //     | Byte pos. (LE)   | BS-1   ..      0 | 2*BS-1   ..   BS |
-        //     | Byte pos. (BE)   | 0   ..      BS-1 | BS   ..   2*BS-1 |
-        //     | Bit pos.         | 7 |              | 7 |              |
-        //     | ---------------- | - | ------------ | - | ------------ |
-        //     | Identity         | 0 | 0            | 0 | 0            |
-        //     | Non-identity $P$ | 0 | $P.x$        | 0 | $P.y$        |
-        //
-        // ----
-        // 2 Spare bits:
-        //
-        //     |                  | 0 | 0 | x-coordinate | 0 | 0 | y-coordinate |
-        //     | Byte pos. (LE)   | BS-1      ..       0 | 2*BS-1       ..   BS |
-        //     | Byte pos. (BE)   | 0      ..       BS-1 | BS       ..   2*BS-1 |
-        //     | Bit pos.         | 7 | 6 |              | 7 | 6 |              |
-        //     | ---------------- | - | - | ------------ | - | - | ------------ |
-        //     | Identity         | 0 | 0 | 0            | 0 | 0 | 0            |
-        //     | Non-identity $P$ | 0 | 0 | $P.x$        | 0 | 0 | $P.y$        |
-        //
-        // ----
-        // 0 Spare bits:
-        //
-        //     |                  | x-coordinate | y-coordinate |
-        //     | Byte pos. (LE)   | BS-1  ..   0 | 2*BS-1 .. BS |
-        //     | Byte pos. (BE)   | 0  ..   BS-1 | BS .. 2*BS-1 |
-        //     | ---------------- | ------------ | ------------ |
-        //     | Identity         | 0            | 0            |
-        //     | Non-identity $P$ | $P.x$        | $P.y$        |
-        //
-
-        macro_rules! impl_uncompressed {
-            ($spare_bits: expr) => {
-                paste::paste! {
-
-                #[derive(Copy, Clone)]
-                pub struct [< $name Uncompressed >]([u8; 2*$base::SIZE]);
-                    impl std::fmt::Debug for [< $name Uncompressed >] {
-                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                            self.0[..].fmt(f)
-                        }
-                    }
-
-                    impl Default for [< $name Uncompressed >] {
-                        fn default() -> Self {
-                            [< $name Uncompressed >]([0; 2*$base::SIZE ])
-                        }
-                    }
-
-                    impl AsRef<[u8]> for [< $name Uncompressed >] {
-                        fn as_ref(&self) -> &[u8] {
-                            &self.0
-                        }
-                    }
-
-                    impl AsMut<[u8]> for [< $name Uncompressed >] {
-                        fn as_mut(&mut self) -> &mut [u8] {
-                            &mut self.0
-                        }
-                    }
-
-                    impl ConstantTimeEq for [< $name Uncompressed >] {
-                        fn ct_eq(&self, other: &Self) -> Choice {
-                            self.0.ct_eq(&other.0)
-                        }
-                    }
-
-                    impl Eq for [< $name Uncompressed >] {}
-
-                    impl PartialEq for [< $name Uncompressed >] {
-                        #[inline]
-                        fn eq(&self, other: &Self) -> bool {
-                            bool::from(self.ct_eq(other))
-                        }
-                    }
-
-                    impl group::UncompressedEncoding for $name_affine{
-                        type Uncompressed = [< $name Uncompressed >];
-
-                        fn from_uncompressed(bytes: &Self::Uncompressed) -> CtOption<Self> {
-                            Self::from_uncompressed_unchecked(bytes).and_then(|p| CtOption::new(p, p.is_on_curve()))
-                        }
-
-                        fn from_uncompressed_unchecked(bytes: &Self::Uncompressed) -> CtOption<Self> {
-                            let mut bytes = bytes.0;
-
-                            let flag_idx_x = $base::SIZE -1;
-                            let flag_idx_y = 2* $base::SIZE -1;
-
-                            // In the uncompressed format, the spare bits in both coordinates must be 0.
-                            let mut any_flag_set = Choice::from(0u8);
-
-                            // Get sign flag to check they are set to 0.
-                            if $spare_bits == 2 || $spare_bits == 1 {
-                                any_flag_set |=  Choice::from( (bytes[ flag_idx_x ] & SIGN_MASK) >> SIGN_SHIFT  |
-                             (bytes[ flag_idx_y ] & SIGN_MASK) >> SIGN_SHIFT )
-                            }
-
-                            // Get identity flag to check they are set to 0.
-                            if $spare_bits == 2 {
-                                any_flag_set |= Choice::from( (( bytes[ flag_idx_x ] & IDENTITY_MASK) >> IDENTITY_SHIFT) | (( bytes[ flag_idx_y ] & IDENTITY_MASK) >> IDENTITY_SHIFT) );
-                            }
-
-                            // Clear spare bits.
-                            if $spare_bits == 2 || $spare_bits == 1 {
-                                bytes[flag_idx_x] &= ![< $name _FLAG_BITS >];
-                                bytes[flag_idx_y] &= ![< $name _FLAG_BITS >];
-                            }
-
-
-                            // Get x, y coordinates.
-                            let mut repr = [0u8; $base::SIZE];
-                            let x = {
-                                repr.copy_from_slice(&bytes[0..$base::SIZE]);
-                                $base::from_bytes(&repr)
-                            };
-
-                            let y = {
-                                repr.copy_from_slice(&bytes[$base::SIZE..2*$base::SIZE]);
-                                $base::from_bytes(&repr)
-                            };
-
-
-                            x.and_then(|x| {
-                                y.and_then(|y| {
-                                    let zero_coords = x.is_zero() & y.is_zero();
-
-                                    // Check  identity condition and encoding validity:
-                                    // The point is the identity if both coordinates are zero.
-                                    // The encoding is valid if both coordinates represent valid field elements and
-                                    // the spare bits are all zero.
-                                    let (is_valid, is_identity) =
-                                        ( !any_flag_set, zero_coords);
-
-
-                                    let p = $name_affine::conditional_select(
-                                        &$name_affine{
-                                            x,
-                                            y,
-                                        },
-                                        &$name_affine::identity(),
-                                        is_identity,
-                                    );
-
-                                    CtOption::new(
-                                        p,
-                                        is_valid
-                                    )
-                                })
-                            })
-                        }
-
-                        fn to_uncompressed(&self) -> Self::Uncompressed {
-                            let mut res = [0; 2*$base::SIZE];
-
-                            res[0..$base::SIZE].copy_from_slice(
-                                &$base::conditional_select(&self.x, &$base::zero(), self.is_identity()).to_bytes()[..],
-                            );
-                            res[$base::SIZE.. 2*$base::SIZE].copy_from_slice(
-                                &$base::conditional_select(&self.y, &$base::zero(), self.is_identity()).to_bytes()[..],
-                            );
-
-                            [< $name Uncompressed >](res)
-                        }
-                    }
-                }
-            };
-        }
 
         /// A macro to help define point serialization using the [`group::GroupEncoding`] trait
         /// This assumes both point types ($name, $nameaffine) implement [`group::GroupEncoding`].
@@ -548,7 +561,7 @@ macro_rules! new_curve_impl {
             pub z: $base,
         }
 
-        #[derive(Copy, Clone, PartialEq)]
+        #[derive(Copy, Clone, Debug, PartialEq)]
         $($privacy)* struct $name_affine {
             pub x: $base,
             pub y: $base,
@@ -556,11 +569,6 @@ macro_rules! new_curve_impl {
 
         #[cfg(feature = "derive_serde")]
         serialize_deserialize_to_from_bytes!();
-
-        // Base's num_bits is the number of bits for the base prime field,
-        // so the computation of spare bits is correct for extensions as well.
-        impl_compressed!((($base::NUM_BITS-1) / 8 +1) * 8 - $base::NUM_BITS);
-        impl_uncompressed!((($base::NUM_BITS-1) / 8 +1) * 8 - $base::NUM_BITS);
 
 
 
@@ -627,8 +635,7 @@ macro_rules! new_curve_impl {
 
 
                         use $crate::group::cofactor::CofactorGroup;
-                        let p = p.to_curve();
-                        return p.clear_cofactor().to_affine()
+                        return p.to_curve().clear_cofactor().to_affine()
                     }
                 }
             }
@@ -961,18 +968,6 @@ macro_rules! new_curve_impl {
 
         impl group::cofactor::CofactorCurve for $name {
             type Affine = $name_affine;
-        }
-
-        // Affine implementations
-
-        impl std::fmt::Debug for $name_affine {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-                if self.is_identity().into() {
-                    write!(f, "Infinity")
-                } else {
-                    write!(f, "({:?}, {:?})", self.x, self.y)
-                }
-            }
         }
 
         impl<'a> From<&'a $name> for $name_affine {

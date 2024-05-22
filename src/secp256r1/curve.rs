@@ -1,7 +1,9 @@
 use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
-use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
+use crate::group::{
+    cofactor::CofactorGroup, prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding,
+};
 use crate::secp256r1::Fp;
 use crate::secp256r1::Fq;
 use crate::{Coordinates, CurveAffine, CurveExt};
@@ -15,7 +17,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
 
-impl group::cofactor::CofactorGroup for Secp256r1 {
+impl CofactorGroup for Secp256r1 {
     type Subgroup = Secp256r1;
 
     fn clear_cofactor(&self) -> Self {
@@ -76,6 +78,22 @@ new_curve_impl!(
     SECP_B,
     "secp256r1",
     |domain_prefix| hash_to_curve(domain_prefix, hash_to_curve_suite(b"P256_XMD:SHA-256_SSWU_RO_")),
+);
+
+crate::impl_compressed!(
+    Secp256r1,
+    Secp256r1Affine,
+    Fp,
+    Fq,
+    ((Fp::NUM_BITS - 1) / 8 + 1) * 8 - Fp::NUM_BITS
+);
+
+crate::impl_uncompressed!(
+    Secp256r1,
+    Secp256r1Affine,
+    Fp,
+    Fq,
+    ((Fp::NUM_BITS - 1) / 8 + 1) * 8 - Fp::NUM_BITS
 );
 
 fn hash_to_curve_suite(domain: &[u8]) -> crate::hash_to_curve::Suite<Secp256r1, sha2::Sha256, 48> {

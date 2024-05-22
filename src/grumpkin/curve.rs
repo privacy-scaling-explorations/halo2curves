@@ -19,11 +19,28 @@ use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
+use group::cofactor::CofactorGroup;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
+
+crate::impl_compressed!(
+    G1,
+    G1Affine,
+    Fq,
+    Fr,
+    ((Fq::NUM_BITS - 1) / 8 + 1) * 8 - Fq::NUM_BITS
+);
+
+crate::impl_uncompressed!(
+    G1,
+    G1Affine,
+    Fq,
+    Fr,
+    ((Fq::NUM_BITS - 1) / 8 + 1) * 8 - Fq::NUM_BITS
+);
 
 new_curve_impl!(
     (pub),
@@ -68,7 +85,7 @@ const ENDO_PARAMS_GRUMPKIN: EndoParameters = EndoParameters {
 
 endo!(G1, Fr, ENDO_PARAMS_GRUMPKIN);
 
-impl group::cofactor::CofactorGroup for G1 {
+impl CofactorGroup for G1 {
     type Subgroup = G1;
 
     fn clear_cofactor(&self) -> Self {

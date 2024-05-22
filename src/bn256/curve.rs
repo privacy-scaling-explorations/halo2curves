@@ -41,6 +41,22 @@ new_curve_impl!(
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, G1::default_hash_to_curve_suite()),
 );
 
+crate::impl_compressed!(
+    G1,
+    G1Affine,
+    Fq,
+    Fr,
+    ((Fq::NUM_BITS - 1) / 8 + 1) * 8 - Fq::NUM_BITS
+);
+
+crate::impl_uncompressed!(
+    G1,
+    G1Affine,
+    Fq,
+    Fr,
+    ((Fq::NUM_BITS - 1) / 8 + 1) * 8 - Fq::NUM_BITS
+);
+
 new_curve_impl!(
     (pub),
     G2,
@@ -52,6 +68,22 @@ new_curve_impl!(
     G2_B,
     "bn256_g2",
     |domain_prefix| hash_to_curve_g2(domain_prefix),
+);
+
+crate::impl_compressed!(
+    G2,
+    G2Affine,
+    Fq2,
+    Fr,
+    ((Fq::NUM_BITS - 1) / 8 + 1) * 8 - Fq::NUM_BITS
+);
+
+crate::impl_uncompressed!(
+    G2,
+    G2Affine,
+    Fq2,
+    Fr,
+    ((Fq::NUM_BITS - 1) / 8 + 1) * 8 - Fq::NUM_BITS
 );
 
 #[allow(clippy::type_complexity)]
@@ -134,7 +166,7 @@ const ENDO_PARAMS_BN: EndoParameters = EndoParameters {
 
 endo!(G1, Fr, ENDO_PARAMS_BN);
 
-impl group::cofactor::CofactorGroup for G1 {
+impl CofactorGroup for G1 {
     type Subgroup = G1;
 
     fn clear_cofactor(&self) -> Self {

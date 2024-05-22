@@ -133,6 +133,22 @@ new_curve_impl!(
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, G1::default_hash_to_curve_suite()),
 );
 
+crate::impl_compressed!(
+    G1,
+    G1Affine,
+    Fp,
+    Fq,
+    ((Fp::NUM_BITS - 1) / 8 + 1) * 8 - Fp::NUM_BITS
+);
+
+crate::impl_uncompressed!(
+    G1,
+    G1Affine,
+    Fp,
+    Fq,
+    ((Fp::NUM_BITS - 1) / 8 + 1) * 8 - Fp::NUM_BITS
+);
+
 impl group::cofactor::CofactorGroup for Eris {
     type Subgroup = Eris;
 
@@ -174,6 +190,22 @@ new_curve_impl!(
     ERIS_B,
     "eris",
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, Eris::default_hash_to_curve_suite()),
+);
+
+crate::impl_compressed!(
+    Eris,
+    ErisAffine,
+    Fq,
+    Fp,
+    ((Fp::NUM_BITS - 1) / 8 + 1) * 8 - Fp::NUM_BITS
+);
+
+crate::impl_uncompressed!(
+    Eris,
+    ErisAffine,
+    Fq,
+    Fp,
+    ((Fp::NUM_BITS - 1) / 8 + 1) * 8 - Fp::NUM_BITS
 );
 
 impl CofactorGroup for G2 {
@@ -253,6 +285,22 @@ new_curve_impl!(
     TRITON_B,
     "triton",
     |_| unimplemented!(),
+);
+
+crate::impl_compressed!(
+    G2,
+    G2Affine,
+    Fp2,
+    Fr,
+    ((Fq::NUM_BITS - 1) / 8 + 1) * 8 - Fq::NUM_BITS
+);
+
+crate::impl_uncompressed!(
+    G2,
+    G2Affine,
+    Fp2,
+    Fr,
+    ((Fq::NUM_BITS - 1) / 8 + 1) * 8 - Fq::NUM_BITS
 );
 
 #[cfg(test)]

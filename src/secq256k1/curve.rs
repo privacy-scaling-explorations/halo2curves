@@ -2,7 +2,7 @@ use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT}
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::Curve;
-use crate::group::{prime::PrimeCurveAffine, Group, GroupEncoding};
+use crate::group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
 use crate::secp256k1::{Fp, Fq};
 use crate::{
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
@@ -50,7 +50,23 @@ new_curve_impl!(
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, Secq256k1::default_hash_to_curve_suite()),
 );
 
-impl group::cofactor::CofactorGroup for Secq256k1 {
+crate::impl_compressed!(
+    Secq256k1,
+    Secq256k1Affine,
+    Fq,
+    Fr,
+    ((Fq::NUM_BITS - 1) / 8 + 1) * 8 - Fq::NUM_BITS
+);
+
+crate::impl_uncompressed!(
+    Secq256k1,
+    Secq256k1Affine,
+    Fq,
+    Fr,
+    ((Fq::NUM_BITS - 1) / 8 + 1) * 8 - Fq::NUM_BITS
+);
+
+impl CofactorGroup for Secq256k1 {
     type Subgroup = Secq256k1;
 
     fn clear_cofactor(&self) -> Self {
