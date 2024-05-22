@@ -13,3 +13,5 @@ pub use fq12::*;
 pub use fq2::*;
 pub use fq6::*;
 pub use fr::*;
+
+pub const BN_X: u64 = 4965661367192848881;

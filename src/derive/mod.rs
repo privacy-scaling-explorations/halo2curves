@@ -3,6 +3,9 @@ pub mod curve;
 #[macro_use]
 pub mod field;
 
+#[macro_use]
+pub mod pairing;
+
 #[macro_export]
 macro_rules! impl_binops_calls {
     ($field:ident) => {

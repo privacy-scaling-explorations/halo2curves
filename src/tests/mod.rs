@@ -4,6 +4,7 @@ use pasta_curves::arithmetic::CurveAffine;
 
 pub mod curve;
 pub mod field;
+pub mod pairing;
 
 pub(crate) fn hex_to_bytes(hex: &str) -> Vec<u8> {
     let bytes = hex.as_bytes().to_vec();
@@ -22,8 +23,8 @@ pub(crate) fn hex_to_field<F: PrimeField>(hex: &str) -> F {
 }
 
 pub(crate) fn point_from_hex<C: CurveAffine>(x: &str, y: &str) -> C {
-    let x = crate::tests::hex_to_field(x);
-    let y = crate::tests::hex_to_field(y);
+    let x = hex_to_field(x);
+    let y = hex_to_field(y);
     C::from_xy(x, y).unwrap()
 }
 
