@@ -17,6 +17,7 @@ impl_field!(
     mul_gen = "3",
     zeta = "30644e72e131a0295e6dd9e7e0acccb0c28f069fbb966e3de4bd44e5607cfd48",
     from_uniform = [64, 48],
+    endian = "little",
 );
 
 extend_field_legendre!(Fq);
