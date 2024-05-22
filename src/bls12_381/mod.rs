@@ -8,8 +8,15 @@ pub use bls12_381::{Fp, G1Projective, Scalar};
 use ff::PrimeField;
 use ff::WithSmallOrderMulGroup;
 use std::convert::TryInto;
+use std::io::{self, Read, Write};
+
 
 pub use bls12_381::*;
+
+
+#[cfg(feature = "derive_serde")]
+use serde::{Deserialize, Serialize};
+
 
 // Obtained from https://github.com/ConsenSys/gnark-crypto/blob/master/ecc/utils.go
 // See https://github.com/demining/Endomorphism-Secp256k1/blob/main/README.md
@@ -24,6 +31,49 @@ const ENDO_PARAMS_BLS: EndoParameters = EndoParameters {
 };
 
 endo!(G1Projective, Scalar, ENDO_PARAMS_BLS);
+
+
+impl crate::serde::SerdeObject for G1Affine {
+    /// The purpose of unchecked functions is to read the internal memory representation
+    /// of a type from bytes as quickly as possible. No sanitization checks are performed
+    /// to ensure the bytes represent a valid object. As such this function should only be
+    /// used internally as an extension of machine memory. It should not be used to deserialize
+    /// externally provided data.
+    fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
+        G1Affine::from_compressed(bytes.try_into().unwrap()).unwrap()
+    }
+    fn from_raw_bytes(bytes: &[u8]) -> Option<Self> {
+        Some(G1Affine::from_compressed(bytes.try_into().unwrap()).unwrap())
+    }
+
+    fn to_raw_bytes(&self) -> Vec<u8> {
+        self.to_compressed().into()
+    }
+
+    /// The purpose of unchecked functions is to read the internal memory representation
+    /// of a type from disk as quickly as possible. No sanitization checks are performed
+    /// to ensure the bytes represent a valid object. This function should only be used
+    /// internally when some machine state cannot be kept in memory (e.g., between runs)
+    /// and needs to be reloaded as quickly as possible.
+    fn read_raw_unchecked<R: Read>(reader: &mut R) -> Self {
+        let mut buf = [0; 48];
+        reader.read_exact(&mut buf).unwrap();
+        G1Affine::from_compressed(&buf).unwrap()
+
+    }
+    fn read_raw<R: Read>(reader: &mut R) -> io::Result<Self> {
+        let mut buf = [0; 48];
+        reader.read_exact(&mut buf).unwrap();
+        Ok(G1Affine::from_compressed(&buf).unwrap())
+    }
+
+    fn write_raw<W: Write>(&self, writer: &mut W) -> io::Result<()> {
+        writer.write_all(&self.to_compressed())?;
+        Ok(())
+
+    }
+}
+
 
 #[test]
 fn test_endo() {
