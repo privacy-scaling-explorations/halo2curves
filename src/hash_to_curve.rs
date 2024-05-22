@@ -1,14 +1,20 @@
 #![allow(clippy::op_ref)]
-
 use crate::ff_ext::Legendre;
 use digest::{core_api::BlockSizeUser, Digest};
 use ff::{Field, FromUniformBytes, PrimeField};
 use pasta_curves::arithmetic::CurveExt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-pub enum Method {
-    SSWU,
+pub enum Method<C: CurveExt> {
+    SSWU(Iso<C>),
     SVDW,
+}
+
+#[allow(clippy::type_complexity)]
+pub struct Iso<C: CurveExt> {
+    pub(crate) a: C::Base,
+    pub(crate) b: C::Base,
+    pub(crate) map: Box<dyn Fn(C::Base, C::Base, C::Base) -> C>,
 }
 
 pub struct Suite<C: CurveExt, D: Digest + BlockSizeUser, const L: usize> {
@@ -92,14 +98,20 @@ impl<C: CurveExt, D: Digest + BlockSizeUser, const L: usize> Suite<C, D, L>
 where
     C::Base: Legendre + FromUniformBytes<L>,
 {
-    pub(crate) fn new(domain: &[u8], z: C::Base, method: Method) -> Self {
+    pub(crate) fn new(domain: &[u8], z: C::Base, method: Method<C>) -> Self {
         // Check for the target bits of  security `k`. Currently, the target security is 128 bits.
         // See: <https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#section-5.1>
-        // L = ceil((ceil(log2(p)) + k) / 8)
         assert!((C::Base::NUM_BITS as usize + 128) / 8 <= L);
 
         let map_to_curve: Box<dyn Fn(C::Base) -> C> = match method {
-            Method::SSWU => Box::new(move |u| sswu_map_to_curve::<C>(u, z)),
+            Method::SSWU(iso) => {
+                let Iso { a, b, map } = iso;
+                Box::new(move |u| {
+                    let (x, y, z) = sswu_map_to_curve::<C>(u, z, a, b);
+                    map(x, y, z)
+                })
+            }
+
             Method::SVDW => {
                 let [c1, c2, c3, c4] = svdw_precomputed_constants::<C>(z);
                 Box::new(move |u| svdw_map_to_curve::<C>(u, c1, c2, c3, c4, z))
@@ -164,7 +176,12 @@ pub(crate) fn svdw_precomputed_constants<C: CurveExt>(z: C::Base) -> [C::Base; 4
 
 // Implementation of <https://datatracker.ietf.org/doc/html/rfc9380#name-simplified-swu-method>
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn sswu_map_to_curve<C>(u: C::Base, z: C::Base) -> C
+pub(crate) fn sswu_map_to_curve<C>(
+    u: C::Base,
+    z: C::Base,
+    a: C::Base,
+    b: C::Base,
+) -> (C::Base, C::Base, C::Base)
 where
     C: CurveExt,
 {
@@ -205,11 +222,6 @@ where
         )
     }
 
-    let zero = C::Base::ZERO;
-    let one = C::Base::ONE;
-    let a = C::a();
-    let b = C::b();
-
     //1.  tv1 = u^2
     let tv1 = u.square();
     //2.  tv1 = Z * tv1
@@ -219,11 +231,12 @@ where
     //4.  tv2 = tv2 + tv1
     let tv2 = tv2 + tv1;
     //5.  tv3 = tv2 + 1
-    let tv3 = tv2 + one;
+    let tv3 = tv2 + C::Base::ONE;
     //6.  tv3 = B * tv3
     let tv3 = b * tv3;
     //7.  tv4 = CMOV(Z, -tv2, tv2 != 0) # tv4 = z if tv2 is 0 else tv4 = -tv2
-    let tv2_is_not_zero = !tv2.ct_eq(&zero);
+    // let tv2_is_not_zero = !tv2.is_zero();
+    let tv2_is_not_zero = !tv2.ct_eq(&C::Base::ZERO);
     let tv4 = C::Base::conditional_select(&z, &-tv2, tv2_is_not_zero);
     //8.  tv4 = A * tv4
     let tv4 = a * tv4;
@@ -259,10 +272,9 @@ where
     let e1 = u.is_odd().ct_eq(&y.is_odd());
     //24.   y = CMOV(-y, y, e1) # Select correct sign of y
     let y = C::Base::conditional_select(&-y, &y, e1);
-    //25.   x = x / tv4
-    let x = x * tv4.invert().unwrap();
-    //26. return (x, y)
-    C::new_jacobian(x, y, one).unwrap()
+
+    // stay projective avoid inverse
+    (x, y * tv4, tv4)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -353,7 +365,7 @@ where
     // 35. y = CMOV(-y, y, e3)    # Select correct sign of y
     let y = C::Base::conditional_select(&-y, &y, e3);
     // 36. return (x, y)
-    C::new_jacobian(x, y, one).unwrap()
+    C::new_jacobian(x, y, C::Base::ONE).unwrap()
 }
 
 #[cfg(test)]

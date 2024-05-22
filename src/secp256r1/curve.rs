@@ -75,13 +75,10 @@ new_curve_impl!(
     SECP_A,
     SECP_B,
     "secp256r1",
-    |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, Secp256r1::default_hash_to_curve_suite()),
+    |domain_prefix| hash_to_curve(domain_prefix, hash_to_curve_suite(b"P256_XMD:SHA-256_SSWU_RO_")),
 );
 
-impl Secp256r1 {
-    // Optimal Z with: <https://datatracker.ietf.org/doc/html/rfc9380#sswu-z-code>
-    // 0xffffffff00000001000000000000000000000000fffffffffffffffffffffff5
-    // Z = -10 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#section-8.2>)
+fn hash_to_curve_suite(domain: &[u8]) -> crate::hash_to_curve::Suite<Secp256r1, sha2::Sha256, 48> {
     const SSWU_Z: Fp = Fp::from_raw([
         0xfffffffffffffff5,
         0x00000000ffffffff,
@@ -89,13 +86,21 @@ impl Secp256r1 {
         0xffffffff00000001,
     ]);
 
-    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Secp256r1, sha2::Sha256, 48> {
-        crate::hash_to_curve::Suite::<Secp256r1, sha2::Sha256, 48>::new(
-            b"P256_XMD:SHA-256_SSWU_RO_",
-            Self::SSWU_Z,
-            crate::hash_to_curve::Method::SSWU,
-        )
-    }
+    let iso_map = crate::hash_to_curve::Iso {
+        a: Secp256r1::a(),
+        b: Secp256r1::b(),
+        map: Box::new(move |x, y, z| Secp256r1 { x, y, z }),
+    };
+
+    crate::hash_to_curve::Suite::new(domain, SSWU_Z, crate::hash_to_curve::Method::SSWU(iso_map))
+}
+
+#[allow(clippy::type_complexity)]
+pub(crate) fn hash_to_curve<'a>(
+    domain_prefix: &'a str,
+    suite: crate::hash_to_curve::Suite<Secp256r1, sha2::Sha256, 48>,
+) -> Box<dyn Fn(&[u8]) -> Secp256r1 + 'a> {
+    Box::new(move |message| suite.hash_to_curve(domain_prefix, message).clear_cofactor())
 }
 
 #[cfg(test)]
