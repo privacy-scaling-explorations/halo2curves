@@ -9,7 +9,6 @@ use crate::group::Curve;
 use crate::group::{prime::PrimeCurveAffine, Group, GroupEncoding};
 use crate::grumpkin::Fq;
 use crate::grumpkin::Fr;
-use crate::hash_to_curve::svdw_hash_to_curve;
 use crate::{
     endo, impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
     impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
@@ -36,7 +35,7 @@ new_curve_impl!(
     G1_A,
     G1_B,
     "grumpkin_g1",
-    |curve_id, domain_prefix| svdw_hash_to_curve(curve_id, domain_prefix, G1::SVDW_Z),
+    |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, G1::default_hash_to_curve_suite()),
 );
 
 // Parameters in montgomery form taken from
@@ -87,6 +86,14 @@ impl group::cofactor::CofactorGroup for G1 {
 
 impl G1 {
     const SVDW_Z: Fq = Fq::ONE;
+
+    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Self, sha2::Sha256, 48> {
+        crate::hash_to_curve::Suite::<G1, sha2::Sha256, 48>::new(
+            b"GRUMPKIN_XMD:SHA-256_SVDW_RO_",
+            Self::SVDW_Z,
+            crate::hash_to_curve::Method::SVDW,
+        )
+    }
 }
 
 #[cfg(test)]

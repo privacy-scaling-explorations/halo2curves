@@ -278,6 +278,14 @@ impl FromUniformBytes<64> for Fq {
     }
 }
 
+impl FromUniformBytes<48> for Fq {
+    fn from_uniform_bytes(bytes: &[u8; 48]) -> Self {
+        let repr = &mut [0u8; 64];
+        (*repr)[0..48].copy_from_slice(&bytes[..48]);
+        Fq::from_uniform_bytes(repr)
+    }
+}
+
 impl WithSmallOrderMulGroup<3> for Fq {
     const ZETA: Self = ZETA;
 }
@@ -294,70 +302,5 @@ mod test {
     crate::field_testing_suite!(Fq, "constants", MODULUS_STR);
     crate::field_testing_suite!(Fq, "sqrt");
     crate::field_testing_suite!(Fq, "zeta");
-    crate::field_testing_suite!(
-        Fq,
-        "from_uniform_bytes",
-        [
-            Fq::from_raw([
-                0xd1f334151139642a,
-                0xb0f28bcaa90fdb88,
-                0x9a13255d88eca613,
-                0x02afef300dd32d9a,
-            ]),
-            Fq::from_raw([
-                0x03cd906680808fbe,
-                0xc28902db5aef5254,
-                0x3dbdb406ae292ddf,
-                0x276ec249e6b9e195
-            ]),
-            Fq::from_raw([
-                0xb0e07ded189e91f7,
-                0x9e3b0caae2b98899,
-                0x49e511f19341fdcf,
-                0x1ea71260f64b72da
-            ]),
-            Fq::from_raw([
-                0x61132be14bb978d4,
-                0xe27e09a20808067b,
-                0x3842cc8fd1d8406f,
-                0x13163c8a13fd550b
-            ]),
-            Fq::from_raw([
-                0x04a6495a33d39ac5,
-                0xc918e75bb383fae0,
-                0x80068784d577b035,
-                0x1dd962b86e44e1be
-            ]),
-            Fq::from_raw([
-                0x107ffeecf4cb3348,
-                0x53a0adb5491a4944,
-                0x50028f636ffcb780,
-                0x0af7f3aa38015c1d
-            ]),
-            Fq::from_raw([
-                0x22513787342eba07,
-                0x4fac22ed88770319,
-                0x0b7c31082cc92b13,
-                0x250e22a8cac6e790
-            ]),
-            Fq::from_raw([
-                0x5954fd7dda014940,
-                0x9df859b2124e66fa,
-                0xaab48d94eadd9d14,
-                0x2a9a75013e3da632
-            ]),
-            Fq::from_raw([
-                0xedd59c88fee718de,
-                0x2b034dcfe6de3844,
-                0x76b0e2e360488694,
-                0x068998ef20d62df1
-            ]),
-            Fq::from_raw([
-                0xac161667911634a4,
-                0x296c2f453152552f,
-                0x2653625dfaa1cf74,
-                0x171abf201a2587d7
-            ]),
-        ]
-    );
+    crate::field_testing_suite!(Fq, "from_uniform_bytes", 64);
 }

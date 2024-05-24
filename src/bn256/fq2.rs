@@ -463,15 +463,18 @@ impl PrimeField for Fq2 {
     }
 
     fn is_odd(&self) -> Choice {
-        Choice::from(self.to_repr().as_ref()[0] & 1)
+        self.c0.is_odd() | (self.c0.is_zero() & self.c1.is_odd())
     }
 }
 
-impl FromUniformBytes<64> for Fq2 {
-    fn from_uniform_bytes(bytes: &[u8; 64]) -> Self {
-        Self::new(Fq::from_uniform_bytes(bytes), Fq::zero())
+impl FromUniformBytes<96> for Fq2 {
+    fn from_uniform_bytes(bytes: &[u8; 96]) -> Self {
+        let c0: [u8; 48] = bytes[..48].try_into().unwrap();
+        let c1: [u8; 48] = bytes[48..].try_into().unwrap();
+        Self::new(Fq::from_uniform_bytes(&c1), Fq::from_uniform_bytes(&c0))
     }
 }
+
 #[derive(Clone, Copy, Debug)]
 pub struct Fq2Bytes([u8; 64]);
 
