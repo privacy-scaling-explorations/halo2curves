@@ -122,9 +122,9 @@ macro_rules! new_curve_impl {
                 #[allow(non_upper_case_globals)]
                 const [< $name _COMPRESSED_SIZE >]: usize =
                     if $spare_bits == 0 {
-                        $base::size() + 1
+                        $base::SIZE + 1
                     } else {
-                        $base::size()
+                        $base::SIZE
                     };
 
                 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -220,8 +220,8 @@ macro_rules! new_curve_impl {
                         tmp[[< $name _FLAG_BYTE_INDEX>]] &= ![< $name _FLAG_BITS >];
 
                         // Get x-coordinate
-                        let mut xbytes = [0u8; $base::size()];
-                        xbytes.copy_from_slice(&tmp[..$base::size()]);
+                        let mut xbytes = [0u8; $base::SIZE];
+                        xbytes.copy_from_slice(&tmp[..$base::SIZE]);
 
 
 
@@ -281,7 +281,7 @@ macro_rules! new_curve_impl {
                         let mut res = [0; [< $name _COMPRESSED_SIZE >]];
 
                         let x_bytes = $base::conditional_select(&self.x, &$base::zero(), self.is_identity()).to_bytes();
-                        res[..$base::size()].copy_from_slice(&x_bytes);
+                        res[..$base::SIZE].copy_from_slice(&x_bytes);
 
                         // Set identity flag if necessary.
                         res[ [< $name _FLAG_BYTE_INDEX>]] |= u8::conditional_select(&0u8, &IDENTITY_MASK, self.is_identity());
@@ -343,7 +343,7 @@ macro_rules! new_curve_impl {
                 paste::paste! {
 
                 #[derive(Copy, Clone)]
-                pub struct [< $name Uncompressed >]([u8; 2*$base::size()]);
+                pub struct [< $name Uncompressed >]([u8; 2*$base::SIZE]);
                     impl std::fmt::Debug for [< $name Uncompressed >] {
                         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                             self.0[..].fmt(f)
@@ -352,7 +352,7 @@ macro_rules! new_curve_impl {
 
                     impl Default for [< $name Uncompressed >] {
                         fn default() -> Self {
-                            [< $name Uncompressed >]([0; 2*$base::size() ])
+                            [< $name Uncompressed >]([0; 2*$base::SIZE ])
                         }
                     }
 
@@ -393,8 +393,8 @@ macro_rules! new_curve_impl {
                         fn from_uncompressed_unchecked(bytes: &Self::Uncompressed) -> CtOption<Self> {
                             let mut bytes = bytes.0;
 
-                            let flag_idx_x = $base::size() -1;
-                            let flag_idx_y = 2* $base::size() -1;
+                            let flag_idx_x = $base::SIZE -1;
+                            let flag_idx_y = 2* $base::SIZE -1;
 
                             // In the uncompressed format, the spare bits in both coordinates must be 0.
                             let mut any_flag_set = Choice::from(0u8);
@@ -418,14 +418,14 @@ macro_rules! new_curve_impl {
 
 
                             // Get x, y coordinates.
-                            let mut repr = [0u8; $base::size()];
+                            let mut repr = [0u8; $base::SIZE];
                             let x = {
-                                repr.copy_from_slice(&bytes[0..$base::size()]);
+                                repr.copy_from_slice(&bytes[0..$base::SIZE]);
                                 $base::from_bytes(&repr)
                             };
 
                             let y = {
-                                repr.copy_from_slice(&bytes[$base::size()..2*$base::size()]);
+                                repr.copy_from_slice(&bytes[$base::SIZE..2*$base::SIZE]);
                                 $base::from_bytes(&repr)
                             };
 
@@ -451,8 +451,6 @@ macro_rules! new_curve_impl {
                                         is_identity,
                                     );
 
-                                    eprintln!("Is the point valid? {:?}", is_valid);
-
                                     CtOption::new(
                                         p,
                                         is_valid
@@ -462,12 +460,12 @@ macro_rules! new_curve_impl {
                         }
 
                         fn to_uncompressed(&self) -> Self::Uncompressed {
-                            let mut res = [0; 2*$base::size()];
+                            let mut res = [0; 2*$base::SIZE];
 
-                            res[0..$base::size()].copy_from_slice(
+                            res[0..$base::SIZE].copy_from_slice(
                                 &$base::conditional_select(&self.x, &$base::zero(), self.is_identity()).to_bytes()[..],
                             );
-                            res[$base::size().. 2*$base::size()].copy_from_slice(
+                            res[$base::SIZE.. 2*$base::SIZE].copy_from_slice(
                                 &$base::conditional_select(&self.y, &$base::zero(), self.is_identity()).to_bytes()[..],
                             );
 
@@ -916,17 +914,17 @@ macro_rules! new_curve_impl {
 
         impl $crate::serde::SerdeObject for $name {
             fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
-                debug_assert_eq!(bytes.len(), 3 * $base::size());
+                debug_assert_eq!(bytes.len(), 3 * $base::SIZE);
                 let [x, y, z] = [0, 1, 2]
-                    .map(|i| $base::from_raw_bytes_unchecked(&bytes[i * $base::size()..(i + 1) * $base::size()]));
+                    .map(|i| $base::from_raw_bytes_unchecked(&bytes[i * $base::SIZE..(i + 1) * $base::SIZE]));
                 Self { x, y, z }
             }
             fn from_raw_bytes(bytes: &[u8]) -> Option<Self> {
-                if bytes.len() != 3 * $base::size() {
+                if bytes.len() != 3 * $base::SIZE {
                     return None;
                 }
                 let [x, y, z] =
-                    [0, 1, 2].map(|i| $base::from_raw_bytes(&bytes[i * $base::size()..(i + 1) * $base::size()]));
+                    [0, 1, 2].map(|i| $base::from_raw_bytes(&bytes[i * $base::SIZE..(i + 1) * $base::SIZE]));
                 x.zip(y).zip(z).and_then(|((x, y), z)| {
                     let res = Self { x, y, z };
                     // Check that the point is on the curve.
@@ -934,7 +932,7 @@ macro_rules! new_curve_impl {
                 })
             }
             fn to_raw_bytes(&self) -> Vec<u8> {
-                let mut res = Vec::with_capacity(3 * $base::size());
+                let mut res = Vec::with_capacity(3 * $base::SIZE);
                 Self::write_raw(self, &mut res).unwrap();
                 res
             }
@@ -1018,16 +1016,16 @@ macro_rules! new_curve_impl {
 
         impl $crate::serde::SerdeObject for $name_affine {
             fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
-                debug_assert_eq!(bytes.len(), 2 * $base::size());
+                debug_assert_eq!(bytes.len(), 2 * $base::SIZE);
                 let [x, y] =
-                    [0, $base::size()].map(|i| $base::from_raw_bytes_unchecked(&bytes[i..i + $base::size()]));
+                    [0, $base::SIZE].map(|i| $base::from_raw_bytes_unchecked(&bytes[i..i + $base::SIZE]));
                 Self { x, y }
             }
             fn from_raw_bytes(bytes: &[u8]) -> Option<Self> {
-                if bytes.len() != 2 * $base::size() {
+                if bytes.len() != 2 * $base::SIZE {
                     return None;
                 }
-                let [x, y] = [0, $base::size()].map(|i| $base::from_raw_bytes(&bytes[i..i + $base::size()]));
+                let [x, y] = [0, $base::SIZE].map(|i| $base::from_raw_bytes(&bytes[i..i + $base::SIZE]));
                 x.zip(y).and_then(|(x, y)| {
                     let res = Self { x, y };
                     // Check that the point is on the curve.
@@ -1035,7 +1033,7 @@ macro_rules! new_curve_impl {
                 })
             }
             fn to_raw_bytes(&self) -> Vec<u8> {
-                let mut res = Vec::with_capacity(2 * $base::size());
+                let mut res = Vec::with_capacity(2 * $base::SIZE);
                 Self::write_raw(self, &mut res).unwrap();
                 res
             }
@@ -1398,6 +1396,7 @@ macro_rules! new_curve_impl {
                 let mut acc = $name::identity();
                 for bit in other
                     .to_repr()
+                    .as_ref()
                     .iter()
                     .rev()
                     .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))
@@ -1474,6 +1473,7 @@ macro_rules! new_curve_impl {
 
                 for bit in other
                     .to_repr()
+                    .as_ref()
                     .iter()
                     .rev()
                     .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))

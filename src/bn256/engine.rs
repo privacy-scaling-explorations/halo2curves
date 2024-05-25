@@ -5,7 +5,7 @@ use crate::bn256::fq12::*;
 use crate::bn256::fq2::*;
 use crate::bn256::fq6::FROBENIUS_COEFF_FQ6_C1;
 use crate::bn256::fr::*;
-use crate::ff::{Field, PrimeField};
+use crate::ff::PrimeField;
 use crate::group::cofactor::CofactorCurveAffine;
 use crate::group::Group;
 use core::borrow::Borrow;
@@ -89,7 +89,7 @@ impl PartialEq for Gt {
 impl Gt {
     /// Returns the group identity, which is $1$.
     pub fn identity() -> Gt {
-        Gt(Fq12::ONE)
+        Gt(Fq12::one())
     }
 
     /// Doubles this group element.
@@ -145,6 +145,7 @@ impl<'a, 'b> Mul<&'b Fr> for &'a Gt {
 
         for bit in other
             .to_repr()
+            .as_ref()
             .iter()
             .rev()
             .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))
@@ -460,7 +461,7 @@ impl MillerLoopResult for Gt {
     fn final_exponentiation(&self) -> Gt {
         fn exp_by_x(f: &mut Fq12) {
             let x = BN_X;
-            let mut res = Fq12::ONE;
+            let mut res = Fq12::one();
             for i in (0..64).rev() {
                 res.cyclotomic_square();
                 if ((x >> i) & 1) == 1 {
@@ -582,7 +583,7 @@ pub fn multi_miller_loop(terms: &[(&G1Affine, &G2Prepared)]) -> Gt {
         f.mul_by_034(&c0, &c1, &coeffs.2);
     }
 
-    let mut f = Fq12::ONE;
+    let mut f = Fq12::one();
 
     for i in (1..SIX_U_PLUS_2_NAF.len()).rev() {
         if i != SIX_U_PLUS_2_NAF.len() - 1 {
@@ -661,6 +662,7 @@ use rand_xorshift::XorShiftRng;
 
 #[test]
 fn test_pairing() {
+    use crate::ff::Field;
     let g1 = G1::generator();
     let mut g2 = G2::generator();
     g2 = g2.double();
@@ -716,6 +718,7 @@ fn test_pairing() {
 
 #[test]
 fn random_bilinearity_tests() {
+    use crate::ff::Field;
     let mut rng = XorShiftRng::from_seed([
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
         0xe5,
@@ -764,6 +767,7 @@ fn random_bilinearity_tests() {
 
 #[test]
 pub fn engine_tests() {
+    use crate::ff::Field;
     let mut rng = XorShiftRng::from_seed([
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
         0xe5,

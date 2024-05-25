@@ -4,6 +4,47 @@ pub mod curve;
 pub mod field;
 
 #[macro_export]
+macro_rules! impl_binops_calls {
+    ($field:ident) => {
+        impl<'a> ::core::ops::Neg for &'a $field {
+            type Output = $field;
+
+            #[inline]
+            fn neg(self) -> $field {
+                self.neg()
+            }
+        }
+
+        impl<'a, 'b> ::core::ops::Sub<&'b $field> for &'a $field {
+            type Output = $field;
+
+            #[inline]
+            fn sub(self, rhs: &'b $field) -> $field {
+                self.sub(rhs)
+            }
+        }
+
+        impl<'a, 'b> ::core::ops::Add<&'b $field> for &'a $field {
+            type Output = $field;
+
+            #[inline]
+            fn add(self, rhs: &'b $field) -> $field {
+                self.add(rhs)
+            }
+        }
+
+        impl<'a, 'b> ::core::ops::Mul<&'b $field> for &'a $field {
+            type Output = $field;
+
+            #[inline]
+            fn mul(self, rhs: &'b $field) -> $field {
+                self.mul(rhs)
+            }
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! impl_add_binop_specify_output {
     ($lhs:ident, $rhs:ident, $output:ident) => {
         impl<'b> ::core::ops::Add<&'b $rhs> for $lhs {
@@ -168,15 +209,13 @@ macro_rules! impl_sum_prod {
     ($f:ident) => {
         impl<T: ::core::borrow::Borrow<$f>> ::core::iter::Sum<T> for $f {
             fn sum<I: Iterator<Item = T>>(iter: I) -> Self {
-                use ::ff::Field;
-                iter.fold(Self::ZERO, |acc, item| acc + item.borrow())
+                iter.fold(Self::zero(), |acc, item| acc + item.borrow())
             }
         }
 
         impl<T: ::core::borrow::Borrow<$f>> ::core::iter::Product<T> for $f {
             fn product<I: Iterator<Item = T>>(iter: I) -> Self {
-                use ::ff::Field;
-                iter.fold(Self::ONE, |acc, item| acc * item.borrow())
+                iter.fold(Self::one(), |acc, item| acc * item.borrow())
             }
         }
     };

@@ -6,17 +6,18 @@ pub mod curve;
 pub mod field;
 
 pub(crate) fn hex_to_bytes(hex: &str) -> Vec<u8> {
-    hex.as_bytes()
+    let bytes = hex.as_bytes().to_vec();
+    bytes
         .chunks(2)
         .map(|chunk| u8::from_str_radix(std::str::from_utf8(chunk).unwrap(), 16).unwrap())
         .collect()
 }
 
 pub(crate) fn hex_to_field<F: PrimeField>(hex: &str) -> F {
-    let bytes = hex_to_bytes(hex);
+    let mut bytes = hex_to_bytes(hex);
+    bytes.reverse();
     let mut repr = F::Repr::default();
-    repr.as_mut().copy_from_slice(&bytes);
-    repr.as_mut().reverse();
+    repr.as_mut()[..bytes.len()].copy_from_slice(&bytes);
     F::from_repr(repr).unwrap()
 }
 
@@ -28,6 +29,14 @@ pub(crate) fn point_from_hex<C: CurveAffine>(x: &str, y: &str) -> C {
 
 pub(crate) fn fe_to_big<F: PrimeField>(fe: &F) -> BigUint {
     BigUint::from_bytes_le(fe.to_repr().as_ref())
+}
+
+pub fn big_to_fe<F: PrimeField>(e: &BigUint) -> F {
+    let e = e % modulus::<F>();
+    let bytes = e.to_bytes_le();
+    let mut repr = F::Repr::default();
+    repr.as_mut()[..bytes.len()].copy_from_slice(&bytes[..]);
+    F::from_repr(repr).unwrap()
 }
 
 pub(crate) fn modulus<F: PrimeField>() -> BigUint {
