@@ -16,6 +16,7 @@ struct FieldConfig {
     modulus: BigUint,
     mul_gen: BigUint,
     zeta: BigUint,
+    endian: String,
     from_uniform: Vec<usize>,
 }
 
@@ -39,6 +40,16 @@ impl syn::parse::Parse for FieldConfig {
             Ok(n)
         };
 
+        let get_str = |is_key: &str| -> Result<String, syn::Error> {
+            let key: syn::Ident = input.parse()?;
+            assert_eq!(key.to_string(), is_key);
+            input.parse::<Token![=]>()?;
+            let n: syn::LitStr = input.parse()?;
+            let n = n.value();
+            input.parse::<Token![,]>()?;
+            Ok(n)
+        };
+
         let get_usize_list = |is_key: &str| -> Result<Vec<usize>, syn::Error> {
             let key: syn::Ident = input.parse()?;
             assert_eq!(key.to_string(), is_key);
@@ -53,6 +64,7 @@ impl syn::parse::Parse for FieldConfig {
                 .into_iter()
                 .map(|lit| lit.base10_parse::<usize>())
                 .collect::<Result<Vec<_>, _>>()?;
+            input.parse::<Token![,]>()?;
             Ok(values)
         };
 
@@ -60,8 +72,8 @@ impl syn::parse::Parse for FieldConfig {
         let mul_gen = get_big("mul_gen")?;
         let zeta = get_big("zeta")?;
         let from_uniform = get_usize_list("from_uniform")?;
-
-        input.parse::<Token![,]>()?;
+        let endian = get_str("endian")?;
+        assert!(endian == "little" || endian == "big");
         assert!(input.is_empty());
 
         Ok(FieldConfig {
@@ -71,6 +83,7 @@ impl syn::parse::Parse for FieldConfig {
             mul_gen,
             zeta,
             from_uniform,
+            endian,
         })
     }
 }
@@ -84,6 +97,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
         mul_gen,
         zeta,
         from_uniform,
+        endian,
     } = syn::parse_macro_input!(input as FieldConfig);
     let _ = identifier;
 
@@ -183,6 +197,18 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
     let mul_gen = to_token(&mont(&mul_gen));
     let delta = to_token(&mont(&delta));
     let zeta = to_token(&mont(&zeta));
+
+    let endian = match endian.as_str() {
+        "little" => {
+            quote! { LE }
+        }
+        "big" => {
+            quote! { BE }
+        }
+        _ => {
+            unreachable!()
+        }
+    };
 
     let impl_field = quote! {
         #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -292,18 +318,24 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                 Self(val).mul_const(&Self::R2)
             }
 
-            /// Attempts to convert a little-endian byte representation of
+            /// Attempts to convert a <#endian>-endian byte representation of
             /// a scalar into a `$field`, failing if the input is not canonical.
-            pub fn from_bytes(bytes: &[u8; Self::SIZE]) -> CtOption<#field> {
-                let bytes: <Self as ff::PrimeField>::Repr = (*bytes).into();
-                let z = <Self as ff::PrimeField>::from_repr(bytes);
-                z
+            pub fn from_bytes(bytes: &[u8; Self::SIZE]) -> subtle::CtOption<Self> {
+                let mut el = #field::default();
+                use crate::serde::endian::Endian;
+                crate::serde::endian::#endian::from_bytes(bytes, &mut el.0);
+                subtle::CtOption::new(el * Self::R2, subtle::Choice::from(Self::is_less_than_modulus(&el.0) as u8))
             }
 
-            /// Converts an element of `$field` into a byte representation in
-            /// little-endian byte order.
+
+                        /// Converts an element of `$field` into a byte representation in
+            /// <#endian>-endian byte order.
             pub fn to_bytes(&self) -> [u8; Self::SIZE] {
-                <Self as ff::PrimeField>::to_repr(self).into()
+                use crate::serde::endian::Endian;
+                let el = self.from_mont();
+                let mut res = [0; #size];
+                crate::serde::endian::#endian::to_bytes(&mut res, &el);
+                res.into()
             }
 
 
@@ -589,7 +621,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                             .unwrap();
                         let a1 = #field(a1);
 
-                        // enforce non assmebly impl since asm is likely to be optimized for sparse fields
+                        // enforce non assembly impl since asm is likely to be optimized for sparse fields
                         a0.mul_const(&Self::R2) + a1.mul_const(&Self::R3)
 
                     }
