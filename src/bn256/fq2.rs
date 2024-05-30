@@ -6,9 +6,6 @@ use core::convert::TryInto;
 use std::cmp::Ordering;
 use subtle::{Choice, CtOption};
 
-#[cfg(feature = "derive_serde")]
-use serde::{Deserialize, Serialize};
-
 crate::impl_binops_additive!(Fq2, Fq2);
 crate::impl_binops_multiplicative!(Fq2, Fq2);
 crate::impl_binops_calls!(Fq2);
