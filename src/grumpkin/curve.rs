@@ -2,7 +2,6 @@ use crate::arithmetic::mul_512;
 use crate::arithmetic::sbb;
 use crate::arithmetic::CurveEndo;
 use crate::arithmetic::EndoParameters;
-use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::Curve;
@@ -21,9 +20,6 @@ use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-#[cfg(feature = "derive_serde")]
-use serde::{Deserialize, Serialize};
-
 new_curve_impl!(
     (pub),
     G1,
@@ -35,6 +31,8 @@ new_curve_impl!(
     G1_B,
     "grumpkin_g1",
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, G1::default_hash_to_curve_suite()),
+    crate::serde::CompressedFlagConfig::TwoSpare,
+    standard_sign
 );
 
 // Parameters in montgomery form taken from

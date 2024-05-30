@@ -5,7 +5,6 @@ use crate::arithmetic::EndoParameters;
 use crate::bn256::Fq;
 use crate::bn256::Fq2;
 use crate::bn256::Fr;
-use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::endo;
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
@@ -24,8 +23,17 @@ use rand::RngCore;
 use std::convert::TryInto;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-#[cfg(feature = "derive_serde")]
-use serde::{Deserialize, Serialize};
+impl crate::serde::endian::EndianRepr for Fq2 {
+    const ENDIAN: crate::serde::endian::Endian = Fq::ENDIAN;
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.to_bytes().to_vec()
+    }
+
+    fn from_bytes(bytes: &[u8]) -> subtle::CtOption<Self> {
+        Fq2::from_bytes(bytes[..Fq2::SIZE].try_into().unwrap())
+    }
+}
 
 new_curve_impl!(
     (pub),
@@ -38,6 +46,8 @@ new_curve_impl!(
     G1_B,
     "bn256_g1",
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, G1::default_hash_to_curve_suite()),
+    crate::serde::CompressedFlagConfig::TwoSpare,
+    standard_sign
 );
 
 new_curve_impl!(
@@ -51,6 +61,8 @@ new_curve_impl!(
     G2_B,
     "bn256_g2",
     |domain_prefix| hash_to_curve_g2(domain_prefix),
+    crate::serde::CompressedFlagConfig::TwoSpare,
+    standard_sign
 );
 
 #[allow(clippy::type_complexity)]
