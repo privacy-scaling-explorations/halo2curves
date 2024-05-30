@@ -74,6 +74,77 @@ impl<const T: usize> std::ops::IndexMut<std::ops::Range<usize>> for Repr<T> {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct Repr<const T: usize>([u8; T]);
+
+impl<const T: usize> From<[u8; T]> for Repr<T> {
+    fn from(bytes: [u8; T]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl<const T: usize> From<Repr<T>> for [u8; T] {
+    fn from(repr: Repr<T>) -> Self {
+        repr.0
+    }
+}
+
+impl<const T: usize> Default for Repr<T> {
+    fn default() -> Self {
+        Self([0u8; T])
+    }
+}
+
+impl<const T: usize> AsMut<[u8]> for Repr<T> {
+    fn as_mut(&mut self) -> &mut [u8] {
+        &mut self.0
+    }
+}
+
+impl<const T: usize> AsRef<[u8]> for Repr<T> {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl<const T: usize> std::ops::Index<std::ops::Range<usize>> for Repr<T> {
+    type Output = [u8];
+
+    fn index(&self, range: std::ops::Range<usize>) -> &Self::Output {
+        &self.0[range]
+    }
+}
+
+impl<const T: usize> std::ops::Index<usize> for Repr<T> {
+    type Output = u8;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+impl<const T: usize> std::ops::Index<std::ops::RangeTo<usize>> for Repr<T> {
+    type Output = [u8];
+
+    fn index(&self, range: std::ops::RangeTo<usize>) -> &Self::Output {
+        &self.0[range]
+    }
+}
+
+impl<const T: usize> std::ops::Index<std::ops::RangeFrom<usize>> for Repr<T> {
+    type Output = [u8];
+
+    fn index(&self, range: std::ops::RangeFrom<usize>) -> &Self::Output {
+        &self.0[range]
+    }
+}
+
+impl<const T: usize> std::ops::IndexMut<std::ops::Range<usize>> for Repr<T> {
+    fn index_mut(&mut self, range: std::ops::Range<usize>) -> &mut Self::Output {
+        &mut self.0[range]
+    }
+}
+
 /// Trait for converting raw bytes to/from the internal representation of a type.
 /// For example, field elements are represented in Montgomery form and serialized/deserialized without Montgomery reduction.
 pub trait SerdeObject: Sized {
