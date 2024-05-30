@@ -309,23 +309,6 @@ macro_rules! impl_tower2 {
             }
         }
 
-        impl FromUniformBytes<{ $field::SIZE * 2 }> for $tower {
-            fn from_uniform_bytes(bytes: &[u8; $field::SIZE * 2]) -> Self {
-                Self::new($field::from_uniform_bytes(bytes), $field::ZERO)
-            }
-        }
-
-        impl FromUniformBytes<{ $field::SIZE * 2 * 2 }> for $tower {
-            fn from_uniform_bytes(bytes: &[u8; $field::SIZE * 2 * 2]) -> Self {
-                let c0: [u8; $field::SIZE * 2] = bytes[..$field::SIZE * 2].try_into().unwrap();
-                let c1: [u8; $field::SIZE * 2] = bytes[$field::SIZE * 2..].try_into().unwrap();
-                Self::new(
-                    $field::from_uniform_bytes(&c0),
-                    $field::from_uniform_bytes(&c1),
-                )
-            }
-        }
-
         impl $crate::serde::SerdeObject for $tower {
             fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
                 debug_assert_eq!(bytes.len(), $field::SIZE * 2);

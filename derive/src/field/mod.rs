@@ -328,12 +328,12 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
             }
 
 
-                        /// Converts an element of `$field` into a byte representation in
+            /// Converts an element of `$field` into a byte representation in
             /// <#endian>-endian byte order.
             pub fn to_bytes(&self) -> [u8; Self::SIZE] {
                 use crate::serde::endian::Endian;
                 let el = self.from_mont();
-                let mut res = [0; #size];
+                let mut res = [0; Self::SIZE];
                 crate::serde::endian::#endian::to_bytes(&mut res, &el);
                 res.into()
             }
@@ -599,12 +599,14 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
 
     let impl_from_uniform_bytes = from_uniform
         .iter()
-        .map(|size| {
+        .map(|input_size| {
+            assert!(*input_size >= size);
+            assert!(*input_size <= size*2);
             quote! {
-                impl ff::FromUniformBytes<#size> for #field {
-                    fn from_uniform_bytes(bytes: &[u8; #size]) -> Self {
+                impl ff::FromUniformBytes<#input_size> for #field {
+                    fn from_uniform_bytes(bytes: &[u8; #input_size]) -> Self {
                         let mut wide = [0u8; Self::SIZE * 2];
-                        wide[..#size].copy_from_slice(bytes);
+                        wide[..#input_size].copy_from_slice(bytes);
                         let (a0, a1) = wide.split_at(Self::SIZE);
 
                         let a0: [u64; Self::NUM_LIMBS] = (0..Self::NUM_LIMBS)

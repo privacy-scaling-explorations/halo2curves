@@ -46,9 +46,8 @@ impl Fq2 {
         let mut c0 = -self.c1;
         c0 += self.c0;
         c0 *= c0c1;
-        c0 -= ab;
         self.c1 = ab.double();
-        self.c0 = c0 + ab;
+        self.c0 = c0;
     }
 
     // conjugate by negating c1

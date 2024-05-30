@@ -1,5 +1,5 @@
 use super::fp::Fp;
-use crate::ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
+use crate::ff::{Field, PrimeField, WithSmallOrderMulGroup};
 use crate::ff_ext::Legendre;
 use core::convert::TryInto;
 use core::ops::{Add, Neg, Sub};
