@@ -3,13 +3,6 @@ use halo2derive::impl_field;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-use crate::{
-    extend_field_legendre, field_bits, impl_add_binop_specify_output, impl_binops_additive,
-    impl_binops_additive_specify_output, impl_binops_calls, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
-    serialize_deserialize_primefield,
-};
-
 impl_field!(
     bn256_scalar,
     Fr,
@@ -20,12 +13,12 @@ impl_field!(
     endian = "little",
 );
 
-extend_field_legendre!(Fr);
-impl_binops_calls!(Fr);
-impl_binops_additive!(Fr, Fr);
-impl_binops_multiplicative!(Fr, Fr);
-field_bits!(Fr);
-serialize_deserialize_primefield!(Fr);
+crate::extend_field_legendre!(Fr);
+crate::impl_binops_calls!(Fr);
+crate::impl_binops_additive!(Fr, Fr);
+crate::impl_binops_multiplicative!(Fr, Fr);
+crate::field_bits!(Fr);
+crate::serialize_deserialize_primefield!(Fr);
 
 #[cfg(feature = "bn256-table")]
 pub use table::FR_TABLE;

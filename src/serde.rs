@@ -1,4 +1,7 @@
-use std::io::{self, Read, Write};
+use std::{
+    fmt::Debug,
+    io::{self, Read, Write},
+};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Repr<const T: usize>([u8; T]);
