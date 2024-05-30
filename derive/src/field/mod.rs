@@ -405,71 +405,20 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
         }
     };
 
-    let field_repr = quote::format_ident!("Repr{}", field);
-
     let impl_prime_field = quote! {
 
-        #[derive(Clone, Copy, Debug)]
-        pub struct #field_repr([u8; #size]);
-
-        impl Default for #field_repr {
-            fn default() -> Self {
-                Self([0u8; #size])
-            }
-        }
-
-        impl From<[u8; #size]> for #field_repr {
-            fn from(repr: [u8; #size]) -> Self {
-                Self(repr)
-            }
-        }
-
-        impl From<#field_repr> for [u8; #size] {
-            fn from(repr: #field_repr) -> Self {
-                repr.0
-            }
-        }
-
         // TODO use ::core::borrow::Borrow or AsRef
-        impl From<#field> for #field_repr {
-            fn from(value: #field) -> #field_repr {
+        impl From<#field> for crate::serde::Repr<{ #field::SIZE }> {
+            fn from(value: #field) -> crate::serde::Repr<{ #field::SIZE }> {
                 use ff::PrimeField;
                 value.to_repr()
             }
         }
 
-        impl<'a> From<&'a #field> for #field_repr {
-            fn from(value: &'a #field) -> #field_repr {
+        impl<'a> From<&'a #field> for crate::serde::Repr<{ #field::SIZE }> {
+            fn from(value: &'a #field) -> crate::serde::Repr<{ #field::SIZE }> {
                 use ff::PrimeField;
                 value.to_repr()
-            }
-        }
-
-        impl AsMut<[u8]> for #field_repr {
-            fn as_mut(&mut self) -> &mut [u8] {
-                &mut self.0
-            }
-        }
-
-        impl AsRef<[u8]> for #field_repr {
-            fn as_ref(&self) -> &[u8] {
-                &self.0
-            }
-        }
-
-        impl core::ops::Index<usize> for #field_repr {
-            type Output = u8;
-
-            fn index(&self, index: usize) -> &Self::Output {
-                &self.0[index]
-            }
-        }
-
-        impl core::ops::Index<core::ops::Range<usize>> for #field_repr {
-            type Output = [u8];
-
-            fn index(&self, index: core::ops::Range<usize>) -> &Self::Output {
-                &self.0[index]
             }
         }
 
@@ -484,7 +433,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
             const DELTA: Self = Self(#delta);
             const MODULUS: &'static str = #modulus_str;
 
-            type Repr = #field_repr;
+            type Repr = crate::serde::Repr<{ #field::SIZE }>;
 
             fn from_u128(v: u128) -> Self {
                 Self::R2 * Self(
