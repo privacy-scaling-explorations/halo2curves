@@ -55,24 +55,11 @@ macro_rules! field_common_7_limbs {
             }
 
             fn from_u512(limbs: [u64; 8]) -> $field {
-                // We reduce an arbitrary 512-bit number by decomposing it into two 256-bit digits
-                // with the higher bits multiplied by 2^256. Thus, we perform two reductions
-                //
-                // 1. the lower bits are multiplied by R^2, as normal
-                // 2. the upper bits are multiplied by R^2 * 2^256 = R^3
-                //
-                // and computing their sum in the field. It remains to see that arbitrary 256-bit
-                // numbers can be placed into Montgomery form safely using the reduction. The
-                // reduction works so long as the product is less than R=2^256 multiplied by
-                // the modulus. This holds because for any `c` smaller than the modulus, we have
-                // that (2^256 - 1)*c is an acceptable product for the reduction. Therefore, the
-                // reduction always works so long as `c` is in the field; in this case it is either the
-                // constant `R2` or `R3`.
                 let d0 = $field([
                     limbs[0], limbs[1], limbs[2], limbs[3], limbs[4], limbs[5], limbs[6],
                 ]);
-                let d1 = $field([limbs[7], 0u64, 0u64, 0u64, 0u64, 0u64, 0u64]);
-                // Convert to Montgomery form
+                let d1 = $field([limbs[7], 0, 0, 0, 0, 0, 0]);
+
                 d0 * $r2 + d1 * $r3
             }
 

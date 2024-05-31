@@ -484,7 +484,7 @@ impl PrimeField for Fp2 {
     }
 
     fn is_odd(&self) -> Choice {
-        Choice::from(self.to_repr().as_ref()[0] & 1)
+        self.c0.is_odd() | (self.c0.is_zero() & self.c1.is_odd())
     }
 }
 

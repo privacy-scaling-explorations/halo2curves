@@ -291,6 +291,14 @@ impl FromUniformBytes<64> for Fq {
     }
 }
 
+impl FromUniformBytes<48> for Fq {
+    fn from_uniform_bytes(bytes: &[u8; 48]) -> Self {
+        let repr = &mut [0u8; 64];
+        (*repr)[0..48].copy_from_slice(&bytes[..48]);
+        Fq::from_uniform_bytes(repr)
+    }
+}
+
 impl WithSmallOrderMulGroup<3> for Fq {
     const ZETA: Self = ZETA;
 }
@@ -309,4 +317,5 @@ mod test {
     crate::field_testing_suite!(Fq, "constants", MODULUS_STR);
     crate::field_testing_suite!(Fq, "sqrt");
     crate::field_testing_suite!(Fq, "zeta");
+    crate::field_testing_suite!(Fq, "from_uniform_bytes", 48, 64);
 }

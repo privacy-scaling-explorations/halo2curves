@@ -3,12 +3,12 @@ use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT}
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
-use crate::hash_to_curve::svdw_hash_to_curve;
 use crate::{Coordinates, CurveAffine, CurveExt};
 use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
+use ff::FromUniformBytes;
 use group::cofactor::CofactorGroup;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -131,7 +131,7 @@ new_curve_impl!(
     PLUTO_A,
     PLUTO_B,
     "pluto",
-    |curve_id, domain_prefix| svdw_hash_to_curve(curve_id, domain_prefix, G1::SVDW_Z),
+    |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, G1::default_hash_to_curve_suite()),
 );
 
 impl group::cofactor::CofactorGroup for Eris {
@@ -154,6 +154,30 @@ impl G1 {
     /// Constant Z for the Shallue-van de Woestijne map.
     /// Computed using https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-10.html#svdw-z-code
     const SVDW_Z: Fp = Fp::ONE;
+
+    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Self, sha2::Sha256, 72> {
+        crate::hash_to_curve::Suite::<Self, sha2::Sha256, 72>::new(
+            b"pluto_XMD:SHA-256_SVDW_RO_",
+            Self::SVDW_Z,
+            crate::hash_to_curve::Method::SVDW,
+        )
+    }
+}
+
+impl FromUniformBytes<72> for Fp {
+    fn from_uniform_bytes(bytes: &[u8; 72]) -> Self {
+        let repr = &mut [0u8; Self::size()];
+
+        (*repr)[0..36].copy_from_slice(&bytes[..36]);
+        let e0 = Fp::from_repr((*repr).into()).unwrap();
+        (*repr)[0..36].copy_from_slice(&bytes[36..]);
+        let e1 = Fp::from_repr((*repr).into()).unwrap();
+
+        // 2^(36*8)
+        const SHIFTER: Fp = Fp::from_raw([0, 0, 0, 0, 0x100000000, 0, 0]);
+
+        e0 + e1 * SHIFTER
+    }
 }
 
 new_curve_impl!(
@@ -166,7 +190,7 @@ new_curve_impl!(
     ERIS_A,
     ERIS_B,
     "eris",
-    |curve_id, domain_prefix| svdw_hash_to_curve(curve_id, domain_prefix, Eris::SVDW_Z),
+    |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, Eris::default_hash_to_curve_suite()),
 );
 
 impl CofactorGroup for G2 {
@@ -226,6 +250,30 @@ impl Eris {
     /// Constant Z for the Shallue-van de Woestijne map.
     /// Computed using https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-10.html#svdw-z-code
     const SVDW_Z: Fq = Fq::ONE;
+
+    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Self, sha2::Sha256, 72> {
+        crate::hash_to_curve::Suite::<Eris, sha2::Sha256, 72>::new(
+            b"eris_XMD:SHA-256_SVDW_RO_",
+            Self::SVDW_Z,
+            crate::hash_to_curve::Method::SVDW,
+        )
+    }
+}
+
+impl FromUniformBytes<72> for Fq {
+    fn from_uniform_bytes(bytes: &[u8; 72]) -> Self {
+        let repr = &mut [0u8; Self::size()];
+
+        (*repr)[0..36].copy_from_slice(&bytes[..36]);
+        let e0 = Fq::from_repr((*repr).into()).unwrap();
+        (*repr)[0..36].copy_from_slice(&bytes[36..]);
+        let e1 = Fq::from_repr((*repr).into()).unwrap();
+
+        // 2^(36*8)
+        const SHIFTER: Fq = Fq::from_raw([0, 0, 0, 0, 0x100000000, 0, 0]);
+
+        e0 + e1 * SHIFTER
+    }
 }
 
 new_curve_impl!(
@@ -238,7 +286,7 @@ new_curve_impl!(
     TRITON_A,
     TRITON_B,
     "triton",
-    |_, _| unimplemented!(),
+    |_| unimplemented!(),
 );
 
 #[cfg(test)]

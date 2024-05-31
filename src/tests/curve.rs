@@ -343,10 +343,10 @@ macro_rules! curve_testing_suite {
             }
         }
 
-        use crate::ff::Field;
-        use crate::group::prime::PrimeCurveAffine;
-        use crate::{group::GroupEncoding, serde::SerdeObject};
-        use crate::{CurveAffine, CurveExt};
+        use $crate::ff::Field;
+        use $crate::group::prime::PrimeCurveAffine;
+        use $crate::{group::GroupEncoding, serde::SerdeObject};
+        use $crate::{CurveAffine, CurveExt};
         use rand_core::OsRng;
 
 
@@ -519,47 +519,6 @@ macro_rules! curve_testing_suite {
         }
     };
 
-    ($curve: ident, "svdw_map_to_curve", ($precomputed_constants: expr, $test_vector: expr)) => {
-        #[test]
-        fn test_map_to_curve() {
-            use crate::ff_ext::Legendre;
-            use crate::{hash_to_curve, CurveAffine, CurveExt};
-            use ff::PrimeField;
-            use num_bigint::BigUint;
-            use num_traits::Num;
-            use std::borrow::Cow;
-
-            fn fe_from_str<F: PrimeField>(string: impl AsRef<str>) -> F {
-                let string = string.as_ref();
-                let oct = if let Some(hex) = string.strip_prefix("0x") {
-                    Cow::Owned(BigUint::from_str_radix(hex, 16).unwrap().to_string())
-                } else {
-                    Cow::Borrowed(string)
-                };
-                F::from_str_vartime(&oct).unwrap()
-            }
-
-            fn svdw_map_to_curve_test<G: CurveExt>(
-                z: G::Base,
-                precomputed_constants: [&'static str; 4],
-                test_vector: impl IntoIterator<Item = (&'static str, (&'static str, &'static str))>,
-            ) where
-                <G as CurveExt>::Base: Legendre,
-            {
-                let [c1, c2, c3, c4] = hash_to_curve::svdw_precomputed_constants::<G>(z);
-                assert_eq!([c1, c2, c3, c4], precomputed_constants.map(fe_from_str));
-                for (u, (x, y)) in test_vector.into_iter() {
-                    let u = fe_from_str(u);
-                    let expected = G::AffineExt::from_xy(fe_from_str(x), fe_from_str(y)).unwrap();
-                    let output = hash_to_curve::svdw_map_to_curve::<G>(u, c1, c2, c3, c4, z).to_affine();
-                    assert_eq!(output, expected);
-                }
-            }
-
-            svdw_map_to_curve_test::<$curve>($curve::SVDW_Z, $precomputed_constants, $test_vector);
-        }
-    };
-
     ($curve: ident, "constants", $p: expr, $a: expr, $b: expr, $gen_x: expr, $gen_y: expr, $order: expr) => {
         #[test]
         #[allow(non_snake_case)]
@@ -579,4 +538,23 @@ macro_rules! curve_testing_suite {
             assert!($order == <$curve as CurveExt>::ScalarExt::MODULUS);
         }
     };
+}
+
+use crate::{CurveAffine, CurveExt};
+use group::Curve;
+
+pub(crate) struct TestH2C<C: CurveAffine> {
+    msg: &'static [u8],
+    expect: C,
+}
+
+impl<C: CurveAffine> TestH2C<C> {
+    pub(crate) fn new(msg: &'static [u8], expect: C) -> Self {
+        Self { msg, expect }
+    }
+
+    pub(crate) fn run(&self, domain_prefix: &str) {
+        let r0 = C::CurveExt::hash_to_curve(domain_prefix)(self.msg);
+        assert_eq!(r0.to_affine(), self.expect);
+    }
 }
