@@ -313,7 +313,7 @@ fn jacobinary(mut n: u64, mut d: u64, mut t: u64) -> i64 {
 }
 
 /// Returns the Jacobi symbol ("n" / "d") computed by means of the modification
-/// of the the Pornin's method for modular inversion. The arguments are unsigned
+/// of the Pornin's method for modular inversion. The arguments are unsigned
 /// big integers in the form of arrays of 64-bit chunks, the ordering of which
 /// is little-endian. The value of "d" must be odd in accordance with the Jacobi
 /// symbol definition. Both the arguments must be less than 2 ^ (64 * L - 31).
