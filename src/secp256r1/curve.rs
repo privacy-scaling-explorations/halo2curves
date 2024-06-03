@@ -1,4 +1,3 @@
-use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
@@ -11,9 +10,6 @@ use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-#[cfg(feature = "derive_serde")]
-use serde::{Deserialize, Serialize};
 
 impl group::cofactor::CofactorGroup for Secp256r1 {
     type Subgroup = Secp256r1;
@@ -60,9 +56,8 @@ const SECP_B: Fp = Fp::from_raw([
 ]);
 
 use crate::{
-    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
-    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
-    new_curve_impl,
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, new_curve_impl,
 };
 
 new_curve_impl!(
@@ -75,13 +70,12 @@ new_curve_impl!(
     SECP_A,
     SECP_B,
     "secp256r1",
-    |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, Secp256r1::default_hash_to_curve_suite()),
+    |domain_prefix| hash_to_curve(domain_prefix, hash_to_curve_suite(b"P256_XMD:SHA-256_SSWU_RO_")),
+    crate::serde::CompressedFlagConfig::Extra,
+    standard_sign
 );
 
-impl Secp256r1 {
-    // Optimal Z with: <https://datatracker.ietf.org/doc/html/rfc9380#sswu-z-code>
-    // 0xffffffff00000001000000000000000000000000fffffffffffffffffffffff5
-    // Z = -10 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#section-8.2>)
+fn hash_to_curve_suite(domain: &[u8]) -> crate::hash_to_curve::Suite<Secp256r1, sha2::Sha256, 48> {
     const SSWU_Z: Fp = Fp::from_raw([
         0xfffffffffffffff5,
         0x00000000ffffffff,
@@ -89,13 +83,22 @@ impl Secp256r1 {
         0xffffffff00000001,
     ]);
 
-    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<Secp256r1, sha2::Sha256, 48> {
-        crate::hash_to_curve::Suite::<Secp256r1, sha2::Sha256, 48>::new(
-            b"P256_XMD:SHA-256_SSWU_RO_",
-            Self::SSWU_Z,
-            crate::hash_to_curve::Method::SSWU,
-        )
-    }
+    let iso_map = crate::hash_to_curve::Iso {
+        a: Secp256r1::a(),
+        b: Secp256r1::b(),
+        map: Box::new(move |x, y, z| Secp256r1 { x, y, z }),
+    };
+
+    crate::hash_to_curve::Suite::new(domain, SSWU_Z, crate::hash_to_curve::Method::SSWU(iso_map))
+}
+
+#[allow(clippy::type_complexity)]
+pub(crate) fn hash_to_curve<'a>(
+    domain_prefix: &'a str,
+    suite: crate::hash_to_curve::Suite<Secp256r1, sha2::Sha256, 48>,
+) -> Box<dyn Fn(&[u8]) -> Secp256r1 + 'a> {
+    use group::cofactor::CofactorGroup;
+    Box::new(move |message| suite.hash_to_curve(domain_prefix, message).clear_cofactor())
 }
 
 #[cfg(test)]

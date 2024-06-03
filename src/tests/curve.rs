@@ -235,20 +235,20 @@ macro_rules! curve_testing_suite {
             ($c: ident) => {
                 assert!(bool::from(
                     $c::from_bytes(&$c::identity().to_bytes())
-                        .unwrap()
-                        .is_identity()
+                    .unwrap()
+                    .is_identity()
                 ));
 
                 assert!(bool::from(
                     <$c as CurveExt>::AffineExt::from_uncompressed(&<$c as CurveExt>::AffineExt::identity().to_uncompressed())
-                        .unwrap()
-                        .is_identity()
+                    .unwrap()
+                    .is_identity()
                 ));
 
                 assert!(bool::from(
                     <$c as CurveExt>::AffineExt::from_bytes(&<$c as CurveExt>::AffineExt::identity().to_bytes())
-                        .unwrap()
-                        .is_identity()
+                    .unwrap()
+                    .is_identity()
                 ));
 
                 for _ in 0..100 {

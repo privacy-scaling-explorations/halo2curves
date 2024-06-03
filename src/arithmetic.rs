@@ -45,30 +45,6 @@ pub(crate) const fn macx(a: u64, b: u64, c: u64) -> (u64, u64) {
     (res as u64, (res >> 64) as u64)
 }
 
-/// Returns a >= b
-#[inline(always)]
-pub(crate) const fn bigint_geq(a: &[u64; 4], b: &[u64; 4]) -> bool {
-    if a[3] > b[3] {
-        return true;
-    } else if a[3] < b[3] {
-        return false;
-    }
-    if a[2] > b[2] {
-        return true;
-    } else if a[2] < b[2] {
-        return false;
-    }
-    if a[1] > b[1] {
-        return true;
-    } else if a[1] < b[1] {
-        return false;
-    }
-    if a[0] >= b[0] {
-        return true;
-    }
-    false
-}
-
 /// Compute a * b, returning the result.
 #[inline(always)]
 pub(crate) fn mul_512(a: [u64; 4], b: [u64; 4]) -> [u64; 8] {

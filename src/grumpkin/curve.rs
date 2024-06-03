@@ -2,7 +2,6 @@ use crate::arithmetic::mul_512;
 use crate::arithmetic::sbb;
 use crate::arithmetic::CurveEndo;
 use crate::arithmetic::EndoParameters;
-use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::Curve;
@@ -10,9 +9,8 @@ use crate::group::{prime::PrimeCurveAffine, Group, GroupEncoding};
 use crate::grumpkin::Fq;
 use crate::grumpkin::Fr;
 use crate::{
-    endo, impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
-    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
-    new_curve_impl,
+    endo, impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, new_curve_impl,
 };
 use crate::{Coordinates, CurveAffine, CurveExt};
 use core::cmp;
@@ -21,9 +19,6 @@ use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-#[cfg(feature = "derive_serde")]
-use serde::{Deserialize, Serialize};
 
 new_curve_impl!(
     (pub),
@@ -36,6 +31,8 @@ new_curve_impl!(
     G1_B,
     "grumpkin_g1",
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, G1::default_hash_to_curve_suite()),
+    crate::serde::CompressedFlagConfig::TwoSpare,
+    standard_sign
 );
 
 // Parameters in montgomery form taken from

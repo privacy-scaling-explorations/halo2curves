@@ -1,15 +1,12 @@
-macro_rules! field_arithmetic_asm {
-    (
-        $field:ident,
-        $modulus:ident,
-        $inv:ident
-    ) => {
-        use std::arch::asm;
+use proc_macro2::TokenStream;
 
-        impl $field {
+pub(crate) fn impl_arith(field: &syn::Ident, inv: u64) -> TokenStream {
+    quote::quote! {
+        use std::arch::asm;
+        impl #field {
             /// Doubles this field element.
             #[inline]
-            pub fn double(&self) -> $field {
+            pub fn double(&self) -> #field {
                 let mut r0: u64;
                 let mut r1: u64;
                 let mut r2: u64;
@@ -46,7 +43,7 @@ macro_rules! field_arithmetic_asm {
                         "cmovc r14, r10",
                         "cmovc r15, r11",
 
-                        m_ptr = in(reg) $modulus.0.as_ptr(),
+                        m_ptr = in(reg) #field::MODULUS_LIMBS.as_ptr(),
                         a_ptr = in(reg) self.0.as_ptr(),
                         out("r8") _,
                         out("r9") _,
@@ -59,17 +56,17 @@ macro_rules! field_arithmetic_asm {
                         options(pure, readonly, nostack)
                     );
                 }
-                $field([r0, r1, r2, r3])
+                #field([r0, r1, r2, r3])
             }
 
             /// Squares this element.
             #[inline]
-            pub fn square(&self) -> $field {
+            pub fn square(&self) -> #field {
                 self.mul(self)
             }
 
             #[inline(always)]
-            pub(crate) fn montgomery_reduce_256(&self) -> $field {
+            pub(crate) fn from_mont(&self) -> [u64; Self::NUM_LIMBS] {
                 let mut r0: u64;
                 let mut r1: u64;
                 let mut r2: u64;
@@ -179,8 +176,8 @@ macro_rules! field_arithmetic_asm {
                         // high(inv * p3) + 2 < p3
 
                         a_ptr = in(reg) self.0.as_ptr(),
-                        m_ptr = in(reg) $modulus.0.as_ptr(),
-                        inv = in(reg) $inv,
+                        m_ptr = in(reg) #field::MODULUS_LIMBS.as_ptr(),
+                        inv = in(reg) #inv,
 
                         out("rax") _,
                         out("rcx") _,
@@ -196,12 +193,12 @@ macro_rules! field_arithmetic_asm {
                         options(pure, readonly, nostack)
                     )
                 }
-                $field([r0, r1, r2, r3])
+                [r0, r1, r2, r3]
             }
 
             /// Multiplies `rhs` by `self`, returning the result.
             #[inline]
-            pub fn mul(&self, rhs: &Self) -> $field {
+            pub fn mul(&self, rhs: &Self) -> #field {
                 let mut r0: u64;
                 let mut r1: u64;
                 let mut r2: u64;
@@ -419,10 +416,10 @@ macro_rules! field_arithmetic_asm {
                         "cmovnc rax, rdx",
                         "cmovnc r14, r15",
 
-                        m_ptr = in(reg) $modulus.0.as_ptr(),
+                        m_ptr = in(reg) #field::MODULUS_LIMBS.as_ptr(),
                         a_ptr = in(reg) self.0.as_ptr(),
                         b_ptr = in(reg) rhs.0.as_ptr(),
-                        inv = in(reg) $inv,
+                        inv = in(reg) #inv,
                         out("rax") r2,
                         out("rdx") _,
                         out("r10") _,
@@ -435,12 +432,12 @@ macro_rules! field_arithmetic_asm {
                     )
                 }
 
-                $field([r0, r1, r2, r3])
+                #field([r0, r1, r2, r3])
             }
 
             /// Subtracts `rhs` from `self`, returning the result.
             #[inline]
-            pub fn sub(&self, rhs: &Self) -> $field {
+            pub fn sub(&self, rhs: &Self) -> #field {
                 let mut r0: u64;
                 let mut r1: u64;
                 let mut r2: u64;
@@ -480,7 +477,7 @@ macro_rules! field_arithmetic_asm {
                         "adc  r14, r10",
                         "adc  r15, r11",
 
-                        m_ptr = in(reg) $modulus.0.as_ptr(),
+                        m_ptr = in(reg) #field::MODULUS_LIMBS.as_ptr(),
                         a_ptr = in(reg) self.0.as_ptr(),
                         b_ptr = in(reg) rhs.0.as_ptr(),
                         out("rax") _,
@@ -495,12 +492,12 @@ macro_rules! field_arithmetic_asm {
                         options(pure, readonly, nostack)
                     );
                 }
-                $field([r0, r1, r2, r3])
+                #field([r0, r1, r2, r3])
             }
 
             /// Adds `rhs` to `self`, returning the result.
             #[inline]
-            pub fn add(&self, rhs: &Self) -> $field {
+            pub fn add(&self, rhs: &Self) -> #field {
                 let mut r0: u64;
                 let mut r1: u64;
                 let mut r2: u64;
@@ -537,7 +534,7 @@ macro_rules! field_arithmetic_asm {
                         "cmovc r14, r10",
                         "cmovc r15, r11",
 
-                        m_ptr = in(reg) $modulus.0.as_ptr(),
+                        m_ptr = in(reg) #field::MODULUS_LIMBS.as_ptr(),
                         a_ptr = in(reg) self.0.as_ptr(),
                         b_ptr = in(reg) rhs.0.as_ptr(),
                         out("r8") _,
@@ -551,12 +548,12 @@ macro_rules! field_arithmetic_asm {
                         options(pure, readonly, nostack)
                     );
                 }
-                $field([r0, r1, r2, r3])
+                #field([r0, r1, r2, r3])
             }
 
             /// Negates `self`.
             #[inline]
-            pub fn neg(&self) -> $field {
+            pub fn neg(&self) -> #field {
                 let mut r0: u64;
                 let mut r1: u64;
                 let mut r2: u64;
@@ -593,7 +590,7 @@ macro_rules! field_arithmetic_asm {
                         "and r11, r13",
 
                         a_ptr = in(reg) self.0.as_ptr(),
-                        m_ptr = in(reg) $modulus.0.as_ptr(),
+                        m_ptr = in(reg) #field::MODULUS_LIMBS.as_ptr(),
                         out("r8") r0,
                         out("r9") r1,
                         out("r10") r2,
@@ -605,18 +602,8 @@ macro_rules! field_arithmetic_asm {
                         options(pure, readonly, nostack)
                     )
                 }
-                $field([r0, r1, r2, r3])
+                #field([r0, r1, r2, r3])
             }
         }
-
-        impl From<$field> for [u64; 4] {
-            fn from(elt: $field) -> [u64; 4] {
-                // Turn into canonical form by computing
-                // (a.R) / R = a
-                elt.montgomery_reduce_256().0
-            }
-        }
-    };
+    }
 }
-
-pub(crate) use field_arithmetic_asm;
