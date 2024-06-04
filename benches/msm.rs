@@ -14,9 +14,13 @@ extern crate criterion;
 
 use criterion::{BenchmarkId, Criterion};
 use ff::Field;
+use ff::PrimeField;
 use group::prime::PrimeCurveAffine;
 use halo2curves::bn256::{Fr as Scalar, G1Affine as Point};
-use halo2curves::msm::{best_multiexp, multiexp_serial};
+use halo2curves::msm::{
+    best_multiexp, best_multiexp_jonathan, best_multiexp_skip_zeros, multiexp_serial,
+};
+use rand_core::RngCore;
 use rand_core::SeedableRng;
 use rand_xorshift::XorShiftRng;
 use rayon::current_thread_index;
@@ -112,5 +116,94 @@ fn msm(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, msm);
+fn gen_scalars_points(k: u8, small: bool) -> (Vec<Scalar>, Vec<Point>) {
+    let points = (0..1 << k)
+        .into_par_iter()
+        .map_init(
+            || {
+                let uniq = current_thread_index().unwrap();
+                assert!(std::mem::size_of::<usize>() == 8);
+                XorShiftRng::seed_from_u64(uniq as u64)
+            },
+            |rng, _| Point::random(rng),
+        )
+        .collect();
+
+    // 1 byte upper bound
+    let max_val = 2u64.pow((8) as u32);
+
+    let scalars = (0..1 << k)
+        .into_par_iter()
+        .map_init(
+            || {
+                let uniq = current_thread_index().unwrap();
+                assert!(std::mem::size_of::<usize>() == 8);
+                XorShiftRng::seed_from_u64(uniq as u64)
+            },
+            |rng, _| {
+                if small {
+                    let v = rng.next_u64() % max_val;
+                    Scalar::from_u128(v as u128)
+                } else {
+                    Scalar::random(rng)
+                }
+            },
+        )
+        .collect();
+
+    (scalars, points)
+}
+
+fn msm_cmp(c: &mut Criterion) {
+    let mut group = c.benchmark_group("msm_cmp");
+    let min_k = 18;
+    let max_k = 22;
+    let (scalars_small, points_small) = gen_scalars_points(max_k, true);
+    let (scalars_big, points_big) = gen_scalars_points(max_k, false);
+
+    for small in [false, true] {
+        let (scalars, points) = if small {
+            (&scalars_small, &points_small)
+        } else {
+            (&scalars_big, &points_big)
+        };
+        for k in min_k..=max_k {
+            let name = format!("msm func={}, k={}, small={}", "original", k, small);
+            group
+                .bench_function(BenchmarkId::new(name, k), |b| {
+                    let n: usize = 1 << k;
+                    b.iter(|| {
+                        best_multiexp(&scalars[..n], &points[..n]);
+                    })
+                })
+                .sample_size(10);
+
+            let name = format!("msm func={}, k={}, small={}", "skip_zeros_edu", k, small);
+            group
+                .bench_function(BenchmarkId::new(name, k), |b| {
+                    let n: usize = 1 << k;
+                    b.iter(|| {
+                        best_multiexp_skip_zeros(&scalars[..n], &points[..n]);
+                    })
+                })
+                .sample_size(10);
+
+            let name = format!(
+                "msm func={}, k={}, small={}",
+                "skip_zeros_jonathan", k, small
+            );
+            group
+                .bench_function(BenchmarkId::new(name, k), |b| {
+                    let n: usize = 1 << k;
+                    b.iter(|| {
+                        best_multiexp_jonathan(&scalars[..n], &points[..n]);
+                    })
+                })
+                .sample_size(10);
+        }
+    }
+    group.finish();
+}
+
+criterion_group!(benches, msm_cmp);
 criterion_main!(benches);
