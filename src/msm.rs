@@ -402,7 +402,7 @@ pub fn best_multiexp_independent_points<C: CurveAffine>(
 ) -> C::Curve {
     assert_eq!(coeffs.len(), bases.len());
 
-    // TODO: consider adjusting it with emprical data?
+    // TODO: consider adjusting it with empirical data?
     let c = if bases.len() < 4 {
         1
     } else if bases.len() < 32 {
