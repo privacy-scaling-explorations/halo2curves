@@ -187,10 +187,16 @@ impl Field for Fp12 {
     }
 
     fn sqrt(&self) -> CtOption<Self> {
+        // The square root method is typically only required for finding y-coordinate
+        // given the x-coordinate of an EC point. Fields over which we have not
+        // defined a curve do not need this method.
         unimplemented!()
     }
 
     fn sqrt_ratio(_num: &Self, _div: &Self) -> (Choice, Self) {
+        // The square root method is typically only required for finding y-coordinate
+        // given the x-coordinate of an EC point. Fields over which we have not
+        // defined a curve do not need this method.
         unimplemented!()
     }
 

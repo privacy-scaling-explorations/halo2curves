@@ -177,6 +177,8 @@ fn impl_add(field: &syn::Ident, num_limbs: usize) -> TokenStream {
         gen.extend(quote! { let ( #d_i, carry) = adc(self.0[#i], rhs.0[#i], #carry); });
     });
 
+    // Attempt to subtract the modulus, to ensure the value
+    // is smaller than the modulus.
     (0..num_limbs).for_each(|i| {
         let borrow = select(i == 0, quote! {0}, quote! {borrow});
         let d_i = fmtid!("d_{}", i);

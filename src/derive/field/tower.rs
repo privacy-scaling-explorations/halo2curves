@@ -268,7 +268,7 @@ macro_rules! impl_tower2 {
         impl WithSmallOrderMulGroup<3> for $tower {
             // $field::ZETA ^2
             const ZETA: Self = $tower {
-                c0: ZETA,
+                c0: $field::ZETA.mul_const(&$field::ZETA),
                 c1: $field::ZERO,
             };
         }

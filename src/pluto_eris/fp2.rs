@@ -185,16 +185,6 @@ impl Fp2 {
     }
 }
 
-const ZETA: Fp = Fp::from_raw([
-    0x8ffff80f80000002,
-    0xd9fa5d8a200bc439,
-    0x1b50d5e1ff708dc8,
-    0xf43f8cddf9a5c478,
-    0xa803ca76be3924a5,
-    0x0130e0000d7f28e4,
-    0x2400000000002400,
-]);
-
 #[cfg(test)]
 mod test {
     use super::*;

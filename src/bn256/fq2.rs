@@ -178,13 +178,6 @@ impl FromUniformBytes<96> for Fq2 {
     }
 }
 
-const ZETA: Fq = Fq::from_raw([
-    0x5763473177fffffe,
-    0xd4f263f1acdb5c4f,
-    0x59e26bcea0d48bac,
-    0x0000000000000000,
-]);
-
 #[cfg(test)]
 mod test {
     use super::*;
