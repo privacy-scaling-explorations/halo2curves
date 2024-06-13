@@ -79,6 +79,9 @@ new_curve_impl!(
 );
 
 fn hash_to_curve_suite(domain: &[u8]) -> crate::hash_to_curve::Suite<Secp256r1, sha2::Sha256, 48> {
+    // Optimal Z with: <https://datatracker.ietf.org/doc/html/rfc9380#sswu-z-code>
+    // 0xffffffff00000001000000000000000000000000fffffffffffffffffffffff5
+    // Z = -10 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#section-8.2>)
     const SSWU_Z: Fp = Fp::from_raw([
         0xfffffffffffffff5,
         0x00000000ffffffff,
@@ -101,7 +104,7 @@ pub(crate) fn hash_to_curve<'a>(
     suite: crate::hash_to_curve::Suite<Secp256r1, sha2::Sha256, 48>,
 ) -> Box<dyn Fn(&[u8]) -> Secp256r1 + 'a> {
     use group::cofactor::CofactorGroup;
-    Box::new(move |message| suite.hash_to_curve(domain_prefix, message).clear_cofactor())
+    Box::new(move |message| suite.hash_to_curve(domain_prefix, message))
 }
 
 #[cfg(test)]

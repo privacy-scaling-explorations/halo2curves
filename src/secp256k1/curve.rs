@@ -69,6 +69,8 @@ new_curve_impl!(
 );
 
 fn hash_to_curve_suite(domain: &[u8]) -> crate::hash_to_curve::Suite<Secp256k1, sha2::Sha256, 48> {
+    // Z = -11 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-suites-for-secp256k1>)
+    // 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc24
     const SSWU_Z: Fp = Fp::from_raw([
         0xfffffffefffffc24,
         0xffffffffffffffff,
@@ -76,6 +78,10 @@ fn hash_to_curve_suite(domain: &[u8]) -> crate::hash_to_curve::Suite<Secp256k1, 
         0xffffffffffffffff,
     ]);
 
+    // E': y'^2 = x'^3 + A' * x' + B', where
+    // A': 0x3f8731abdd661adca08a5558f0f5d272e953d363cb6f0e5d405447c01a444533
+    // B': 1771
+    // (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-suites-for-secp256k1>)
     pub const ISO_SECP_A: Fp = Fp::from_raw([
         0x405447c01a444533,
         0xe953d363cb6f0e5d,
@@ -99,7 +105,7 @@ pub(crate) fn hash_to_curve<'a>(
     domain_prefix: &'a str,
     suite: crate::hash_to_curve::Suite<Secp256k1, sha2::Sha256, 48>,
 ) -> Box<dyn Fn(&[u8]) -> Secp256k1 + 'a> {
-    Box::new(move |message| suite.hash_to_curve(domain_prefix, message).clear_cofactor())
+    Box::new(move |message| suite.hash_to_curve(domain_prefix, message))
 }
 
 /// 3-Isogeny Map for Secp256k1

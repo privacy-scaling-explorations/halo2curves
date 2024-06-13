@@ -11,6 +11,7 @@ pub enum Method<C: CurveExt> {
     SVDW,
 }
 
+/// Map the homogeneous coordinates of a point from the isogenous curve to a point in the original curve.
 #[allow(clippy::type_complexity)]
 pub struct Iso<C: CurveExt> {
     pub(crate) a: C::Base,
@@ -236,7 +237,6 @@ where
     //6.  tv3 = B * tv3
     let tv3 = b * tv3;
     //7.  tv4 = CMOV(Z, -tv2, tv2 != 0) # tv4 = z if tv2 is 0 else tv4 = -tv2
-    // let tv2_is_not_zero = !tv2.is_zero();
     let tv2_is_not_zero = !tv2.ct_eq(&C::Base::ZERO);
     let tv4 = C::Base::conditional_select(&z, &-tv2, tv2_is_not_zero);
     //8.  tv4 = A * tv4
@@ -274,7 +274,12 @@ where
     //24.   y = CMOV(-y, y, e1) # Select correct sign of y
     let y = C::Base::conditional_select(&-y, &y, e1);
 
-    // stay projective avoid inverse
+    // In the original algorithm:
+    // 25.   x = x / tv4
+    // 26. return (x, y)
+    //
+    // we omit instruction 25. and return the result in homogeneous coordinates (instead of the previous jacobi).
+
     (x, y * tv4, tv4)
 }
 
