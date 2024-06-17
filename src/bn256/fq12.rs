@@ -1,108 +1,26 @@
 use super::fq::Fq;
 use super::fq2::Fq2;
 use super::fq6::Fq6;
-use crate::ff::Field;
-use core::ops::{Add, Mul, Neg, Sub};
-use rand::RngCore;
+use crate::impl_tower2_common;
+use core::ops::{Add, Neg, Sub};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// -GAMMA is a quadratic non-residue in Fp6. Fp12 = Fp6[X]/(X^2 + GAMMA)
 /// We introduce the variable w such that w^2 = -GAMMA
 // GAMMA = - v
-
 /// An element of Fq12, represented by c0 + c1 * w.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
-pub struct Fq12 {
-    pub c0: Fq6,
-    pub c1: Fq6,
-}
-
-impl ConditionallySelectable for Fq12 {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Fq12 {
-            c0: Fq6::conditional_select(&a.c0, &b.c0, choice),
-            c1: Fq6::conditional_select(&a.c1, &b.c1, choice),
-        }
-    }
-}
-
-impl ConstantTimeEq for Fq12 {
-    fn ct_eq(&self, other: &Self) -> Choice {
-        self.c0.ct_eq(&other.c0) & self.c1.ct_eq(&other.c1)
-    }
-}
-
-impl Neg for Fq12 {
-    type Output = Fq12;
-
-    #[inline]
-    fn neg(self) -> Fq12 {
-        -&self
-    }
-}
-
-impl<'a> Neg for &'a Fq12 {
-    type Output = Fq12;
-
-    #[inline]
-    fn neg(self) -> Fq12 {
-        self.neg()
-    }
-}
-
-impl<'a, 'b> Sub<&'b Fq12> for &'a Fq12 {
-    type Output = Fq12;
-
-    #[inline]
-    fn sub(self, rhs: &'b Fq12) -> Fq12 {
-        self.sub(rhs)
-    }
-}
-
-impl<'a, 'b> Add<&'b Fq12> for &'a Fq12 {
-    type Output = Fq12;
-
-    #[inline]
-    fn add(self, rhs: &'b Fq12) -> Fq12 {
-        self.add(rhs)
-    }
-}
-
-impl<'a, 'b> Mul<&'b Fq12> for &'a Fq12 {
-    type Output = Fq12;
-
-    #[inline]
-    fn mul(self, rhs: &'b Fq12) -> Fq12 {
-        self.mul(rhs)
-    }
-}
-
 use crate::{
     impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
-    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
-    impl_sum_prod,
+    impl_binops_calls, impl_binops_multiplicative, impl_binops_multiplicative_mixed,
+    impl_sub_binop_specify_output, impl_sum_prod,
 };
 impl_binops_additive!(Fq12, Fq12);
 impl_binops_multiplicative!(Fq12, Fq12);
+impl_tower2_common!(Fq6, Fq12);
+impl_binops_calls!(Fq12);
 impl_sum_prod!(Fq12);
 
 impl Fq12 {
-    #[inline]
-    pub const fn zero() -> Self {
-        Fq12 {
-            c0: Fq6::ZERO,
-            c1: Fq6::ZERO,
-        }
-    }
-
-    #[inline]
-    pub const fn one() -> Self {
-        Fq12 {
-            c0: Fq6::ONE,
-            c1: Fq6::ZERO,
-        }
-    }
-
     pub fn mul_assign(&mut self, other: &Self) {
         let t0 = self.c0 * other.c0;
         let mut t1 = self.c1 * other.c1;
@@ -134,63 +52,10 @@ impl Fq12 {
         self.c0 = c0;
     }
 
-    pub fn double(&self) -> Self {
-        Self {
-            c0: self.c0.double(),
-            c1: self.c1.double(),
-        }
-    }
-
-    pub fn double_assign(&mut self) {
-        self.c0 = self.c0.double();
-        self.c1 = self.c1.double();
-    }
-
-    pub fn add(&self, other: &Self) -> Self {
-        Self {
-            c0: self.c0 + other.c0,
-            c1: self.c1 + other.c1,
-        }
-    }
-
-    pub fn sub(&self, other: &Self) -> Self {
-        Self {
-            c0: self.c0 - other.c0,
-            c1: self.c1 - other.c1,
-        }
-    }
-
-    pub fn mul(&self, other: &Self) -> Self {
-        let mut t = *other;
-        t.mul_assign(self);
-        t
-    }
-
-    pub fn square(&self) -> Self {
-        let mut t = *self;
-        t.square_assign();
-        t
-    }
-
-    #[inline(always)]
-    pub fn neg(&self) -> Self {
-        Self {
-            c0: -self.c0,
-            c1: -self.c1,
-        }
-    }
-
     #[inline(always)]
     pub fn conjugate(&mut self) {
         self.c1 = -self.c1;
     }
-
-    // pub fn conjugate(&self) -> Self {
-    //     Self {
-    //         c0: self.c0,
-    //         c1: -self.c1,
-    //     }
-    // }
 
     pub fn frobenius_map(&mut self, power: usize) {
         self.c0.frobenius_map(power);
@@ -298,11 +163,12 @@ impl Fq12 {
     }
 }
 
-impl Field for Fq12 {
+#[cfg(test)]
+impl ff::Field for Fq12 {
     const ZERO: Self = Self::zero();
     const ONE: Self = Self::one();
 
-    fn random(mut rng: impl RngCore) -> Self {
+    fn random(mut rng: impl rand_core::RngCore) -> Self {
         Fq12 {
             c0: Fq6::random(&mut rng),
             c1: Fq6::random(&mut rng),

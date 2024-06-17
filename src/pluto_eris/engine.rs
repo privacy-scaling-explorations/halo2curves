@@ -1,14 +1,14 @@
 #![allow(clippy::suspicious_arithmetic_impl)]
-use crate::ff::{Field, PrimeField};
+use crate::ff::PrimeField;
 use crate::group::cofactor::CofactorCurveAffine;
 use crate::group::Group;
 use crate::pairing::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use crate::pluto_eris::curve::*;
-use crate::pluto_eris::fields::fp::*;
-use crate::pluto_eris::fields::fp12::*;
-use crate::pluto_eris::fields::fp2::*;
-use crate::pluto_eris::fields::fp6::FROBENIUS_COEFF_FP6_C1;
-use crate::pluto_eris::fields::fq::*;
+use crate::pluto_eris::fp::*;
+use crate::pluto_eris::fp12::*;
+use crate::pluto_eris::fp2::*;
+use crate::pluto_eris::fp6::FROBENIUS_COEFF_FP6_C1;
+use crate::pluto_eris::fq::*;
 use core::borrow::Borrow;
 use core::iter::Sum;
 use core::ops::{Add, Mul, MulAssign, Neg, Sub};
@@ -99,7 +99,7 @@ impl PartialEq for Gt {
 impl Gt {
     /// Returns the group identity, which is $1$.
     pub const fn identity() -> Gt {
-        Gt(Fp12::ONE)
+        Gt(Fp12::one())
     }
 
     /// Doubles this group element.
@@ -155,6 +155,7 @@ impl<'a, 'b> Mul<&'b Fq> for &'a Gt {
 
         for bit in other
             .to_repr()
+            .as_ref()
             .iter()
             .rev()
             .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))
@@ -489,7 +490,7 @@ impl MillerLoopResult for Gt {
     fn final_exponentiation(&self) -> Gt {
         fn exp_by_x(f: &mut Fp12) {
             let x = NEG_PLUTO_U;
-            let mut res = Fp12::ONE;
+            let mut res = Fp12::one();
             for i in (0..111).rev() {
                 res.cyclotomic_square();
                 if ((x >> i) & 1) == 1 {
@@ -617,7 +618,7 @@ impl MultiMillerLoop for Pluto {
             f.mul_by_034(&c0, &c1, &coeffs.2);
         }
 
-        let mut f = Fp12::ONE;
+        let mut f = Fp12::one();
 
         for &mut (p, ref mut coeffs) in &mut pairs {
             ell(&mut f, coeffs.next().unwrap(), p);
@@ -690,6 +691,8 @@ use rand_xorshift::XorShiftRng;
 
 #[test]
 fn test_pairing() {
+    use ff::Field;
+
     let g1 = G1::generator();
     let mut g2 = G2::generator();
     g2 = g2.double();
@@ -773,6 +776,8 @@ fn tricking_miller_loop_result() {
 
 #[test]
 fn random_bilinearity_tests() {
+    use ff::Field;
+
     let mut rng = XorShiftRng::from_seed([
         0x55, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
         0xe5,
@@ -821,6 +826,8 @@ fn random_bilinearity_tests() {
 
 #[test]
 pub fn engine_tests() {
+    use ff::Field;
+
     let mut rng = XorShiftRng::from_seed([
         0x56, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
         0xe5,
@@ -901,6 +908,8 @@ fn random_miller_loop_tests() {
 
 #[test]
 pub fn multi_miller_final_exp_tests() {
+    use ff::Field;
+
     let g1 = G1::generator();
     let g2 = G2::generator();
 
