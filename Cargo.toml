@@ -66,15 +66,11 @@ incremental = false
 codegen-units = 1
 
 [[bench]]
-name = "less_than"
+name = "field_arith"
 harness = false
 
 [[bench]]
-name = "bn256_field"
-harness = false
-
-[[bench]]
-name = "group"
+name = "curve"
 harness = false
 
 [[bench]]
