@@ -3,7 +3,7 @@
 //!
 //! To run this benchmark:
 //!
-//!     cargo bench -- msm
+//!     cargo bench --bench msm
 //!
 //! Caveat:  The multicore benchmark assumes:
 //!     1. a multi-core system
