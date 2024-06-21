@@ -5,7 +5,7 @@
 //!
 //!     cargo bench --bench hash_to_curve
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use halo2curves::bn256::G1;
 use pasta_curves::arithmetic::CurveExt;
 use rand::SeedableRng;
@@ -25,9 +25,15 @@ fn hash_to_curve<G: CurveExt>(c: &mut Criterion, name: &'static str) {
             .flatten()
             .collect::<Vec<_>>();
 
-        c.bench_function(&format!("Hash to {name}"), move |b| {
+        let mut group = c.benchmark_group(format!("{} hash-to-curve", name));
+
+        group.significance_level(0.1).sample_size(100);
+        group.throughput(Throughput::Elements(1));
+
+        group.bench_function(&format!("Hash to {name}"), move |b| {
             b.iter(|| hasher(black_box(&message)))
         });
+        group.finish();
     }
 }
 
@@ -35,5 +41,5 @@ fn hash_to_bn256(c: &mut Criterion) {
     hash_to_curve::<G1>(c, "BN256");
 }
 
-criterion_group!(benches, hash_to_bn256,);
+criterion_group!(benches, hash_to_bn256);
 criterion_main!(benches);

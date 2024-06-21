@@ -62,6 +62,7 @@ fn bench_curve_ops<G: CurveExt>(c: &mut Criterion, name: &'static str) {
                 G::batch_normalize(black_box(&v), black_box(&mut q));
             })
         });
+        group.finish();
     }
 }
 

@@ -37,6 +37,7 @@ fn bench_pairing<E: Engine>(c: &mut Criterion, name: &'static str) {
         group.bench_function(&format!("{} pairing", name), move |b| {
             b.iter(|| E::pairing(&black_box(g1_affine), &black_box(g2_affine)))
         });
+        group.finish();
     }
 }
 
