@@ -103,7 +103,6 @@ pub(crate) fn hash_to_curve<'a>(
     domain_prefix: &'a str,
     suite: crate::hash_to_curve::Suite<Secp256r1, sha2::Sha256, 48>,
 ) -> Box<dyn Fn(&[u8]) -> Secp256r1 + 'a> {
-    use group::cofactor::CofactorGroup;
     Box::new(move |message| suite.hash_to_curve(domain_prefix, message))
 }
 
