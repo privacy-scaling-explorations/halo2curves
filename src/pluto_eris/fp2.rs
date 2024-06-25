@@ -78,29 +78,83 @@ impl ExtField for Fp2 {
 mod test {
 
     use super::*;
-    crate::field_testing_suite!(Fp2, "field_arithmetic");
-    crate::field_testing_suite!(Fp2, "conversion");
-    crate::field_testing_suite!(Fp2, "serialization");
-    crate::field_testing_suite!(Fp2, "quadratic_residue");
-    // crate::field_testing_suite!(Fp2, "sqrt");
-    crate::field_testing_suite!(Fp2, "zeta", Fp);
-    // extension field-specific
-    crate::field_testing_suite!(Fp2, "f2_tests", Fp);
-    crate::field_testing_suite!(
+    use crate::{arith_test, legendre_test, serde_test, test};
+    use rand_core::RngCore;
+
+    // constants_test!(Fp2);
+
+    arith_test!(Fp2);
+    legendre_test!(Fp2);
+    test!(arith, Fp2, sqrt_test, 1000);
+
+    serde_test!(Fp2);
+    // test_uniform_bytes!(Fp2, 1000, L 96);
+
+    crate::f2_tests!(Fp2, Fp);
+    crate::test_frobenius!(
         Fp2,
-        "frobenius",
-        // Frobenius endomorphism power parameter for extension field
-        //  ϕ: E → E
-        //  (x, y) ↦ (x^p, y^p)
-        // p: modulus of base field (Here, Fp::MODULUS)
-        Fp::MODULUS_LIMBS
+        20,
+        [
+            0x9ffffcd300000001,
+            0xa2a7e8c30006b945,
+            0xe4a7a5fe8fadffd6,
+            0x443f9a5cda8a6c7b,
+            0xa803ca76f439266f,
+            0x0130e0000d7f70e4,
+            0x2400000000002400,
+        ]
     );
 
     #[test]
-    fn test_fq2_mul_nonresidue() {
-        let e = Fp2::random(rand_core::OsRng);
-        let a0 = e.mul_by_nonresidue();
-        let a1 = e * Fp2::NON_RESIDUE;
-        assert_eq!(a0, a1);
+    fn test_fp2_squaring() {
+        // u + 1
+        let mut a = Fp2 {
+            c0: Fp::one(),
+            c1: Fp::one(),
+        };
+        // (u + 1) ^2 = 1 + u^2 + 2u = -4 + 2u
+        a.square_assign();
+        let minus_4 = -Fp::from(4u64);
+        assert_eq!(
+            a,
+            Fp2 {
+                c0: minus_4,
+                c1: Fp::one() + Fp::one(),
+            }
+        );
+
+        // u
+        let mut a = Fp2 {
+            c0: Fp::zero(),
+            c1: Fp::one(),
+        };
+        // u^2
+        a.square_assign();
+        assert_eq!(
+            a,
+            Fp2 {
+                c0: Fp2::NON_RESIDUE,
+                c1: Fp::zero(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_fp2_mul_nonresidue() {
+        use rand::SeedableRng;
+        use rand_xorshift::XorShiftRng;
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+        let nqr = crate::pluto_eris::fp6::Fp6::NON_RESIDUE;
+        for _ in 0..1000 {
+            let mut a = Fp2::random(&mut rng);
+            let mut b = a;
+            a.mul_by_nonresidue();
+            b.mul_assign(&nqr);
+
+            assert_eq!(a, b);
+        }
     }
 }

@@ -45,16 +45,15 @@ mod table_tests;
 
 #[cfg(test)]
 mod test {
+    use super::Fr;
+    use crate::{arith_test, constants_test, legendre_test, serde_test, test, test_uniform_bytes};
 
-    use super::*;
-    crate::field_testing_suite!(Fr, "field_arithmetic");
-    crate::field_testing_suite!(Fr, "conversion");
-    crate::field_testing_suite!(Fr, "serialization");
-    crate::field_testing_suite!(Fr, "quadratic_residue");
-    crate::field_testing_suite!(Fr, "bits");
-    crate::field_testing_suite!(Fr, "serialization_check");
-    crate::field_testing_suite!(Fr, "constants");
-    crate::field_testing_suite!(Fr, "sqrt");
-    crate::field_testing_suite!(Fr, "zeta");
-    crate::field_testing_suite!(Fr, "from_uniform_bytes", 64);
+    constants_test!(Fr);
+
+    arith_test!(Fr);
+    legendre_test!(Fr);
+    test!(arith, Fr, sqrt_test, 1000);
+
+    serde_test!(Fr PrimeFieldBits);
+    test_uniform_bytes!(Fr, 1000, L 64, L 48);
 }

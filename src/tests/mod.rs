@@ -3,9 +3,16 @@ use num_bigint::BigUint;
 use pasta_curves::arithmetic::CurveAffine;
 
 pub mod curve;
+#[macro_use]
 pub mod field;
 pub mod pairing;
 
+// SEED for random tests.
+pub(crate) const SEED: [u8; 16] = [
+    0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc, 0xe5,
+];
+// Helper functions for converting between
+// Field <> BigInt <> Hex string
 pub(crate) fn hex_to_bytes(hex: &str) -> Vec<u8> {
     let bytes = hex.as_bytes().to_vec();
     bytes
@@ -23,8 +30,8 @@ pub(crate) fn hex_to_field<F: PrimeField>(hex: &str) -> F {
 }
 
 pub(crate) fn point_from_hex<C: CurveAffine>(x: &str, y: &str) -> C {
-    let x = crate::tests::hex_to_field(x);
-    let y = crate::tests::hex_to_field(y);
+    let x = hex_to_field(x);
+    let y = hex_to_field(y);
     C::from_xy(x, y).unwrap()
 }
 

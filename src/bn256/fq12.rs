@@ -6,6 +6,10 @@ use crate::ff_ext::{
     ExtField,
 };
 
+use crate::impl_tower2_common;
+use core::ops::{Add, Neg, Sub};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
 /// -GAMMA is a quadratic non-residue in Fp6. Fp12 = Fp6[X]/(X^2 + GAMMA)
 /// We introduce the variable w such that w^2 = -GAMMA
 // GAMMA = - v
@@ -195,17 +199,41 @@ pub const FROBENIUS_COEFF_FQ12_C1: [Fq2; 12] = [
 
 #[cfg(test)]
 mod test {
+
+    macro_rules! test_fq12 {
+        ($test:ident, $size: expr) => {
+            paste::paste! {
+            #[test]
+            fn [< $test test >]() {
+                use rand::SeedableRng;
+                use rand_xorshift::XorShiftRng;
+                let mut rng = XorShiftRng::from_seed(crate::tests::SEED);
+                crate::bn256::fq12::test::$test(&mut rng, $size);
+            }
+            }
+        };
+    }
     use super::*;
-    crate::field_testing_suite!(Fq12, "field_arithmetic");
-    // extension field-specific
-    crate::field_testing_suite!(Fq12, "quadratic_sparse_mul", Fq6, Fq2);
-    crate::field_testing_suite!(
+    use crate::{arith_test, setup_f12_test_funcs, test, test_frobenius};
+    use ff::Field;
+    use rand::RngCore;
+
+    arith_test!(Fq12);
+    // TODO Compile problems with derive_serde feature
+    // serde_test!(Fq12);
+
+    // F12 specific
+    setup_f12_test_funcs!(Fq12, Fq6, Fq2);
+    test_fq12!(f12_mul_by_014_, 500);
+    test_fq12!(f12_mul_by_034_, 500);
+    test_frobenius!(
         Fq12,
-        "frobenius",
-        // Frobenius endomorphism power parameter for extension field
-        //  ϕ: E → E
-        //  (x, y) ↦ (x^p, y^p)
-        // p: modulus of base field (Here, Fq::MODULUS)
-        Fq::MODULUS_LIMBS
+        8,
+        [
+            0x3c208c16d87cfd47,
+            0x97816a916871ca8d,
+            0xb85045b68181585d,
+            0x30644e72e131a029,
+        ]
     );
 }
