@@ -9,7 +9,6 @@ use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
-use group::cofactor::CofactorGroup;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -65,110 +64,52 @@ new_curve_impl!(
     SECP_A,
     SECP_B,
     "secp256k1",
-    |domain_prefix| hash_to_curve(domain_prefix),
+    |domain_prefix| hash_to_curve(domain_prefix, hash_to_curve_suite(b"secp256k1_XMD:SHA-256_SSWU_RO_")),
 );
 
-impl Secp256k1 {
+fn hash_to_curve_suite(domain: &[u8]) -> crate::hash_to_curve::Suite<Secp256k1, sha2::Sha256, 48> {
     // Z = -11 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-suites-for-secp256k1>)
     // 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc24
-    #[allow(dead_code)]
     const SSWU_Z: Fp = Fp::from_raw([
         0xfffffffefffffc24,
         0xffffffffffffffff,
         0xffffffffffffffff,
         0xffffffffffffffff,
     ]);
+
+    // E': y'^2 = x'^3 + A' * x' + B', where
+    // A': 0x3f8731abdd661adca08a5558f0f5d272e953d363cb6f0e5d405447c01a444533
+    // B': 1771
+    // (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-suites-for-secp256k1>)
+    pub const ISO_SECP_A: Fp = Fp::from_raw([
+        0x405447c01a444533,
+        0xe953d363cb6f0e5d,
+        0xa08a5558f0f5d272,
+        0x3f8731abdd661adc,
+    ]);
+
+    pub const ISO_SECP_B: Fp = Fp::from_raw([1771, 0, 0, 0]);
+
+    let iso_map = crate::hash_to_curve::Iso {
+        a: ISO_SECP_A,
+        b: ISO_SECP_B,
+        map: Box::new(iso_map),
+    };
+
+    crate::hash_to_curve::Suite::new(domain, SSWU_Z, crate::hash_to_curve::Method::SSWU(iso_map))
 }
 
 #[allow(clippy::type_complexity)]
-pub(crate) fn hash_to_curve<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Secp256k1 + 'a> {
-    Box::new(move |message| {
-        let r0 = IsoSecp256k1::hash_to_curve(domain_prefix)(message);
-        let r1 = iso_map_secp256k1(r0);
-        r1.clear_cofactor()
-    })
-}
-
-// Simplified SWU for AB == 0 <https://www.rfc-editor.org/rfc/rfc9380.html#name-simplified-swu-for-ab-0>
-//
-// E': y'^2 = x'^3 + A' * x' + B', where
-//   A': 0x3f8731abdd661adca08a5558f0f5d272e953d363cb6f0e5d405447c01a444533
-//   B': 1771
-// (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-suites-for-secp256k1>)
-pub const ISO_SECP_A: Fp = Fp::from_raw([
-    0x405447c01a444533,
-    0xe953d363cb6f0e5d,
-    0xa08a5558f0f5d272,
-    0x3f8731abdd661adc,
-]);
-pub const ISO_SECP_B: Fp = Fp::from_raw([1771, 0, 0, 0]);
-
-const ISO_SECP_GENERATOR_X: Fp = Fp::from_raw([
-    0xD11D739D05A9F7A8,
-    0x00E448E38AF94593,
-    0x2287B72788F0933A,
-    0xC49B6C192E36AB1A,
-]);
-const ISO_SECP_GENERATOR_Y: Fp = Fp::from_raw([
-    0x10836BBAD9E12F4F,
-    0xC054381C214E65D4,
-    0x6DF11CC434B9FAC0,
-    0x9A9322D799106965,
-]);
-
-impl group::cofactor::CofactorGroup for IsoSecp256k1 {
-    type Subgroup = IsoSecp256k1;
-
-    fn clear_cofactor(&self) -> Self {
-        *self
-    }
-
-    fn into_subgroup(self) -> CtOption<Self::Subgroup> {
-        CtOption::new(self, 1.into())
-    }
-
-    fn is_torsion_free(&self) -> Choice {
-        1.into()
-    }
-}
-
-new_curve_impl!(
-    (pub(crate)),
-    IsoSecp256k1,
-    IsoSecp256k1Affine,
-    Fp,
-    Fq,
-    (ISO_SECP_GENERATOR_X, ISO_SECP_GENERATOR_Y),
-    ISO_SECP_A,
-    ISO_SECP_B,
-    "secp256k1",
-    |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, IsoSecp256k1::default_hash_to_curve_suite()),
-);
-
-impl IsoSecp256k1 {
-    // Z = -11 (reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-suites-for-secp256k1>)
-    // 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc24
-    // NOTE: This `Z` is the `SSWU_Z` of `Secp256k1` curve.
-    const SSWU_Z: Fp = Fp::from_raw([
-        0xfffffffefffffc24,
-        0xffffffffffffffff,
-        0xffffffffffffffff,
-        0xffffffffffffffff,
-    ]);
-
-    fn default_hash_to_curve_suite() -> crate::hash_to_curve::Suite<IsoSecp256k1, sha2::Sha256, 48>
-    {
-        crate::hash_to_curve::Suite::<IsoSecp256k1, sha2::Sha256, 48>::new(
-            b"secp256k1_XMD:SHA-256_SSWU_RO_",
-            Self::SSWU_Z,
-            crate::hash_to_curve::Method::SSWU,
-        )
-    }
+pub(crate) fn hash_to_curve<'a>(
+    domain_prefix: &'a str,
+    suite: crate::hash_to_curve::Suite<Secp256k1, sha2::Sha256, 48>,
+) -> Box<dyn Fn(&[u8]) -> Secp256k1 + 'a> {
+    Box::new(move |message| suite.hash_to_curve(domain_prefix, message))
 }
 
 /// 3-Isogeny Map for Secp256k1
 /// Reference: <https://www.rfc-editor.org/rfc/rfc9380.html#name-3-isogeny-map-for-secp256k1>
-pub(crate) fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
+pub(crate) fn iso_map(x: Fp, y: Fp, z: Fp) -> Secp256k1 {
     // constants for secp256k1 iso_map computation
     const K: [[Fp; 4]; 5] = [
         [Fp::ZERO; 4],
@@ -263,26 +204,22 @@ pub(crate) fn iso_map_secp256k1(rp: IsoSecp256k1) -> Secp256k1 {
         ],
     ];
 
-    let (x, y, z) = rp.jacobian_coordinates();
-
     let z2 = z.square();
     let z3 = z2 * z;
-    let z4 = z2.square();
-    let z6 = z3.square();
 
-    // iso_map logic (avoid inversion)
+    // iso_map logic (avoid inversion) in projective coordinates
     //   reference: <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs#L80-L106>
-    let x_num = ((K[1][3] * x + K[1][2] * z2) * x + K[1][1] * z4) * x + K[1][0] * z6;
-    let x_den = (z2 * x + K[2][1] * z4) * x + K[2][0] * z6;
+    let x_num = ((K[1][3] * x + K[1][2] * z) * x + K[1][1] * z2) * x + K[1][0] * z3;
+    let x_den = (z * x + K[2][1] * z2) * x + K[2][0] * z3;
 
-    let y_num = (((K[3][3] * x + K[3][2] * z2) * x + K[3][1] * z4) * x + K[3][0] * z6) * y;
-    let y_den = (((x + K[4][2] * z2) * x + K[4][1] * z4) * x + K[4][0] * z6) * z3;
+    let y_num = (((K[3][3] * x + K[3][2] * z) * x + K[3][1] * z2) * x + K[3][0] * z3) * y;
+    let y_den = (((x + K[4][2] * z) * x + K[4][1] * z2) * x + K[4][0] * z3) * z;
 
     let z = x_den * y_den;
-    let x = x_num * y_den * z;
-    let y = y_num * x_den * z.square();
+    let x = x_num * y_den;
+    let y = y_num * x_den;
 
-    Secp256k1::new_jacobian(x, y, z).unwrap()
+    Secp256k1 { x, y, z }
 }
 
 #[cfg(test)]
