@@ -188,21 +188,21 @@ impl Fp2 {
 #[cfg(test)]
 mod test {
     use super::*;
-    crate::field_testing_suite!(Fp2, "field_arithmetic");
-    crate::field_testing_suite!(Fp2, "conversion");
-    crate::field_testing_suite!(Fp2, "serialization");
-    crate::field_testing_suite!(Fp2, "quadratic_residue");
-    crate::field_testing_suite!(Fp2, "sqrt");
-    crate::field_testing_suite!(Fp2, "zeta", Fp);
-    // extension field-specific
-    crate::field_testing_suite!(Fp2, "f2_tests", Fp);
-    crate::field_testing_suite!(
+    use crate::{arith_test, legendre_test, serde_test, test};
+
+    // constants_test!(Fp2);
+
+    arith_test!(Fp2);
+    legendre_test!(Fp2);
+    test!(arith, Fp2, sqrt_test, 1000);
+
+    serde_test!(Fp2);
+    // test_uniform_bytes!(Fp2, 1000, L 96);
+
+    crate::f2_tests!(Fp2, Fp);
+    crate::test_frobenius!(
         Fp2,
-        "frobenius",
-        // Frobenius endomorphism power parameter for extension field
-        //  ϕ: E → E
-        //  (x, y) ↦ (x^p, y^p)
-        // p: modulus of base field (Here, Fp::MODULUS)
+        20,
         [
             0x9ffffcd300000001,
             0xa2a7e8c30006b945,
@@ -250,6 +250,8 @@ mod test {
 
     #[test]
     fn test_fp2_mul_nonresidue() {
+        use rand::SeedableRng;
+        use rand_xorshift::XorShiftRng;
         let mut rng = XorShiftRng::from_seed([
             0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
             0xbc, 0xe5,

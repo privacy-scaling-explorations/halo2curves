@@ -486,17 +486,30 @@ pub(crate) const FROBENIUS_COEFF_FP6_C2: [Fp2; 6] = [
 
 #[cfg(test)]
 mod test {
+    macro_rules! test_fp6 {
+        ($test:ident, $size: expr) => {
+            paste::paste! {
+            #[test]
+            fn [< $test test >]() {
+                use rand::SeedableRng;
+                use rand_xorshift::XorShiftRng;
+                let mut rng = XorShiftRng::from_seed(crate::tests::SEED);
+                crate::pluto_eris::fp6::test::$test(&mut rng, $size);
+            }
+            }
+        };
+    }
     use super::*;
-    crate::field_testing_suite!(Fp6, "field_arithmetic");
-    // extension field-specific
-    crate::field_testing_suite!(Fp6, "f6_tests", Fp2);
-    crate::field_testing_suite!(
+    use crate::{arith_test, setup_f6_test_funcs, test, test_frobenius};
+
+    arith_test!(Fp6);
+    setup_f6_test_funcs!(Fp6, Fp2);
+    test_fp6!(f6_mul_nonresidue_, 1000);
+    test_fp6!(f6_mul_by_1_, 1000);
+    test_fp6!(f6_mul_by_01_, 1000);
+    test_frobenius!(
         Fp6,
-        "frobenius",
-        // Frobenius endomorphism power parameter for extension field
-        //  ϕ: E → E
-        //  (x, y) ↦ (x^p, y^p)
-        // p: modulus of base field (Here, Fp::MODULUS)
+        10,
         [
             0x9ffffcd300000001,
             0xa2a7e8c30006b945,
