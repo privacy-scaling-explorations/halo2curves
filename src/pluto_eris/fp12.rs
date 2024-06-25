@@ -254,14 +254,35 @@ pub const FROBENIUS_COEFF_FP12_C1: [Fp2; 12] = [
 
 #[cfg(test)]
 mod test {
+    macro_rules! test_fp12 {
+        ($test:ident, $size: expr) => {
+            paste::paste! {
+            #[test]
+            fn [< $test test >]() {
+                use rand::SeedableRng;
+                use rand_xorshift::XorShiftRng;
+                let mut rng = XorShiftRng::from_seed(crate::tests::SEED);
+                crate::pluto_eris::fp12::test::$test(&mut rng, $size);
+            }
+            }
+        };
+    }
     use super::*;
-    crate::field_testing_suite!(Fp12, "field_arithmetic");
-    // extension field-specific
-    crate::field_testing_suite!(Fp12, "quadratic_sparse_mul", Fp6, Fp2);
-    crate::field_testing_suite!(
+    use crate::{arith_test, setup_f12_test_funcs, test, test_frobenius};
+    use ff::Field;
+    use rand::RngCore;
+
+    arith_test!(Fp12);
+    // TODO Compile problems with derive_serde feature
+    // serde_test!(fp12);
+
+    // F12 specific
+    setup_f12_test_funcs!(Fp12, Fp6, Fp2);
+    test_fp12!(f12_mul_by_014_, 500);
+    test_fp12!(f12_mul_by_034_, 500);
+    test_frobenius!(
         Fp12,
-        "frobenius",
-        // Frobenius endomorphism power parameter for extension field
+        8,
         //  ϕ: E → E
         //  (x, y) ↦ (x^p, y^p)
         // p: modulus of base field (Here, Fp::MODULUS)
