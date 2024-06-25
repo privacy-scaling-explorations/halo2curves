@@ -30,16 +30,15 @@ crate::impl_from_u64!(Fq);
 
 #[cfg(test)]
 mod test {
+    use super::Fq;
+    use crate::{arith_test, constants_test, legendre_test, serde_test, test, test_uniform_bytes};
 
-    use super::*;
-    crate::field_testing_suite!(Fq, "field_arithmetic");
-    crate::field_testing_suite!(Fq, "conversion");
-    crate::field_testing_suite!(Fq, "serialization");
-    crate::field_testing_suite!(Fq, "quadratic_residue");
-    crate::field_testing_suite!(Fq, "bits");
-    crate::field_testing_suite!(Fq, "serialization_check");
-    crate::field_testing_suite!(Fq, "constants");
-    crate::field_testing_suite!(Fq, "sqrt");
-    crate::field_testing_suite!(Fq, "zeta");
-    crate::field_testing_suite!(Fq, "from_uniform_bytes", 48, 64);
+    constants_test!(Fq);
+
+    arith_test!(Fq);
+    legendre_test!(Fq);
+    test!(arith, Fq, sqrt_test, 1000);
+
+    serde_test!(Fq PrimeFieldBits);
+    test_uniform_bytes!(Fq, 1000, L 64, L 48);
 }
