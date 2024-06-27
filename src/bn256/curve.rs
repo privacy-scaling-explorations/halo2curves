@@ -21,6 +21,7 @@ use core::cmp;
 use core::fmt::Debug;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
+use num_traits::ToBytes;
 use rand::RngCore;
 use std::convert::TryInto;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -133,6 +134,48 @@ const ENDO_PARAMS_BN: EndoParameters = EndoParameters {
 };
 
 endo!(G1, Fr, ENDO_PARAMS_BN);
+
+#[cfg(test)]
+impl G1 {
+    // fn msm_128(&self, s1: u128, s2: u128) {
+    //     unimplemented!();
+    // }
+    //Just for testing
+    fn mul_128(&self, scalar: u128) -> Self {
+        let mut acc = Self::identity();
+        for bit in scalar
+            .to_be_bytes()
+            // .to_repr()
+            // .as_ref()
+            .iter()
+            // .rev()
+            .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))
+        {
+            acc = acc.double();
+            acc = Self::conditional_select(&acc, &(acc + self), bit);
+        }
+
+        acc
+    }
+
+    fn glv(&self, s: &<G1 as CurveExt>::ScalarExt) -> G1 {
+        let (k1, k1_neg, k2, k2_neg) = <G1 as CurveEndo>::decompose_scalar(s);
+
+        // should msm this
+        let p1 = self.mul_128(k1);
+        let p2 = self.mul_128(k2).endo();
+
+        if k1_neg & k2_neg {
+            p2 - p1
+        } else if k1_neg {
+            -(p1 + p2)
+        } else if k2_neg {
+            p1 + p2
+        } else {
+            p1 - p2
+        }
+    }
+}
 
 impl group::cofactor::CofactorGroup for G1 {
     type Subgroup = G1;
@@ -416,5 +459,29 @@ mod test {
         ].iter().for_each(|test| {
             test.run("QUUX-V01-CS02-with-");
         });
+    }
+
+    #[test]
+    fn test_glv() {
+        use crate::bn256::G1;
+        for _ in 1..1000 {
+            let s1 = <G1 as CurveExt>::ScalarExt::random(OsRng);
+
+            let (k1, k1_neg, k2, k2_neg) = <G1 as CurveEndo>::decompose_scalar(&s1);
+            eprintln!(
+                "Decomposition:
+            K1: {k1},
+            K1_neg: {k1_neg},
+            K2: {k2},
+            K2_neg: {k2_neg}"
+            );
+
+            let p = G1::random(OsRng);
+
+            let r1 = p * s1;
+            let r2 = p.glv(&s1);
+
+            assert_eq!(r1.to_affine(), r2.to_affine())
+        }
     }
 }
