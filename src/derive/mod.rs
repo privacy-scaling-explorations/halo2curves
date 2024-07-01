@@ -2,10 +2,21 @@
 pub mod curve;
 #[macro_use]
 pub mod field;
+#[macro_use]
+pub mod pairing;
 
 #[macro_export]
 macro_rules! impl_binops_calls {
     ($field:ident) => {
+        impl ::core::ops::Neg for $field {
+            type Output = $field;
+
+            #[inline]
+            fn neg(self) -> $field {
+                -&self
+            }
+        }
+
         impl<'a> ::core::ops::Neg for &'a $field {
             type Output = $field;
 
@@ -111,8 +122,8 @@ macro_rules! impl_sub_binop_specify_output {
 #[macro_export]
 macro_rules! impl_binops_additive_specify_output {
     ($lhs:ident, $rhs:ident, $output:ident) => {
-        impl_add_binop_specify_output!($lhs, $rhs, $output);
-        impl_sub_binop_specify_output!($lhs, $rhs, $output);
+        $crate::impl_add_binop_specify_output!($lhs, $rhs, $output);
+        $crate::impl_sub_binop_specify_output!($lhs, $rhs, $output);
     };
 }
 
@@ -151,7 +162,7 @@ macro_rules! impl_binops_multiplicative_mixed {
 #[macro_export]
 macro_rules! impl_binops_additive {
     ($lhs:ident, $rhs:ident) => {
-        impl_binops_additive_specify_output!($lhs, $rhs, $lhs);
+        $crate::impl_binops_additive_specify_output!($lhs, $rhs, $lhs);
 
         impl ::core::ops::SubAssign<$rhs> for $lhs {
             #[inline]
@@ -186,7 +197,7 @@ macro_rules! impl_binops_additive {
 #[macro_export]
 macro_rules! impl_binops_multiplicative {
     ($lhs:ident, $rhs:ident) => {
-        impl_binops_multiplicative_mixed!($lhs, $rhs, $lhs);
+        $crate::impl_binops_multiplicative_mixed!($lhs, $rhs, $lhs);
 
         impl ::core::ops::MulAssign<$rhs> for $lhs {
             #[inline]

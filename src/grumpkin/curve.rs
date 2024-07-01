@@ -10,9 +10,8 @@ use crate::group::{prime::PrimeCurveAffine, Group, GroupEncoding};
 use crate::grumpkin::Fq;
 use crate::grumpkin::Fr;
 use crate::{
-    endo, impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
-    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
-    new_curve_impl,
+    endo, impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, new_curve_impl,
 };
 use crate::{Coordinates, CurveAffine, CurveExt};
 use core::cmp;

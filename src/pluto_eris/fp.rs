@@ -1,14 +1,8 @@
+use crate::ff_ext::ExtField;
 use core::convert::TryInto;
 use halo2derive::impl_field;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-use crate::{
-    extend_field_legendre, field_bits, impl_add_binop_specify_output, impl_binops_additive,
-    impl_binops_additive_specify_output, impl_binops_calls, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
-    serialize_deserialize_primefield,
-};
 
 impl_field!(
     pluto_eris_fp,
@@ -20,13 +14,29 @@ impl_field!(
     endian = "little",
 );
 
-extend_field_legendre!(Fp);
-impl_binops_calls!(Fp);
-impl_binops_additive!(Fp, Fp);
-impl_binops_multiplicative!(Fp, Fp);
-field_bits!(Fp);
-serialize_deserialize_primefield!(Fp);
+crate::extend_field_legendre!(Fp);
+crate::impl_binops_calls!(Fp);
+crate::impl_binops_additive!(Fp, Fp);
+crate::impl_binops_multiplicative!(Fp, Fp);
+crate::field_bits!(Fp);
+crate::serialize_deserialize_primefield!(Fp);
 crate::impl_from_u64!(Fp);
+
+impl ExtField for Fp {
+    const NON_RESIDUE: Self = Fp::from_raw([
+        0x9ffffcd2fffffffc,
+        0xa2a7e8c30006b945,
+        0xe4a7a5fe8fadffd6,
+        0x443f9a5cda8a6c7b,
+        0xa803ca76f439266f,
+        0x0130e0000d7f70e4,
+        0x2400000000002400,
+    ]);
+    fn mul_by_nonresidue(&self) -> Self {
+        (self.double().double() + self).neg()
+    }
+    fn frobenius_map(&mut self, _: usize) {}
+}
 
 #[cfg(test)]
 mod test {
@@ -42,4 +52,12 @@ mod test {
     crate::field_testing_suite!(Fp, "sqrt");
     crate::field_testing_suite!(Fp, "zeta");
     crate::field_testing_suite!(Fp, "from_uniform_bytes", 64, 72, 112);
+
+    #[test]
+    fn test_fq_mul_nonresidue() {
+        let e = Fp::random(rand_core::OsRng);
+        let a0 = e.mul_by_nonresidue();
+        let a1 = e * Fp::NON_RESIDUE;
+        assert_eq!(a0, a1);
+    }
 }

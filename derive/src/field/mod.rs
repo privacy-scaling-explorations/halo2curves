@@ -282,14 +282,6 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
             }
         }
 
-        impl ::core::ops::Neg for #field {
-            type Output = #field;
-
-            #[inline]
-            fn neg(self) -> #field {
-                -&self
-            }
-        }
 
         impl #field {
             pub const SIZE: usize = #num_limbs * 8;
@@ -393,8 +385,17 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                 self.square()
             }
 
+            // Returns the multiplicative inverse of the element. If it is zero, the method fails.
+            #[inline(always)]
             fn invert(&self) -> CtOption<Self> {
-                self.invert()
+                const BYINVERTOR: crate::ff_ext::inverse::BYInverter<#by_inverter_constant> =
+                crate::ff_ext::inverse::BYInverter::<#by_inverter_constant>::new(&#modulus_limbs_ident, &#r2);
+
+                if let Some(inverse) = BYINVERTOR.invert::<{ Self::NUM_LIMBS }>(&self.0) {
+                    subtle::CtOption::new(Self(inverse), subtle::Choice::from(1))
+                } else {
+                    subtle::CtOption::new(Self::zero(), subtle::Choice::from(0))
+                }
             }
 
             #sqrt_impl

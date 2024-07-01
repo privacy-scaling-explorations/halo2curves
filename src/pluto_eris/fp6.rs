@@ -1,280 +1,44 @@
 use super::fp::Fp;
 use super::fp2::Fp2;
-use crate::ff::Field;
-use rand::RngCore;
-use subtle::CtOption;
-
-/// -BETA is a cubic non-residue in Fp2. Fp6 = Fp2[X]/(X^3 + BETA)
-/// We introduce the variable v such that v^3 = -BETA
-/// BETA = - 57/(z+3)
-use crate::{
-    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
-    impl_binops_calls, impl_binops_multiplicative, impl_binops_multiplicative_mixed,
-    impl_sub_binop_specify_output, impl_sum_prod, impl_tower6,
+use crate::ff_ext::{
+    cubic::{CubicExtField, CubicExtFieldArith, CubicSparseMul},
+    ExtField,
 };
-impl_tower6!(Fp, Fp2, Fp6);
-impl_binops_additive!(Fp6, Fp6);
-impl_binops_multiplicative!(Fp6, Fp6);
-impl_binops_calls!(Fp6);
-impl_sum_prod!(Fp6);
+use ff::Field;
 
-/// V_CUBE = 57/(u+3)
-pub(crate) const V_CUBE: Fp2 = Fp2 {
-    // 0xcdb6db6db6dc3b6dbda9924971b3a9ace4a7f2a7bcb449573cd928ee056022c3f6072240ebe2483833bf7b35b701d98ddb6da4b5b6db6e8
-    c0: Fp::from_raw([
-        0xddb6da4b5b6db6e8,
-        0x833bf7b35b701d98,
-        0x3f6072240ebe2483,
-        0x73cd928ee056022c,
-        0xce4a7f2a7bcb4495,
-        0xdbda9924971b3a9a,
-        0x0cdb6db6db6dc3b6,
-    ]),
-    // 0x7b6db6db6db756db71cc2492776bcc3489319197d79f5f3457b57ef5366ce1a8c6d1148d5a5491bb523fb0536dcde8eeb6db62d36db6db3
-    c1: Fp::from_raw([
-        0xeb6db62d36db6db3,
-        0xb523fb0536dcde8e,
-        0x8c6d1148d5a5491b,
-        0x457b57ef5366ce1a,
-        0x489319197d79f5f3,
-        0xb71cc2492776bcc3,
-        0x07b6db6db6db756d,
-    ]),
-};
+// -BETA is a cubic non-residue in Fp2. Fp6 = Fp2[X]/(X^3 + BETA)
+// We introduce the variable v such that v^3 = -BETA
+// BETA = - 57/(z+3)
+crate::impl_binops_additive!(Fp6, Fp6);
+crate::impl_binops_multiplicative!(Fp6, Fp6);
+crate::impl_binops_calls!(Fp6);
+crate::impl_sum_prod!(Fp6);
+pub type Fp6 = CubicExtField<Fp2>;
 
-impl Fp6 {
-    pub fn mul_assign(&mut self, other: &Self) {
-        let mut a_a = self.c0;
-        let mut b_b = self.c1;
-        let mut c_c = self.c2;
-        a_a *= &other.c0;
-        b_b *= &other.c1;
-        c_c *= &other.c2;
+impl CubicExtFieldArith for Fp6 {
+    type Base = Fp2;
+}
 
-        let mut t1 = other.c1;
-        t1 += &other.c2;
-        {
-            let mut tmp = self.c1;
-            tmp += &self.c2;
+impl CubicSparseMul for Fp6 {
+    type Base = Fp2;
+}
 
-            t1 *= &tmp;
-            t1 -= &b_b;
-            t1 -= &c_c;
-            t1.mul_by_nonresidue();
-            t1 += &a_a;
-        }
+impl ExtField for Fp6 {
+    const NON_RESIDUE: Self = Fp6::new(Fp2::ZERO, Fp2::ONE, Fp2::ZERO);
 
-        let mut t3 = other.c0;
-        t3 += &other.c2;
-        {
-            let mut tmp = self.c0;
-            tmp += &self.c2;
-
-            t3 *= &tmp;
-            t3 -= &a_a;
-            t3 += &b_b;
-            t3 -= &c_c;
-        }
-
-        let mut t2 = other.c0;
-        t2 += &other.c1;
-        {
-            let mut tmp = self.c0;
-            tmp += &self.c1;
-
-            t2 *= &tmp;
-            t2 -= &a_a;
-            t2 -= &b_b;
-            c_c.mul_by_nonresidue();
-            t2 += &c_c;
-        }
-
-        self.c0 = t1;
-        self.c1 = t2;
-        self.c2 = t3;
-    }
-
-    pub fn square_assign(&mut self) {
-        // s0 = a^2
-        let mut s0 = self.c0;
-        s0.square_assign();
-        // s1 = 2ab
-        let mut ab = self.c0;
-        ab *= &self.c1;
-        let s1 = ab;
-        let s1 = s1.double();
-        // s2 = (a - b + c)^2
-        let mut s2 = self.c0;
-        s2 -= &self.c1;
-        s2 += &self.c2;
-        s2.square_assign();
-        // bc
-        let mut bc = self.c1;
-        bc *= &self.c2;
-        // s3 = 2bc
-        let s3 = bc;
-        let s3 = s3.double();
-        // s4 = c^2
-        let mut s4 = self.c2;
-        s4.square_assign();
-
-        // new c0 = 2bc.mul_by_xi + a^2
-        self.c0 = s3;
-        self.c0.mul_by_nonresidue();
-        // self.c0.mul_by_xi();
-        self.c0 += &s0;
-
-        // new c1 = (c^2).mul_by_xi + 2ab
-        self.c1 = s4;
-        self.c1.mul_by_nonresidue();
-        // self.c1.mul_by_xi();
-        self.c1 += &s1;
-
-        // new c2 = 2ab + (a - b + c)^2 + 2bc - a^2 - c^2 = b^2 + 2ac
-        self.c2 = s1;
-        self.c2 += &s2;
-        self.c2 += &s3;
-        self.c2 -= &s0;
-        self.c2 -= &s4;
-    }
-
-    pub fn frobenius_map(&mut self, power: usize) {
+    fn frobenius_map(&mut self, power: usize) {
         self.c0.frobenius_map(power);
         self.c1.frobenius_map(power);
         self.c2.frobenius_map(power);
-
         self.c1.mul_assign(&FROBENIUS_COEFF_FP6_C1[power % 6]);
         self.c2.mul_assign(&FROBENIUS_COEFF_FP6_C2[power % 6]);
     }
 
-    /// Multiply by cubic nonresidue v.
-    pub fn mul_by_nonresidue(&mut self) {
-        use std::mem::swap;
-        swap(&mut self.c0, &mut self.c1);
-        swap(&mut self.c0, &mut self.c2);
-        // c0, c1, c2 -> c2, c0, c1
-        self.c0.mul_by_nonresidue();
-    }
-
-    pub fn mul_by_1(&mut self, c1: &Fp2) {
-        let mut b_b = self.c1;
-        b_b *= c1;
-
-        let mut t1 = *c1;
-        {
-            let mut tmp = self.c1;
-            tmp += &self.c2;
-
-            t1 *= &tmp;
-            t1 -= &b_b;
-            t1.mul_by_nonresidue();
-        }
-
-        let mut t2 = *c1;
-        {
-            let mut tmp = self.c0;
-            tmp += &self.c1;
-
-            t2 *= &tmp;
-            t2 -= &b_b;
-        }
-
-        self.c0 = t1;
-        self.c1 = t2;
-        self.c2 = b_b;
-    }
-
-    pub fn mul_by_01(&mut self, c0: &Fp2, c1: &Fp2) {
-        let mut a_a = self.c0;
-        let mut b_b = self.c1;
-        a_a *= c0;
-        b_b *= c1;
-
-        let mut t1 = *c1;
-        {
-            let mut tmp = self.c1;
-            tmp += &self.c2;
-
-            t1 *= &tmp;
-            t1 -= &b_b;
-            t1.mul_by_nonresidue();
-            t1 += &a_a;
-        }
-
-        let mut t3 = *c0;
-        {
-            let mut tmp = self.c0;
-            tmp += &self.c2;
-
-            t3 *= &tmp;
-            t3 -= &a_a;
-            t3 += &b_b;
-        }
-
-        let mut t2 = *c0;
-        t2 += c1;
-        {
-            let mut tmp = self.c0;
-            tmp += &self.c1;
-
-            t2 *= &tmp;
-            t2 -= &a_a;
-            t2 -= &b_b;
-        }
-
-        self.c0 = t1;
-        self.c1 = t2;
-        self.c2 = t3;
-    }
-
-    pub fn invert(&self) -> CtOption<Self> {
-        let mut c0 = self.c2;
-        c0.mul_by_nonresidue();
-        c0 *= &self.c1;
-        c0 = -c0;
-        {
-            let mut c0s = self.c0;
-            c0s.square_assign();
-            c0 += &c0s;
-        }
-        let mut c1 = self.c2;
-        c1.square_assign();
-        c1.mul_by_nonresidue();
-        {
-            let mut c01 = self.c0;
-            c01 *= &self.c1;
-            c1 -= &c01;
-        }
-        let mut c2 = self.c1;
-        c2.square_assign();
-        {
-            let mut c02 = self.c0;
-            c02 *= &self.c2;
-            c2 -= &c02;
-        }
-
-        let mut tmp1 = self.c2;
-        tmp1 *= &c1;
-        let mut tmp2 = self.c1;
-        tmp2 *= &c2;
-        tmp1 += &tmp2;
-        tmp1.mul_by_nonresidue();
-        tmp2 = self.c0;
-        tmp2 *= &c0;
-        tmp1 += &tmp2;
-
-        tmp1.invert().map(|t| {
-            let mut tmp = Fp6 {
-                c0: t,
-                c1: t,
-                c2: t,
-            };
-            tmp.c0 *= &c0;
-            tmp.c1 *= &c1;
-            tmp.c2 *= &c2;
-
-            tmp
-        })
+    fn mul_by_nonresidue(self: &Fp6) -> Fp6 {
+        let c0 = self.c2.mul_by_nonresidue();
+        let c1 = self.c0;
+        let c2 = self.c1;
+        Self { c0, c1, c2 }
     }
 }
 
@@ -489,7 +253,7 @@ mod test {
     use super::*;
     crate::field_testing_suite!(Fp6, "field_arithmetic");
     // extension field-specific
-    crate::field_testing_suite!(Fp6, "f6_tests", Fp2);
+    crate::field_testing_suite!(Fp6, "cubic_sparse_mul", Fp2);
     crate::field_testing_suite!(
         Fp6,
         "frobenius",
@@ -507,4 +271,19 @@ mod test {
             0x2400000000002400,
         ]
     );
+
+    #[test]
+    fn test_fq2_mul_nonresidue() {
+        let nqr = Fp6 {
+            c0: Fp2::ZERO,
+            c1: Fp2::ONE,
+            c2: Fp2::ZERO,
+        };
+
+        let e = Fp6::random(rand_core::OsRng);
+        let a0 = e.mul_by_nonresidue();
+        let a1 = e * nqr;
+
+        assert_eq!(a0, a1);
+    }
 }
