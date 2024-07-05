@@ -3,13 +3,6 @@ use halo2derive::impl_field;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-use crate::{
-    extend_field_legendre, field_bits, impl_add_binop_specify_output, impl_binops_additive,
-    impl_binops_additive_specify_output, impl_binops_calls, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
-    serialize_deserialize_primefield,
-};
-
 impl_field!(
     secp256k1_base,
     Fp,
@@ -20,12 +13,12 @@ impl_field!(
     endian = "little",
 );
 
-extend_field_legendre!(Fp);
-impl_binops_calls!(Fp);
-impl_binops_additive!(Fp, Fp);
-impl_binops_multiplicative!(Fp, Fp);
-field_bits!(Fp);
-serialize_deserialize_primefield!(Fp);
+crate::extend_field_legendre!(Fp);
+crate::impl_binops_calls!(Fp);
+crate::impl_binops_additive!(Fp, Fp);
+crate::impl_binops_multiplicative!(Fp, Fp);
+crate::field_bits!(Fp);
+crate::serialize_deserialize_primefield!(Fp);
 crate::impl_from_u64!(Fp);
 
 #[cfg(test)]

@@ -522,55 +522,9 @@ macro_rules! field_testing_suite {
         }
     };
 
-    ($ext_field: ident, "f6_tests", $base_field: ident) => {
+    ($ext_field: ident, "cubic_sparse_mul", $base_field: ident) => {
         #[test]
-        fn test_f6_mul_nonresidue() {
-            let mut rng = XorShiftRng::from_seed([
-                0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-                0xe5,
-            ]);
-
-            let nqr = $ext_field {
-                c0: $base_field::zero(),
-                c1: $base_field::one(),
-                c2: $base_field::zero(),
-            };
-
-            for _ in 0..1000 {
-                let mut a = $ext_field::random(&mut rng);
-                let mut b = a;
-                a.mul_by_nonresidue();
-                b.mul_assign(&nqr);
-
-                assert_eq!(a, b);
-            }
-        }
-
-        #[test]
-        fn test_f6_mul_by_1() {
-            let mut rng = XorShiftRng::from_seed([
-                0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-                0xe5,
-            ]);
-
-            for _ in 0..1000 {
-                let c1 = $base_field::random(&mut rng);
-                let mut a = $ext_field::random(&mut rng);
-                let mut b = a;
-
-                a.mul_by_1(&c1);
-                b.mul_assign(&$ext_field {
-                    c0: $base_field::zero(),
-                    c1,
-                    c2: $base_field::zero(),
-                });
-
-                assert_eq!(a, b);
-            }
-        }
-
-        #[test]
-        fn test_f6_mul_by_01() {
+        fn test_cubic_sparse_mul() {
             let mut rng = XorShiftRng::from_seed([
                 0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
                 0xe5,
@@ -579,40 +533,33 @@ macro_rules! field_testing_suite {
             for _ in 0..1000 {
                 let c0 = $base_field::random(&mut rng);
                 let c1 = $base_field::random(&mut rng);
-                let mut a = $ext_field::random(&mut rng);
-                let mut b = a;
+                let e = $ext_field::random(&mut rng);
 
-                a.mul_by_01(&c0, &c1);
-                b.mul_assign(&$ext_field {
+                let a0 = $ext_field::mul_by_1(&e, &c1);
+                let a1 = e * $ext_field {
+                    c0: $base_field::zero(),
+                    c1,
+                    c2: $base_field::zero(),
+                };
+
+                assert_eq!(a0, a1);
+
+
+                let a0 = $ext_field::mul_by_01(&e, &c0, &c1);
+                let a1 = e * $ext_field {
                     c0,
                     c1,
                     c2: $base_field::zero(),
-                });
+                };
 
-                assert_eq!(a, b);
-            }
-        }
-
-        #[test]
-        fn test_squaring() {
-            let mut rng = XorShiftRng::from_seed([
-                0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-                0xe5,
-            ]);
-
-            for _ in 0..1000 {
-                let mut a = $ext_field::random(&mut rng);
-                let mut b = a;
-                b.mul_assign(&a);
-                a.square_assign();
-                assert_eq!(a, b);
+                assert_eq!(a0, a1);
             }
         }
     };
 
-    ($ext_field: ident, "f12_tests", $base_field_1: ident, $base_field_2: ident) => {
+    ($ext_field: ident, "quadratic_sparse_mul", $base_field_1: ident, $base_field_2: ident) => {
         #[test]
-        fn test_f12_mul_by_014() {
+        fn test_quadratic_sparse_mul() {
             let mut rng = XorShiftRng::from_seed([
                 0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
                 0xe5,
@@ -621,12 +568,11 @@ macro_rules! field_testing_suite {
             for _ in 0..1000 {
                 let c0 = $base_field_2::random(&mut rng);
                 let c1 = $base_field_2::random(&mut rng);
-                let c5 = $base_field_2::random(&mut rng);
-                let mut a = $ext_field::random(&mut rng);
-                let mut b = a;
+                let c2 = $base_field_2::random(&mut rng);
 
-                a.mul_by_014(&c0, &c1, &c5);
-                b.mul_assign(&$ext_field {
+
+                let mut a0 = $ext_field::random(&mut rng);
+                let a1 = a0 * $ext_field {
                     c0: $base_field_1 {
                         c0,
                         c1,
@@ -634,60 +580,28 @@ macro_rules! field_testing_suite {
                     },
                     c1: $base_field_1 {
                         c0: $base_field_2::zero(),
-                        c1: c5,
+                        c1: c2,
                         c2: $base_field_2::zero(),
                     },
-                });
+                };
+                 $ext_field::mul_by_014(&mut a0, &c0, &c1, &c2);
+                assert_eq!(a0, a1);
 
-                assert_eq!(a, b);
-            }
-        }
-
-        #[test]
-        fn test_f12_mul_by_034() {
-            let mut rng = XorShiftRng::from_seed([
-                0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-                0xe5,
-            ]);
-
-            for _ in 0..1000 {
-                let c0 = $base_field_2::random(&mut rng);
-                let c3 = $base_field_2::random(&mut rng);
-                let c4 = $base_field_2::random(&mut rng);
-                let mut a = $ext_field::random(&mut rng);
-                let mut b = a;
-
-                a.mul_by_034(&c0, &c3, &c4);
-                b.mul_assign(&$ext_field {
+                let mut a0 = $ext_field::random(&mut rng);
+                let a1 = a0 * $ext_field {
                     c0: $base_field_1 {
                         c0,
                         c1: $base_field_2::zero(),
                         c2: $base_field_2::zero(),
                     },
                     c1: $base_field_1 {
-                        c0: c3,
-                        c1: c4,
+                        c0: c1,
+                        c1: c2,
                         c2: $base_field_2::zero(),
                     },
-                });
-
-                assert_eq!(a, b);
-            }
-        }
-
-        #[test]
-        fn test_squaring() {
-            let mut rng = XorShiftRng::from_seed([
-                0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-                0xe5,
-            ]);
-
-            for _ in 0..1000 {
-                let mut a = $ext_field::random(&mut rng);
-                let mut b = a;
-                b.mul_assign(&a);
-                a.square_assign();
-                assert_eq!(a, b);
+                };
+                $ext_field::mul_by_034(&mut a0, &c0, &c1, &c2);
+                assert_eq!(a0, a1);
             }
         }
     };
@@ -704,12 +618,10 @@ macro_rules! field_testing_suite {
                 for i in 0..8 {
                     let mut a = $ext_field::random(&mut rng);
                     let mut b = a;
-
                     for _ in 0..i {
                         a = a.pow($frobenius_param);
                     }
                     b.frobenius_map(i);
-
                     assert_eq!(a, b);
                 }
             }

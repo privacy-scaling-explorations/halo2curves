@@ -16,9 +16,8 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    impl_add_binop_specify_output, impl_binops_additive, impl_binops_additive_specify_output,
-    impl_binops_multiplicative, impl_binops_multiplicative_mixed, impl_sub_binop_specify_output,
-    new_curve_impl,
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, new_curve_impl,
 };
 
 const G1_GENERATOR_X: Fp = Fp::from_raw([
