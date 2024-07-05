@@ -4,6 +4,7 @@ use pasta_curves::arithmetic::CurveAffine;
 
 pub mod curve;
 pub mod field;
+pub mod pairing;
 
 pub(crate) fn hex_to_bytes(hex: &str) -> Vec<u8> {
     let bytes = hex.as_bytes().to_vec();
