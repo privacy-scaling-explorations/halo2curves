@@ -61,15 +61,6 @@ impl ExtField for Fq2 {
     }
 }
 
-const ZETA: Fq = Fq::from_raw([
-    0x2e01fffffffefffe,
-    0xde17d813620a0002,
-    0xddb3a93be6f89688,
-    0xba69c6076a0f77ea,
-    0x5f19672fdf76ce51,
-    0x0000000000000000,
-]);
-
 #[cfg(test)]
 mod test {
 
