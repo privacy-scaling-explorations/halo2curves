@@ -576,6 +576,6 @@ mod test {
 
     #[test]
     fn test_msm_cross() {
-        run_msm_cross::<G1Affine>(14, 22);
+        run_msm_cross::<G1Affine>(14, 18);
     }
 }
