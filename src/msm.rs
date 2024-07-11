@@ -371,7 +371,7 @@ impl<C: CurveAffine> Schedule<C> {
 
     fn execute(&mut self, bases: &[Affine<C>]) {
         if self.ptr != 0 {
-            batch_add_nonexceptional(self.ptr, &mut self.buckets, &self.set, bases);
+            batch_add_exceptional(self.ptr, &mut self.buckets, &self.set, bases);
             self.ptr = 0;
             self.set
                 .iter_mut()
@@ -391,7 +391,7 @@ impl<C: CurveAffine> Schedule<C> {
     }
 }
 
-pub fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C::Curve) {
+pub fn serial_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C::Curve) {
     let coeffs: Vec<_> = coeffs.iter().map(|a| a.to_repr()).collect();
 
     let c = if bases.len() < 4 {
@@ -487,7 +487,7 @@ pub fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &
 /// This function will panic if coeffs and bases have a different length.
 ///
 /// This will use multithreading if beneficial.
-pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
+pub fn parallel_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
     assert_eq!(coeffs.len(), bases.len());
 
     let num_threads = rayon::current_num_threads();
@@ -504,14 +504,14 @@ pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Cu
                 .zip(results.iter_mut())
             {
                 scope.spawn(move |_| {
-                    multiexp_serial(coeffs, bases, acc);
+                    serial_multiexp(coeffs, bases, acc);
                 });
             }
         });
         results.iter().fold(C::Curve::identity(), |a, b| a + b)
     } else {
         let mut acc = C::Curve::identity();
-        multiexp_serial(coeffs, bases, &mut acc);
+        serial_multiexp(coeffs, bases, &mut acc);
         acc
     }
 }
@@ -519,10 +519,7 @@ pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Cu
 /// This function will panic if coeffs and bases have a different length.
 ///
 /// This will use multithreading if beneficial.
-pub fn best_multiexp_independent_points<C: CurveAffine>(
-    coeffs: &[C::Scalar],
-    bases: &[C],
-) -> C::Curve {
+pub fn best_multiexp<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
     assert_eq!(coeffs.len(), bases.len());
 
     // TODO: consider adjusting it with emprical data?
@@ -535,7 +532,7 @@ pub fn best_multiexp_independent_points<C: CurveAffine>(
     };
 
     if c < 10 {
-        return best_multiexp(coeffs, bases);
+        return parallel_multiexp(coeffs, bases);
     }
 
     // coeffs to byte representation
@@ -669,11 +666,11 @@ mod test {
             let scalars = &scalars[..1 << k];
 
             let t0 = start_timer!(|| format!("cyclone indep k={}", k));
-            let e0 = super::best_multiexp_independent_points(scalars, points);
+            let e0 = super::best_multiexp(scalars, points);
             end_timer!(t0);
 
             let t1 = start_timer!(|| format!("older k={}", k));
-            let e1 = super::best_multiexp(scalars, points);
+            let e1 = super::parallel_multiexp(scalars, points);
             end_timer!(t1);
             assert_eq!(e0, e1);
         }
