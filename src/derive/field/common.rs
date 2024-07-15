@@ -66,6 +66,24 @@ macro_rules! impl_from_u64 {
     };
 }
 
+#[macro_export]
+macro_rules! impl_from_bool {
+    ($field:ident) => {
+        impl From<bool> for $field {
+            fn from(val: bool) -> $field {
+                let limbs = std::iter::once(u64::from(val))
+                    .chain(std::iter::repeat(0))
+                    .take(Self::NUM_LIMBS)
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .unwrap();
+
+                $field(limbs) * Self::R2
+            }
+        }
+    };
+}
+
 /// A macro to help define serialization and deserialization for prime field implementations
 /// that use `$field::Repr`` representations. This assumes the concerned type implements PrimeField
 /// (for from_repr, to_repr).

@@ -21,6 +21,7 @@ crate::impl_binops_multiplicative!(Fp, Fp);
 crate::field_bits!(Fp);
 crate::serialize_deserialize_primefield!(Fp);
 crate::impl_from_u64!(Fp);
+crate::impl_from_bool!(Fp);
 
 impl ExtField for Fp {
     const NON_RESIDUE: Self = Fp::from_raw([
