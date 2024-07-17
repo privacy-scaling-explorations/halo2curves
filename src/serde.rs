@@ -172,16 +172,16 @@ pub(crate) enum CompressedFlagConfig {
     // NOTE: if needed we can add fields for bit positions
 
     // Secp256k1, Secp256r1 curves should be encoded with
-    Extra, // sign: 0 infinity: 1
+    Extra, // sign: 0 identity: 1
 
     // Pasta curves should be encoded with
     // SingleSpare, // sign: 0
 
     // BN254 curve should be encoded with
-    TwoSpare, // sign: 0, infinity: 1
+    TwoSpare, // sign: 0, identity: 1
 
     // BLS12-{381, 377} curves should be encoded with
-    ThreeSpare, // is_compressed: 0, sign: 1, infinity: 2
+    ThreeSpare, // is_compressed: 0, sign: 1, identity: 2
 }
 
 impl CompressedFlagConfig {

@@ -363,6 +363,8 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                 (borrow as u8) & 1 == 1
             }
 
+            /// Returns whether or not this element is strictly lexicographically
+            /// larger than its negation.
             pub fn lexicographically_largest(&self) -> Choice {
                 const HALF_MODULUS: [u64; #num_limbs]= #half_modulus;
                 let tmp = self.from_mont();

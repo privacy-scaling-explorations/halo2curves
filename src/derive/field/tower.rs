@@ -63,6 +63,8 @@ macro_rules! impl_tower2 {
             }
 
             #[inline]
+            /// Returns whether or not this element is strictly lexicographically
+            /// larger than its negation.
             pub fn lexicographically_largest(&self) -> Choice {
                 // If this element's c1 coefficient is lexicographically largest
                 // then it is lexicographically largest. Otherwise, in the event
