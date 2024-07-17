@@ -1,4 +1,3 @@
-use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::Curve;
@@ -15,9 +14,6 @@ use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-#[cfg(feature = "derive_serde")]
-use serde::{Deserialize, Serialize};
 
 const SECQ_GENERATOR_X: Fq = Fq::from_raw([
     0xA24288E37702EDA6,
@@ -47,6 +43,8 @@ new_curve_impl!(
     SECQ_B,
     "secq256k1",
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, Secq256k1::default_hash_to_curve_suite()),
+    crate::serde::CompressedFlagConfig::Extra,
+    standard_sign
 );
 
 impl group::cofactor::CofactorGroup for Secq256k1 {

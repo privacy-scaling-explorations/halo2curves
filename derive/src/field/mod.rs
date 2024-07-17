@@ -113,6 +113,8 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
     let modulus_limbs_32_ident = quote! {[#(#modulus_limbs_32,)*]};
 
     let to_token = |e: &BigUint| big_to_token(e, num_limbs);
+    let half_modulus = (&modulus - 1usize) >> 1;
+    let half_modulus = to_token(&half_modulus);
 
     // binary modulus
     let t = BigUint::from(1u64) << (num_limbs * limb_size as usize);
@@ -282,6 +284,17 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
             }
         }
 
+        impl crate::serde::endian::EndianRepr for #field {
+            const ENDIAN: crate::serde::endian::Endian = crate::serde::endian::Endian::#endian;
+
+            fn to_bytes(&self) -> Vec<u8> {
+                self.to_bytes().to_vec()
+            }
+
+            fn from_bytes(bytes: &[u8]) -> subtle::CtOption<Self> {
+                #field::from_bytes(bytes[..#field::SIZE].try_into().unwrap())
+            }
+        }
 
         impl #field {
             pub const SIZE: usize = #num_limbs * 8;
@@ -313,9 +326,9 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
             /// Attempts to convert a <#endian>-endian byte representation of
             /// a scalar into a `$field`, failing if the input is not canonical.
             pub fn from_bytes(bytes: &[u8; Self::SIZE]) -> subtle::CtOption<Self> {
+                use crate::serde::endian::EndianRepr;
                 let mut el = #field::default();
-                use crate::serde::endian::Endian;
-                crate::serde::endian::#endian::from_bytes(bytes, &mut el.0);
+                #field::ENDIAN.from_bytes(bytes, &mut el.0);
                 subtle::CtOption::new(el * Self::R2, subtle::Choice::from(Self::is_less_than_modulus(&el.0) as u8))
             }
 
@@ -323,10 +336,10 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
             /// Converts an element of `$field` into a byte representation in
             /// <#endian>-endian byte order.
             pub fn to_bytes(&self) -> [u8; Self::SIZE] {
-                use crate::serde::endian::Endian;
+                use crate::serde::endian::EndianRepr;
                 let el = self.from_mont();
                 let mut res = [0; Self::SIZE];
-                crate::serde::endian::#endian::to_bytes(&mut res, &el);
+                #field::ENDIAN.to_bytes(&mut res, &el);
                 res.into()
             }
 
@@ -341,18 +354,6 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                 crate::ff_ext::jacobi::jacobi::<#jacobi_constant>(&self.0, &#modulus_limbs_ident)
             }
 
-            // Returns the multiplicative inverse of the element. If it is zero, the method fails.
-            #[inline(always)]
-            fn invert(&self) -> subtle::CtOption<Self> {
-                const BYINVERTOR: crate::ff_ext::inverse::BYInverter<#by_inverter_constant> =
-                    crate::ff_ext::inverse::BYInverter::<#by_inverter_constant>::new(&#modulus_limbs_ident, &#r2);
-
-                if let Some(inverse) = BYINVERTOR.invert::<{ Self::NUM_LIMBS }>(&self.0) {
-                    subtle::CtOption::new(Self(inverse), subtle::Choice::from(1))
-                } else {
-                    subtle::CtOption::new(Self::zero(), subtle::Choice::from(0))
-                }
-            }
 
             #[inline(always)]
             pub(crate) fn is_less_than_modulus(limbs: &[u64; Self::NUM_LIMBS]) -> bool {
@@ -360,6 +361,18 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                     crate::arithmetic::sbb(*limb, Self::MODULUS_LIMBS[i], borrow).1
                 });
                 (borrow as u8) & 1 == 1
+            }
+
+            /// Returns whether or not this element is strictly lexicographically
+            /// larger than its negation.
+            pub fn lexicographically_largest(&self) -> Choice {
+                const HALF_MODULUS: [u64; #num_limbs]= #half_modulus;
+                let tmp = self.from_mont();
+                let borrow = tmp
+                    .into_iter()
+                    .zip(HALF_MODULUS.into_iter())
+                    .fold(0, |borrow, (t, m)| crate::arithmetic::sbb(t, m, borrow).1);
+                !Choice::from((borrow as u8) & 1)
             }
         }
 
@@ -450,8 +463,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
 
             fn from_repr(repr: Self::Repr) -> subtle::CtOption<Self> {
                 let mut el = #field::default();
-                use crate::serde::endian::Endian;
-                crate::serde::endian::LE::from_bytes(repr.as_ref(), &mut el.0);
+                crate::serde::endian::Endian::LE.from_bytes(repr.as_ref(), &mut el.0);
                 subtle::CtOption::new(el * Self::R2, subtle::Choice::from(Self::is_less_than_modulus(&el.0) as u8))
             }
 
@@ -459,7 +471,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                 use crate::serde::endian::Endian;
                 let el = self.from_mont();
                 let mut res = [0; #size];
-                crate::serde::endian::LE::to_bytes(&mut res, &el);
+                crate::serde::endian::Endian::LE.to_bytes(&mut res, &el);
                 res.into()
             }
 

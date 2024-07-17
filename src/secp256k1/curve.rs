@@ -1,4 +1,3 @@
-use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
@@ -16,9 +15,6 @@ use crate::{
     impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
     impl_binops_multiplicative_mixed, new_curve_impl,
 };
-
-#[cfg(feature = "derive_serde")]
-use serde::{Deserialize, Serialize};
 
 impl group::cofactor::CofactorGroup for Secp256k1 {
     type Subgroup = Secp256k1;
@@ -64,6 +60,8 @@ new_curve_impl!(
     SECP_B,
     "secp256k1",
     |domain_prefix| hash_to_curve(domain_prefix, hash_to_curve_suite(b"secp256k1_XMD:SHA-256_SSWU_RO_")),
+    crate::serde::CompressedFlagConfig::Extra,
+    standard_sign
 );
 
 fn hash_to_curve_suite(domain: &[u8]) -> crate::hash_to_curve::Suite<Secp256k1, sha2::Sha256, 48> {

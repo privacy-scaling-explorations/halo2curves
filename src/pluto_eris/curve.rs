@@ -1,5 +1,4 @@
 use super::{fp::Fp, fp2::Fp2, fq::Fq};
-use crate::derive::curve::{IDENTITY_MASK, IDENTITY_SHIFT, SIGN_MASK, SIGN_SHIFT};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
@@ -11,9 +10,6 @@ use core::ops::{Add, Mul, Neg, Sub};
 use group::cofactor::CofactorGroup;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-#[cfg(feature = "derive_serde")]
-use serde::{Deserialize, Serialize};
 
 use crate::{
     impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
@@ -130,6 +126,8 @@ new_curve_impl!(
     PLUTO_B,
     "pluto",
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, G1::default_hash_to_curve_suite()),
+    crate::serde::CompressedFlagConfig::TwoSpare,
+    standard_sign
 );
 
 impl group::cofactor::CofactorGroup for Eris {
@@ -173,6 +171,8 @@ new_curve_impl!(
     ERIS_B,
     "eris",
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, Eris::default_hash_to_curve_suite()),
+    crate::serde::CompressedFlagConfig::TwoSpare,
+    standard_sign
 );
 
 impl CofactorGroup for G2 {
@@ -242,6 +242,18 @@ impl Eris {
     }
 }
 
+impl crate::serde::endian::EndianRepr for Fp2 {
+    const ENDIAN: crate::serde::endian::Endian = Fq::ENDIAN;
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.to_bytes().to_vec()
+    }
+
+    fn from_bytes(bytes: &[u8]) -> subtle::CtOption<Self> {
+        Fp2::from_bytes(bytes[..Fp2::SIZE].try_into().unwrap())
+    }
+}
+
 new_curve_impl!(
     (pub),
     G2,
@@ -253,6 +265,8 @@ new_curve_impl!(
     TRITON_B,
     "triton",
     |_| unimplemented!(),
+    crate::serde::CompressedFlagConfig::TwoSpare,
+    standard_sign
 );
 
 #[cfg(test)]
