@@ -16,8 +16,13 @@ use criterion::{BenchmarkId, Criterion};
 use ff::{Field, PrimeField};
 use group::prime::PrimeCurveAffine;
 use halo2curves::bn256::{Fr as Scalar, G1Affine as Point};
-use halo2curves::msm::{best_multiexp, multiexp_serial};
+// <<<<<<< HEAD
+// use halo2curves::msm::{best_multiexp, msm_serial};
 use rand_core::{RngCore, SeedableRng};
+// =======
+use halo2curves::msm::{msm_best, msm_serial};
+// use rand_core::SeedableRng;
+// >>>>>>> defcdc2 (refactor: rename msm functions)
 use rand_xorshift::XorShiftRng;
 use rayon::current_thread_index;
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
@@ -136,7 +141,7 @@ fn msm(c: &mut Criterion) {
                     assert!(k < 64);
                     let n: usize = 1 << k;
                     let mut acc = Point::identity().into();
-                    b.iter(|| multiexp_serial(&coeffs[b_index][..n], &bases[..n], &mut acc));
+                    b.iter(|| msm_serial(&coeffs[b_index][..n], &bases[..n], &mut acc));
                 })
                 .sample_size(10);
         }
@@ -147,7 +152,7 @@ fn msm(c: &mut Criterion) {
                     assert!(k < 64);
                     let n: usize = 1 << k;
                     b.iter(|| {
-                        best_multiexp(&coeffs[b_index][..n], &bases[..n]);
+                        msm_best(&coeffs[b_index][..n], &bases[..n]);
                     })
                 })
                 .sample_size(SAMPLE_SIZE);
