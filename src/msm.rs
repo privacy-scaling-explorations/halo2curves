@@ -648,7 +648,6 @@ mod test {
         }
     }
 
-    #[cfg(test)]
     fn run_msm_cross<C: CurveAffine>(min_k: usize, max_k: usize) {
         use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
