@@ -53,70 +53,8 @@ fn get_booth_index(window_index: usize, window_size: usize, el: &[u8]) -> i32 {
     }
 }
 
-// Batch addition without edge case handling:
-// Will panic if a point is the identity or if two points share the x coordinate.
-fn batch_add_nonexceptional<C: CurveAffine>(
-    size: usize,
-    buckets: &mut [BucketAffine<C>],
-    points: &[SchedulePoint],
-    bases: &[Affine<C>],
-) {
-    let mut t = vec![C::Base::ZERO; size];
-    let mut z = vec![C::Base::ZERO; size];
-    let mut acc = C::Base::ONE;
-
-    for (
-        (
-            SchedulePoint {
-                base_idx,
-                buck_idx,
-                sign,
-            },
-            t,
-        ),
-        z,
-    ) in points.iter().zip(t.iter_mut()).zip(z.iter_mut())
-    {
-        *z = buckets[*buck_idx].x() - bases[*base_idx].x;
-        if *sign {
-            *t = acc * (buckets[*buck_idx].y() - bases[*base_idx].y);
-        } else {
-            *t = acc * (buckets[*buck_idx].y() + bases[*base_idx].y);
-        }
-        acc *= *z;
-    }
-
-    acc = acc
-        .invert()
-        .expect("Attempted to invert 0 at batch_add_nmonexceptional");
-
-    for (
-        (
-            SchedulePoint {
-                base_idx,
-                buck_idx,
-                sign,
-            },
-            t,
-        ),
-        z,
-    ) in points.iter().zip(t.iter()).zip(z.iter()).rev()
-    {
-        let lambda = acc * t;
-        acc *= z;
-
-        let x = lambda.square() - (buckets[*buck_idx].x() + bases[*base_idx].x);
-        if *sign {
-            buckets[*buck_idx].set_y(&((lambda * (bases[*base_idx].x - x)) - bases[*base_idx].y));
-        } else {
-            buckets[*buck_idx].set_y(&((lambda * (bases[*base_idx].x - x)) + bases[*base_idx].y));
-        }
-        buckets[*buck_idx].set_x(&x);
-    }
-}
-
-/// Batch addition with edge case handling.
-fn batch_add_exceptional<C: CurveAffine>(
+/// Batch addition.
+fn batch_add<C: CurveAffine>(
     size: usize,
     buckets: &mut [BucketAffine<C>],
     points: &[SchedulePoint],
@@ -371,7 +309,7 @@ impl<C: CurveAffine> Schedule<C> {
 
     fn execute(&mut self, bases: &[Affine<C>]) {
         if self.ptr != 0 {
-            batch_add_exceptional(self.ptr, &mut self.buckets, &self.set, bases);
+            batch_add(self.ptr, &mut self.buckets, &self.set, bases);
             self.ptr = 0;
             self.set
                 .iter_mut()
