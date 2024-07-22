@@ -91,19 +91,7 @@ mod test {
     // test_uniform_bytes!(Fp2, 1000, L 96);
 
     crate::f2_tests!(Fp2, Fp);
-    crate::test_frobenius!(
-        Fp2,
-        20,
-        [
-            0x9ffffcd300000001,
-            0xa2a7e8c30006b945,
-            0xe4a7a5fe8fadffd6,
-            0x443f9a5cda8a6c7b,
-            0xa803ca76f439266f,
-            0x0130e0000d7f70e4,
-            0x2400000000002400,
-        ]
-    );
+    crate::test_frobenius!(Fp2, Fp, 20);
 
     #[test]
     fn test_fp2_squaring() {
@@ -148,9 +136,9 @@ mod test {
             0xbc, 0xe5,
         ]);
         for _ in 0..1000 {
-            let a = Fp2::random(&mut rng);
+            let mut a = Fp2::random(&mut rng);
             let mut b = a;
-            a.mul_by_nonresidue();
+            a = a.mul_by_nonresidue();
             b.mul_assign(&Fp2::NON_RESIDUE);
 
             assert_eq!(a, b);

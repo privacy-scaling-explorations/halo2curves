@@ -68,7 +68,7 @@ impl ExtField for Fq2 {
 mod test {
 
     use super::*;
-    use crate::{arith_test, legendre_test, serde_test, test};
+    use crate::{arith_test, f2_tests, legendre_test, serde_test, test, test_frobenius};
     use rand_core::RngCore;
 
     // constants_test!(Fq2);
@@ -80,17 +80,8 @@ mod test {
     serde_test!(Fq2);
     // test_uniform_bytes!(Fq2, 1000, L 96);
 
-    crate::f2_tests!(Fq2, Fq);
-    crate::test_frobenius!(
-        Fq2,
-        20,
-        [
-            0x3c208c16d87cfd47,
-            0x97816a916871ca8d,
-            0xb85045b68181585d,
-            0x30644e72e131a029,
-        ]
-    );
+    f2_tests!(Fq2, Fq);
+    test_frobenius!(Fq2, Fq, 20);
 
     #[test]
     fn test_fq2_squaring() {

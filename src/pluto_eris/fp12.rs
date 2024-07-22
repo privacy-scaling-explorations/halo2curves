@@ -280,20 +280,5 @@ mod test {
     setup_f12_test_funcs!(Fp12, Fp6, Fp2);
     test_fp12!(f12_mul_by_014_, 500);
     test_fp12!(f12_mul_by_034_, 500);
-    test_frobenius!(
-        Fp12,
-        8,
-        //  ϕ: E → E
-        //  (x, y) ↦ (x^p, y^p)
-        // p: modulus of base field (Here, Fp::MODULUS)
-        [
-            0x9ffffcd300000001,
-            0xa2a7e8c30006b945,
-            0xe4a7a5fe8fadffd6,
-            0x443f9a5cda8a6c7b,
-            0xa803ca76f439266f,
-            0x0130e0000d7f70e4,
-            0x2400000000002400,
-        ]
-    );
+    test_frobenius!(Fp12, Fp, 8);
 }
