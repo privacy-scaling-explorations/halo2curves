@@ -297,7 +297,7 @@ pub fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &
         (f64::from(bases.len() as u32)).ln().ceil() as usize
     };
 
-    let field_byte_size = coeffs[0].as_ref().len();
+    let field_byte_size = C::Scalar::NUM_BITS.div_ceil(8u32) as usize;
     // OR all coefficients in order to make a mask to figure out the maximum number of bytes used
     // among all coefficients.
     let mut acc_or = vec![0; field_byte_size];
