@@ -10,6 +10,7 @@ pub struct CubicExtField<F: ff::Field> {
 pub trait CubicSparseMul {
     type Base: ExtField;
 
+    #[must_use]
     fn mul_by_1(lhs: &CubicExtField<Self::Base>, c1: &Self::Base) -> CubicExtField<Self::Base> {
         let b_b = lhs.c1 * c1;
 
@@ -24,6 +25,7 @@ pub trait CubicSparseMul {
         }
     }
 
+    #[must_use]
     fn mul_by_01(
         lhs: &CubicExtField<Self::Base>,
         c0: &Self::Base,
