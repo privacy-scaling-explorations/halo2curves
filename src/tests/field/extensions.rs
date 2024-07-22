@@ -74,7 +74,7 @@ macro_rules! setup_f6_test_funcs {
             for _ in 0..n {
                 let mut a = $ext_field::random(&mut rng);
                 let mut b = a;
-                a.mul_by_nonresidue();
+                a = a.mul_by_nonresidue();
                 b.mul_assign(&nqr);
 
                 assert_eq!(a, b);
@@ -87,7 +87,7 @@ macro_rules! setup_f6_test_funcs {
                 let mut a = $ext_field::random(&mut rng);
                 let mut b = a;
 
-                a.mul_by_1(&c1);
+                a = <$ext_field as CubicSparseMul>::mul_by_1(&a, &c1);
                 b.mul_assign(&$ext_field {
                     c0: $base_field::zero(),
                     c1,
@@ -105,7 +105,7 @@ macro_rules! setup_f6_test_funcs {
                 let mut a = $ext_field::random(&mut rng);
                 let mut b = a;
 
-                a.mul_by_01(&c0, &c1);
+                a = <$ext_field as CubicSparseMul>::mul_by_01(&a, &c0, &c1);
                 b.mul_assign(&$ext_field {
                     c0,
                     c1,
@@ -131,7 +131,7 @@ macro_rules! setup_f12_test_funcs {
                 let c5 = $base_field_2::random(&mut rng);
                 let mut a = $ext_field::random(&mut rng);
                 let mut b = a;
-                a.mul_by_014(&c0, &c1, &c5);
+                <$ext_field as QuadSparseMul>::mul_by_014(&mut a, &c0, &c1, &c5);
                 b.mul_assign(&$ext_field {
                     c0: $base_field_1 {
                         c0,
@@ -157,7 +157,7 @@ macro_rules! setup_f12_test_funcs {
                 let mut a = $ext_field::random(&mut rng);
                 let mut b = a;
 
-                a.mul_by_034(&c0, &c3, &c4);
+                <$ext_field as QuadSparseMul>::mul_by_034(&mut a, &c0, &c3, &c4);
                 b.mul_assign(&$ext_field {
                     c0: $base_field_1 {
                         c0,

@@ -6,10 +6,6 @@ use crate::ff_ext::{
     ExtField,
 };
 
-use crate::impl_tower2_common;
-use core::ops::{Add, Neg, Sub};
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
 /// -GAMMA is a quadratic non-residue in Fp6. Fp12 = Fp6[X]/(X^2 + GAMMA)
 /// We introduce the variable w such that w^2 = -GAMMA
 // GAMMA = - v
