@@ -299,7 +299,7 @@ mod test {
     test_fq6!(f6_mul_nonresidue_, 1000);
     test_fq6!(f6_mul_by_1_, 1000);
     test_fq6!(f6_mul_by_01_, 1000);
-    test_frobenius!(Fq6, 10, Fq::MODULUS_LIMBS);
+    test_frobenius!(Fq6, Fq, 10);
 
     #[test]
     fn test_fq6_mul_nonresidue() {

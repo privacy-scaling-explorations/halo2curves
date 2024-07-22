@@ -170,7 +170,6 @@ macro_rules! setup_f12_test_funcs {
                         c2: $base_field_2::zero(),
                     },
                 });
-
                 assert_eq!(a, b);
             }
         }
@@ -179,7 +178,7 @@ macro_rules! setup_f12_test_funcs {
 
 #[macro_export]
 macro_rules! test_frobenius {
-    ($field:ident, $size: expr, $frobenius_param: expr) => {
+    ($field:ident, $base: ident, $size: expr) => {
         fn test_frobenius(mut rng: impl RngCore, n: usize) {
             for _ in 0..n {
                 for i in 0..12 {
@@ -187,7 +186,7 @@ macro_rules! test_frobenius {
                     let mut b = a;
 
                     for _ in 0..i {
-                        a = a.pow($frobenius_param);
+                        a = a.pow($base::MODULUS_LIMBS);
                     }
                     b.frobenius_map(i);
 

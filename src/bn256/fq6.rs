@@ -226,15 +226,6 @@ mod test {
     test_fq6!(f6_mul_nonresidue_, 1000);
     test_fq6!(f6_mul_by_1_, 1000);
     test_fq6!(f6_mul_by_01_, 1000);
-    test_frobenius!(
-        Fq6,
-        10,
-        [
-            0x3c208c16d87cfd47,
-            0x97816a916871ca8d,
-            0xb85045b68181585d,
-            0x30644e72e131a029
-        ]
-    );
+    test_frobenius!(Fq6, Fq, 10);
     // test_uniform_bytes!(Fq6, 1000, L 96);
 }

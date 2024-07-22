@@ -273,31 +273,13 @@ mod test {
     test_fp6!(f6_mul_nonresidue_, 1000);
     test_fp6!(f6_mul_by_1_, 1000);
     test_fp6!(f6_mul_by_01_, 1000);
-    test_frobenius!(
-        Fp6,
-        10,
-        [
-            0x9ffffcd300000001,
-            0xa2a7e8c30006b945,
-            0xe4a7a5fe8fadffd6,
-            0x443f9a5cda8a6c7b,
-            0xa803ca76f439266f,
-            0x0130e0000d7f70e4,
-            0x2400000000002400,
-        ]
-    );
+    test_frobenius!(Fp6, Fp, 10);
 
     #[test]
-    fn test_fq2_mul_nonresidue() {
-        let nqr = Fp6 {
-            c0: Fp2::ZERO,
-            c1: Fp2::ONE,
-            c2: Fp2::ZERO,
-        };
-
+    fn test_fp6_mul_nonresidue() {
         let e = Fp6::random(rand_core::OsRng);
         let a0 = e.mul_by_nonresidue();
-        let a1 = e * nqr;
+        let a1 = e * Fp6::NON_RESIDUE;
 
         assert_eq!(a0, a1);
     }

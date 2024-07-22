@@ -222,14 +222,5 @@ mod test {
     setup_f12_test_funcs!(Fq12, Fq6, Fq2);
     test_fq12!(f12_mul_by_014_, 500);
     test_fq12!(f12_mul_by_034_, 500);
-    test_frobenius!(
-        Fq12,
-        8,
-        [
-            0x3c208c16d87cfd47,
-            0x97816a916871ca8d,
-            0xb85045b68181585d,
-            0x30644e72e131a029,
-        ]
-    );
+    test_frobenius!(Fq12, Fq, 8);
 }

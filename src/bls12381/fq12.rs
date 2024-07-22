@@ -294,5 +294,5 @@ mod test {
     setup_f12_test_funcs!(Fq12, Fq6, Fq2);
     test_fq12!(f12_mul_by_014_, 500);
     test_fq12!(f12_mul_by_034_, 500);
-    test_frobenius!(Fq12, 8, Fq::MODULUS_LIMBS);
+    test_frobenius!(Fq12, Fq, 8);
 }
