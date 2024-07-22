@@ -65,17 +65,22 @@ impl ExtField for Fq2 {
 mod test {
 
     use super::*;
-    crate::field_testing_suite!(Fq2, "field_arithmetic");
-    crate::field_testing_suite!(Fq2, "conversion");
-    crate::field_testing_suite!(Fq2, "serialization");
-    crate::field_testing_suite!(Fq2, "quadratic_residue");
-    crate::field_testing_suite!(Fq2, "sqrt");
-    crate::field_testing_suite!(Fq2, "zeta", Fq);
-    // extension field-specific
-    crate::field_testing_suite!(Fq2, "f2_tests", Fq);
-    crate::field_testing_suite!(
+    use crate::{arith_test, legendre_test, serde_test, test};
+    use rand_core::RngCore;
+
+    // constants_test!(Fq2);
+
+    arith_test!(Fq2);
+    legendre_test!(Fq2);
+    test!(arith, Fq2, sqrt_test, 1000);
+
+    serde_test!(Fq2);
+    // test_uniform_bytes!(Fq2, 1000, L 96);
+
+    crate::f2_tests!(Fq2, Fq);
+    crate::test_frobenius!(
         Fq2,
-        "frobenius",
+        20,
         // Frobenius endomorphism power parameter for extension field
         //  ϕ: E → E
         //  (x, y) ↦ (x^p, y^p)
