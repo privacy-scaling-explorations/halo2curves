@@ -133,7 +133,7 @@ mod test {
         assert_eq!(
             a,
             Fp2 {
-                c0: Fp2::NON_RESIDUE,
+                c0: Fp::NON_RESIDUE,
                 c1: Fp::zero(),
             }
         );
@@ -147,12 +147,11 @@ mod test {
             0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
             0xbc, 0xe5,
         ]);
-        let nqr = crate::pluto_eris::fp6::Fp6::NON_RESIDUE;
         for _ in 0..1000 {
-            let mut a = Fp2::random(&mut rng);
+            let a = Fp2::random(&mut rng);
             let mut b = a;
             a.mul_by_nonresidue();
-            b.mul_assign(&nqr);
+            b.mul_assign(&Fp2::NON_RESIDUE);
 
             assert_eq!(a, b);
         }

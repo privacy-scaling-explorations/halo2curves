@@ -69,6 +69,7 @@ mod test {
 
     use super::*;
     use crate::{arith_test, legendre_test, serde_test, test};
+    use rand_core::RngCore;
 
     // constants_test!(Fq2);
 
@@ -119,8 +120,6 @@ mod test {
             }
         }); // -1
     }
-    use rand::SeedableRng;
-    use rand_xorshift::XorShiftRng;
 
     #[test]
 
