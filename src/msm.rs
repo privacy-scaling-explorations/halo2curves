@@ -297,7 +297,25 @@ pub fn multiexp_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &
         (f64::from(bases.len() as u32)).ln().ceil() as usize
     };
 
-    let number_of_windows = C::Scalar::NUM_BITS as usize / c + 1;
+    let field_byte_size = C::Scalar::NUM_BITS.div_ceil(8u32) as usize;
+    // OR all coefficients in order to make a mask to figure out the maximum number of bytes used
+    // among all coefficients.
+    let mut acc_or = vec![0; field_byte_size];
+    for coeff in &coeffs {
+        for (acc_limb, limb) in acc_or.iter_mut().zip(coeff.as_ref().iter()) {
+            *acc_limb = *acc_limb | *limb;
+        }
+    }
+    let max_byte_size = field_byte_size
+        - acc_or
+            .iter()
+            .rev()
+            .position(|v| *v != 0)
+            .unwrap_or(field_byte_size);
+    if max_byte_size == 0 {
+        return;
+    }
+    let number_of_windows = max_byte_size * 8 as usize / c + 1;
 
     for current_window in (0..number_of_windows).rev() {
         for _ in 0..c {
