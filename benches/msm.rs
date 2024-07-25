@@ -16,13 +16,8 @@ use criterion::{BenchmarkId, Criterion};
 use ff::{Field, PrimeField};
 use group::prime::PrimeCurveAffine;
 use halo2curves::bn256::{Fr as Scalar, G1Affine as Point};
-// <<<<<<< HEAD
-// use halo2curves::msm::{best_multiexp, msm_serial};
-use rand_core::{RngCore, SeedableRng};
-// =======
 use halo2curves::msm::{msm_best, msm_serial};
-// use rand_core::SeedableRng;
-// >>>>>>> defcdc2 (refactor: rename msm functions)
+use rand_core::{RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
 use rayon::current_thread_index;
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
