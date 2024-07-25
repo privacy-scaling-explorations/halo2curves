@@ -20,6 +20,7 @@ crate::impl_binops_multiplicative!(Fq, Fq);
 crate::field_bits!(Fq);
 crate::serialize_deserialize_primefield!(Fq);
 crate::impl_from_u64!(Fq);
+crate::impl_from_bool!(Fq);
 
 use ff::Field;
 

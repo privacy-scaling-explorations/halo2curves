@@ -34,6 +34,7 @@ impl From<u64> for Fr {
         }
     }
 }
+crate::impl_from_bool!(Fr);
 
 #[cfg(feature = "bn256-table")]
 #[rustfmt::skip]
