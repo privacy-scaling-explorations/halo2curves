@@ -2,6 +2,11 @@
 edition = "2021"
 name = "halo2derive"
 version = "0.1.0"
+authors = ["Privacy Scaling Explorations team"]
+license = "MIT/Apache-2.0"
+repository = "https://github.com/privacy-scaling-explorations/halo2curves"
+description = "Derive macros for halo2curves fields."
+rust-version = "1.63.0"
 
 [lib]
 proc-macro = true
