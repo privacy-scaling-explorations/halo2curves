@@ -17,7 +17,7 @@ pub mod secq256k1;
 #[macro_use]
 mod derive;
 
-// Re-export to simplify down stream dependencies
+// Re-export to simplify downstream dependencies.
 pub use ff;
 pub use group;
 pub use pairing;

@@ -41,24 +41,15 @@ impl ExtField for Fp {
 
 #[cfg(test)]
 mod test {
+    use super::Fp;
+    use crate::{arith_test, constants_test, legendre_test, serde_test, test, test_uniform_bytes};
 
-    use super::*;
-    crate::field_testing_suite!(Fp, "field_arithmetic");
-    crate::field_testing_suite!(Fp, "conversion");
-    crate::field_testing_suite!(Fp, "serialization");
-    crate::field_testing_suite!(Fp, "quadratic_residue");
-    crate::field_testing_suite!(Fp, "bits");
-    crate::field_testing_suite!(Fp, "serialization_check");
-    crate::field_testing_suite!(Fp, "constants");
-    crate::field_testing_suite!(Fp, "sqrt");
-    crate::field_testing_suite!(Fp, "zeta");
-    crate::field_testing_suite!(Fp, "from_uniform_bytes", 64, 72, 112);
+    constants_test!(Fp);
 
-    #[test]
-    fn test_fq_mul_nonresidue() {
-        let e = Fp::random(rand_core::OsRng);
-        let a0 = e.mul_by_nonresidue();
-        let a1 = e * Fp::NON_RESIDUE;
-        assert_eq!(a0, a1);
-    }
+    arith_test!(Fp);
+    legendre_test!(Fp);
+    test!(arith, Fp, sqrt_test, 1000);
+
+    serde_test!(Fp PrimeFieldBits);
+    test_uniform_bytes!(Fp, 1000, L 64, L 72, L 112);
 }
