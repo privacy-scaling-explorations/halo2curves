@@ -102,10 +102,21 @@ macro_rules! impl_tower2 {
             const CAPACITY: u32 = $base::NUM_BITS;
             const S: u32 = $base::S;
 
-            // TODO: Check that we can just 0 this and forget.
-            const ROOT_OF_UNITY: Self = $field::ZERO;
-            const ROOT_OF_UNITY_INV: Self = $field::ZERO;
-            const DELTA: Self = $field::ZERO;
+            // Unused variables (Because this is not a Prime Field).
+            // These are just used to pass the constants test.
+            const ROOT_OF_UNITY: Self = $field {
+                c0: $base::ROOT_OF_UNITY,
+                c1: $base::ZERO,
+            };
+            const ROOT_OF_UNITY_INV: Self = $field {
+                c0: $base::ROOT_OF_UNITY_INV,
+                c1: $base::ZERO,
+            };
+
+            const DELTA: Self = $field {
+                c0: $base::DELTA,
+                c1: $base::ZERO,
+            };
 
             const TWO_INV: Self = $field {
                 c0: $base::TWO_INV,
