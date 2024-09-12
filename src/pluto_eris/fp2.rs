@@ -1,4 +1,5 @@
 use super::fp::Fp;
+use crate::ff::FromUniformBytes;
 use crate::ff::{Field, PrimeField, WithSmallOrderMulGroup};
 use crate::ff_ext::quadratic::{QuadExtField, QuadExtFieldArith, SQRT};
 use crate::ff_ext::{ExtField, Legendre};
@@ -11,6 +12,7 @@ crate::impl_binops_multiplicative!(Fp2, Fp2);
 crate::impl_binops_calls!(Fp2);
 crate::impl_sum_prod!(Fp2);
 crate::impl_tower2!(Fp, Fp2);
+crate::impl_tower2_from_uniform_bytes!(Fp, Fp2, 128);
 
 pub type Fp2 = QuadExtField<Fp>;
 
@@ -78,17 +80,17 @@ impl ExtField for Fp2 {
 mod test {
 
     use super::*;
-    use crate::{arith_test, legendre_test, serde_test, test};
+    use crate::{arith_test, constants_test, legendre_test, serde_test, test, test_uniform_bytes};
     use rand_core::RngCore;
 
-    // constants_test!(Fp2);
+    constants_test!(Fp2);
 
     arith_test!(Fp2);
     legendre_test!(Fp2);
     test!(arith, Fp2, sqrt_test, 1000);
 
     serde_test!(Fp2);
-    // test_uniform_bytes!(Fp2, 1000, L 96);
+    test_uniform_bytes!(Fp2, 1000, L 128);
 
     crate::f2_tests!(Fp2, Fp);
     crate::test_frobenius!(Fp2, Fp, 20);
