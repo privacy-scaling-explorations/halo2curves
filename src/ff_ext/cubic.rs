@@ -107,6 +107,21 @@ impl<F: ff::Field> CubicExtField<F> {
     }
 
     #[inline]
+    pub fn c0(&self) -> &F {
+        &self.c0
+    }
+
+    #[inline]
+    pub fn c1(&self) -> &F {
+        &self.c1
+    }
+
+    #[inline]
+    pub fn c2(&self) -> &F {
+        &self.c2
+    }
+
+    #[inline]
     pub fn double(&self) -> Self {
         Self {
             c0: self.c0.double(),
