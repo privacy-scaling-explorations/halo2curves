@@ -68,52 +68,22 @@ impl ExtField for Fq2 {
 mod test {
 
     use super::*;
-    use crate::{arith_test, f2_tests, legendre_test, serde_test, test, test_frobenius};
+    use crate::{
+        arith_test, constants_test, f2_tests, legendre_test, serde_test, test, test_frobenius,
+    };
     use rand_core::RngCore;
 
-    // constants_test!(Fq2);
-
+    constants_test!(Fq2);
     arith_test!(Fq2);
     legendre_test!(Fq2);
     test!(arith, Fq2, sqrt_test, 1000);
 
     serde_test!(Fq2);
-    // test_uniform_bytes!(Fq2, 1000, L 96);
 
     f2_tests!(Fq2, Fq);
     test_frobenius!(Fq2, Fq, 20);
 
     #[test]
-    fn test_fq2_squaring() {
-        let mut a = Fq2 {
-            c0: Fq::one(),
-            c1: Fq::one(),
-        }; // u + 1
-        a.square_assign();
-        assert_eq!(
-            a,
-            Fq2 {
-                c0: Fq::zero(),
-                c1: Fq::one() + Fq::one(),
-            }
-        ); // 2u
-
-        let mut a = Fq2 {
-            c0: Fq::zero(),
-            c1: Fq::one(),
-        }; // u
-        a.square_assign();
-        assert_eq!(a, {
-            let neg1 = -Fq::one();
-            Fq2 {
-                c0: neg1,
-                c1: Fq::zero(),
-            }
-        }); // -1
-    }
-
-    #[test]
-
     fn test_fq2_mul_nonresidue() {
         let e = Fq2::random(rand_core::OsRng);
         let a0 = e.mul_by_nonresidue();

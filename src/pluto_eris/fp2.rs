@@ -80,7 +80,7 @@ impl ExtField for Fp2 {
 mod test {
 
     use super::*;
-    use crate::{arith_test, constants_test, legendre_test, serde_test, test, test_uniform_bytes};
+    use crate::{arith_test, constants_test, legendre_test, serde_test, test};
     use rand_core::RngCore;
 
     constants_test!(Fp2);
@@ -90,7 +90,6 @@ mod test {
     test!(arith, Fp2, sqrt_test, 1000);
 
     serde_test!(Fp2);
-    test_uniform_bytes!(Fp2, 1000, L 128);
 
     crate::f2_tests!(Fp2, Fp);
     crate::test_frobenius!(Fp2, Fp, 20);

@@ -28,11 +28,9 @@ mod test {
     use crate::{arith_test, constants_test, legendre_test, serde_test, test, test_uniform_bytes};
 
     constants_test!(Fp);
-
     arith_test!(Fp);
     legendre_test!(Fp);
     test!(arith, Fp, sqrt_test, 1000);
-
     serde_test!(Fp PrimeFieldBits);
     test_uniform_bytes!(Fp, 1000, L 64, L 48);
 }

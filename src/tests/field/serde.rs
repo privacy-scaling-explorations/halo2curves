@@ -51,29 +51,6 @@ where
     }
 }
 
-// Test from_raw_bytes / to_raw_bytes
-// TODO: Is this test redundant? It uses methods that are not exposed.
-// IMO this can be removed.
-// fn test_serialization_check<F: Field>(mut rng: impl RngCore, n: usize) {
-//     use crate::serde::SerdeObject;
-//     const LIMBS: usize = F::SIZE / 8;
-//     // failure check
-//     for _ in 0..n {
-//         let rand_word = [(); LIMBS].map(|_| rng.next_u64());
-//         let a = F(rand_word);
-//         let rand_bytes = a.to_raw_bytes();
-
-//         match F::is_less_than_modulus(&rand_word) {
-//             false => {
-//                 assert!(F::from_raw_bytes(&rand_bytes).is_none());
-//             }
-//             _ => {
-//                 assert_eq!(F::from_raw_bytes(&rand_bytes), Some(a));
-//             }
-//         }
-//     }
-// }
-
 #[cfg(feature = "bits")]
 pub(crate) fn test_bits<F: ff::PrimeFieldBits>(mut rng: impl RngCore, n: usize) {
     for _ in 0..n {
@@ -104,7 +81,7 @@ macro_rules! serde_test {
 }
 
 // Out of serde_tests macro, since it needs to be tested for several generic L.
-// Tests from_uniform_bytes.
+// Tests from_uniform_bytes **for prime fields only**.
 pub(crate) fn from_uniform_bytes_test<F: PrimeField, const L: usize>(
     mut rng: impl RngCore,
     n: usize,
