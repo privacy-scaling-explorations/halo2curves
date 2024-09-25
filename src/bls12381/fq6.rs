@@ -277,7 +277,7 @@ pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{arith_test, setup_f6_test_funcs, test, test_frobenius};
+    use crate::{arith_test, frobenius_test, setup_f6_test_funcs, test};
     use rand_core::RngCore;
 
     macro_rules! test_fq6 {
@@ -299,7 +299,7 @@ mod test {
     test_fq6!(f6_mul_nonresidue_, 1000);
     test_fq6!(f6_mul_by_1_, 1000);
     test_fq6!(f6_mul_by_01_, 1000);
-    test_frobenius!(Fq6, Fq, 10);
+    frobenius_test!(Fq6, Fq, 10);
 
     #[test]
     fn test_fq6_mul_nonresidue() {

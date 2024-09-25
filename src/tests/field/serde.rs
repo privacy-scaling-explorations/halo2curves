@@ -68,7 +68,6 @@ macro_rules! serde_test {
     ($field:ident) => {
         test!(serde, $field, from_to_repr_test, 100_000);
         test!(serde, $field, from_to_raw_bytes_test, 100_000);
-        // test!($field, test_serialization_check, 1_000_000);
         #[cfg(feature = "derive_serde")]
         test!(serde, $field, derive_serde_test, 100_000);
     };
@@ -107,7 +106,7 @@ pub(crate) fn from_uniform_bytes_test<F: PrimeField, const L: usize>(
 }
 
 #[macro_export]
-macro_rules! test_uniform_bytes {
+macro_rules! from_uniform_bytes_test {
     ($field:ident, $size:expr, L $L: expr ) => {
         paste::paste! {
         #[test]
@@ -122,7 +121,7 @@ macro_rules! test_uniform_bytes {
     };
 
     ($field:ident,$size:expr, L $L:expr, $(L $rest:expr),+ ) => {
-        test_uniform_bytes!( $field, $size, L $L );
-        test_uniform_bytes! { $field, $size, $(L $rest),+ }
+        from_uniform_bytes_test!( $field, $size, L $L );
+        from_uniform_bytes_test! { $field, $size, $(L $rest),+ }
     };
 }

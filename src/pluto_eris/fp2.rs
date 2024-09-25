@@ -91,8 +91,8 @@ mod test {
 
     serde_test!(Fp2);
 
-    crate::f2_tests!(Fp2, Fp);
-    crate::test_frobenius!(Fp2, Fp, 20);
+    crate::f2_test!(Fp2, Fp);
+    crate::frobenius_test!(Fp2, Fp, 20);
 
     #[test]
     fn test_fp2_squaring() {

@@ -1,6 +1,6 @@
 // F2 tests
 #[macro_export]
-macro_rules! f2_tests {
+macro_rules! f2_test {
     ($ext_field:ident,
      $base_field:ident) => {
         #[test]
@@ -177,7 +177,7 @@ macro_rules! setup_f12_test_funcs {
 }
 
 #[macro_export]
-macro_rules! test_frobenius {
+macro_rules! frobenius_test {
     ($field:ident, $base: ident, $size: expr) => {
         fn test_frobenius(mut rng: impl RngCore, n: usize) {
             for _ in 0..n {

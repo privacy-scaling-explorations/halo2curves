@@ -66,7 +66,7 @@ mod test {
 
     use super::*;
     use crate::{
-        arith_test, constants_test, f2_tests, legendre_test, serde_test, test, test_frobenius,
+        arith_test, constants_test, f2_test, frobenius_test, legendre_test, serde_test, test,
     };
     use rand_core::RngCore;
 
@@ -78,8 +78,8 @@ mod test {
 
     serde_test!(Fq2);
 
-    f2_tests!(Fq2, Fq);
-    test_frobenius!(Fq2, Fq, 20);
+    f2_test!(Fq2, Fq);
+    frobenius_test!(Fq2, Fq, 20);
 
     #[test]
     fn test_fq2_mul_nonresidue() {

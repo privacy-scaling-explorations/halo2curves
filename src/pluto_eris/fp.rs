@@ -42,7 +42,9 @@ impl ExtField for Fp {
 #[cfg(test)]
 mod test {
     use super::Fp;
-    use crate::{arith_test, constants_test, legendre_test, serde_test, test, test_uniform_bytes};
+    use crate::{
+        arith_test, constants_test, from_uniform_bytes_test, legendre_test, serde_test, test,
+    };
 
     constants_test!(Fp);
 
@@ -51,5 +53,5 @@ mod test {
     test!(arith, Fp, sqrt_test, 1000);
 
     serde_test!(Fp PrimeFieldBits);
-    test_uniform_bytes!(Fp, 1000, L 64, L 72, L 112);
+    from_uniform_bytes_test!(Fp, 1000, L 64, L 72, L 112);
 }

@@ -25,7 +25,9 @@ crate::impl_from_bool!(Fq);
 #[cfg(test)]
 mod test {
     use super::Fq;
-    use crate::{arith_test, constants_test, legendre_test, serde_test, test, test_uniform_bytes};
+    use crate::{
+        arith_test, constants_test, from_uniform_bytes_test, legendre_test, serde_test, test,
+    };
 
     constants_test!(Fq);
 
@@ -34,5 +36,5 @@ mod test {
     test!(arith, Fq, sqrt_test, 1000);
 
     serde_test!(Fq);
-    test_uniform_bytes!(Fq, 1000, L 64, L 48);
+    from_uniform_bytes_test!(Fq, 1000, L 64, L 48);
 }

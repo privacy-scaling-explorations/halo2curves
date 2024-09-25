@@ -210,17 +210,15 @@ mod test {
         };
     }
     use super::*;
-    use crate::{arith_test, setup_f12_test_funcs, test, test_frobenius};
+    use crate::{arith_test, frobenius_test, setup_f12_test_funcs, test};
     use ff::Field;
     use rand::RngCore;
 
     arith_test!(Fq12);
-    // TODO Compile problems with derive_serde feature
-    // serde_test!(Fq12);
 
     // F12 specific
     setup_f12_test_funcs!(Fq12, Fq6, Fq2);
     test_fq12!(f12_mul_by_014_, 500);
     test_fq12!(f12_mul_by_034_, 500);
-    test_frobenius!(Fq12, Fq, 8);
+    frobenius_test!(Fq12, Fq, 8);
 }

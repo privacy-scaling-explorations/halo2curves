@@ -3,6 +3,7 @@ use ff::PrimeField;
 use rand::RngCore;
 
 pub(crate) fn legendre_symbol_test<F: PrimeField + Legendre>(mut rng: impl RngCore, n: usize) {
+    assert_eq!(F::ZERO.legendre(), 0);
     for _ in 0..n {
         let a = F::random(&mut rng);
         if a.legendre() == -1 {
