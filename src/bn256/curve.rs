@@ -161,68 +161,67 @@ impl group::cofactor::CofactorGroup for G1 {
     }
 }
 
+fn exp_by_x(g2: &G2) -> G2 {
+    let x = super::BN_X;
+
+    (0..62).rev().fold(g2.clone(), |mut acc, i| {
+        println!("{}", ((x >> i) & 1) == 1);
+
+        acc = acc.double();
+        (((x >> i) & 1) == 1).then(|| acc += g2);
+        acc
+    })
+}
+
+fn psi(mut g2: G2) -> G2 {
+    const U0: Fq = Fq::from_raw([
+        0x99e39557176f553d,
+        0xb78cc310c2c3330c,
+        0x4c0bec3cf559b143,
+        0x2fb347984f7911f7,
+    ]);
+
+    const U1: Fq = Fq::from_raw([
+        0x1665d51c640fcba2,
+        0x32ae2a1d0b7c9dce,
+        0x4ba4cc8bd75a0794,
+        0x16c9e55061ebae20,
+    ]);
+    let u = Fq2::new(U0, U1);
+
+    const V0: Fq = Fq::from_raw([
+        0xdc54014671a0135a,
+        0xdbaae0eda9c95998,
+        0xdc5ec698b6e2f9b9,
+        0x063cf305489af5dc,
+    ]);
+
+    const V1: Fq = Fq::from_raw([
+        0x82d37f632623b0e3,
+        0x21807dc98fa25bd2,
+        0x0704b5a7ec796f2b,
+        0x07c03cbcac41049a,
+    ]);
+    let v = Fq2::new(V0, V1);
+
+    g2.x.conjugate();
+    g2.y.conjugate();
+    g2.z.conjugate();
+
+    g2.x *= u;
+    g2.y *= v;
+
+    g2
+}
+
 impl CofactorGroup for G2 {
     type Subgroup = G2;
 
     fn clear_cofactor(&self) -> Self {
-        fn exp_by_x(g2: &G2) -> G2 {
-            let x = super::BN_X;
-            let mut res = G2::identity();
-            for i in (0..64).rev() {
-                res = res.double();
-                if ((x >> i) & 1) == 1 {
-                    res += g2;
-                }
-            }
-            res
-        }
-
-        fn psi(mut g2: G2) -> G2 {
-            const U0: Fq = Fq::from_raw([
-                0x99e39557176f553d,
-                0xb78cc310c2c3330c,
-                0x4c0bec3cf559b143,
-                0x2fb347984f7911f7,
-            ]);
-
-            const U1: Fq = Fq::from_raw([
-                0x1665d51c640fcba2,
-                0x32ae2a1d0b7c9dce,
-                0x4ba4cc8bd75a0794,
-                0x16c9e55061ebae20,
-            ]);
-            let u = Fq2::new(U0, U1);
-
-            const V0: Fq = Fq::from_raw([
-                0xdc54014671a0135a,
-                0xdbaae0eda9c95998,
-                0xdc5ec698b6e2f9b9,
-                0x063cf305489af5dc,
-            ]);
-
-            const V1: Fq = Fq::from_raw([
-                0x82d37f632623b0e3,
-                0x21807dc98fa25bd2,
-                0x0704b5a7ec796f2b,
-                0x07c03cbcac41049a,
-            ]);
-            let v = Fq2::new(V0, V1);
-
-            g2.x.conjugate();
-            g2.y.conjugate();
-            g2.z.conjugate();
-
-            g2.x *= u;
-            g2.y *= v;
-
-            g2
-        }
-
         let u0 = exp_by_x(self);
         let u1 = psi(u0.double() + u0);
         let u2 = psi(psi(u0));
         let u3 = psi(psi(psi(*self)));
-
         u0 + u1 + u2 + u3
     }
 
@@ -231,24 +230,11 @@ impl CofactorGroup for G2 {
     }
 
     fn is_torsion_free(&self) -> Choice {
-        // "0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001"
-        let e: [u8; 32] = [
-            0x30, 0x64, 0x4e, 0x72, 0xe1, 0x31, 0xa0, 0x29, 0xb8, 0x50, 0x45, 0xb6, 0x81, 0x81,
-            0x58, 0x5d, 0x28, 0x33, 0xe8, 0x48, 0x79, 0xb9, 0x70, 0x91, 0x43, 0xe1, 0xf5, 0x93,
-            0xf0, 0x00, 0x00, 0x01,
-        ];
-
-        // self * GROUP_ORDER;
-        let mut acc = G2::identity();
-        for bit in e
-            .iter()
-            .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))
-            .skip(1)
-        {
-            acc = acc.double();
-            acc = G2::conditional_select(&acc, &(acc + self), bit);
-        }
-        acc.is_identity()
+        let u = exp_by_x(self);
+        let pu = psi(u);
+        let ppu = psi(pu);
+        let pppu = psi(ppu);
+        (ppu + pu + u + self - pppu.double()).is_identity()
     }
 }
 
