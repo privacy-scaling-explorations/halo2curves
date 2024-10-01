@@ -24,15 +24,17 @@ crate::impl_from_bool!(Fq);
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    crate::field_testing_suite!(Fq, "field_arithmetic");
-    crate::field_testing_suite!(Fq, "conversion");
-    crate::field_testing_suite!(Fq, "serialization");
-    crate::field_testing_suite!(Fq, "quadratic_residue");
-    crate::field_testing_suite!(Fq, "bits");
-    crate::field_testing_suite!(Fq, "serialization_check");
-    crate::field_testing_suite!(Fq, "constants");
-    crate::field_testing_suite!(Fq, "sqrt");
-    crate::field_testing_suite!(Fq, "zeta");
-    crate::field_testing_suite!(Fq, "from_uniform_bytes", 48, 64);
+    use super::Fq;
+    use crate::{
+        arith_test, constants_test, from_uniform_bytes_test, legendre_test, serde_test, test,
+    };
+
+    constants_test!(Fq);
+
+    arith_test!(Fq);
+    legendre_test!(Fq);
+    test!(arith, Fq, sqrt_test, 1000);
+
+    serde_test!(Fq);
+    from_uniform_bytes_test!(Fq, 1000, L 64, L 48);
 }

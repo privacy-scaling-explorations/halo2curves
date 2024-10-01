@@ -68,23 +68,20 @@ impl ExtField for Fq2 {
 mod test {
 
     use super::*;
-    crate::field_testing_suite!(Fq2, "field_arithmetic");
-    crate::field_testing_suite!(Fq2, "conversion");
-    crate::field_testing_suite!(Fq2, "serialization");
-    crate::field_testing_suite!(Fq2, "quadratic_residue");
-    crate::field_testing_suite!(Fq2, "sqrt");
-    crate::field_testing_suite!(Fq2, "zeta", Fq);
-    // extension field-specific
-    crate::field_testing_suite!(Fq2, "f2_tests", Fq);
-    crate::field_testing_suite!(
-        Fq2,
-        "frobenius",
-        // Frobenius endomorphism power parameter for extension field
-        //  ϕ: E → E
-        //  (x, y) ↦ (x^p, y^p)
-        // p: modulus of base field (Here, Fq::MODULUS)
-        Fq::MODULUS_LIMBS
-    );
+    use crate::{
+        arith_test, constants_test, f2_test, frobenius_test, legendre_test, serde_test, test,
+    };
+    use rand_core::RngCore;
+
+    constants_test!(Fq2);
+    arith_test!(Fq2);
+    legendre_test!(Fq2);
+    test!(arith, Fq2, sqrt_test, 1000);
+
+    serde_test!(Fq2);
+
+    f2_test!(Fq2, Fq);
+    frobenius_test!(Fq2, Fq, 20);
 
     #[test]
     fn test_fq2_mul_nonresidue() {
