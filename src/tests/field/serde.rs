@@ -16,7 +16,7 @@ pub(crate) fn from_to_repr_test<F: PrimeField>(mut rng: impl RngCore, n: usize) 
 #[cfg(feature = "derive_serde")]
 pub(crate) fn derive_serde_test<F>(mut rng: impl RngCore, n: usize)
 where
-    for<'de> F: Field + serde::Serialize + serde::Deserialize<'de>,
+    for<'de> F: ff::Field + serde::Serialize + serde::Deserialize<'de>,
 {
     for _ in 0..n {
         // byte serialization
