@@ -1,12 +1,12 @@
 use crate::bls12381::fq::Fq;
 use crate::bls12381::fq2::Fq2;
 use crate::bls12381::fr::Fr;
+use crate::encoding::{Compressed, CompressedFlagConfig};
 use crate::ff::WithSmallOrderMulGroup;
 use crate::ff::{Field, PrimeField};
 use crate::ff_ext::ExtField;
 use crate::group::Curve;
 use crate::group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
-use crate::encoding::{Compressed, CompressedFlagConfig};
 use crate::{
     impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
     impl_binops_multiplicative_mixed, new_curve_impl,

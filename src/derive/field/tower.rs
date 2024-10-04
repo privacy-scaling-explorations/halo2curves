@@ -148,9 +148,9 @@ macro_rules! impl_tower2 {
                 Choice::from(self.to_repr().as_ref()[0] & 1)
             }
         }
-    }
+    };
 }
-    
+
 #[macro_export]
 macro_rules! impl_tower2_from_uniform_bytes {
     (

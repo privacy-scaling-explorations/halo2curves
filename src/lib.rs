@@ -1,9 +1,9 @@
 mod arithmetic;
+pub mod encoding;
 pub mod ff_ext;
 pub mod fft;
 pub mod hash_to_curve;
 pub mod msm;
-pub mod encoding;
 
 pub mod bls12381;
 pub mod bn256;
