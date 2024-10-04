@@ -1,7 +1,4 @@
-use std::{
-    fmt::Debug,
-    io::{self, Read, Write},
-};
+use std::fmt::Debug;
 
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
@@ -90,30 +87,6 @@ impl<const T: usize> std::ops::IndexMut<std::ops::Range<usize>> for Repr<T> {
     fn index_mut(&mut self, range: std::ops::Range<usize>) -> &mut Self::Output {
         &mut self.0[range]
     }
-}
-
-/// Trait for converting raw bytes to/from the internal representation of a type.
-/// For example, field elements are represented in Montgomery form and serialized/deserialized without Montgomery reduction.
-pub trait SerdeObject: Sized {
-    /// The purpose of unchecked functions is to read the internal memory representation
-    /// of a type from bytes as quickly as possible. No sanitization checks are performed
-    /// to ensure the bytes represent a valid object. As such this function should only be
-    /// used internally as an extension of machine memory. It should not be used to deserialize
-    /// externally provided data.
-    fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self;
-    fn from_raw_bytes(bytes: &[u8]) -> Option<Self>;
-
-    fn to_raw_bytes(&self) -> Vec<u8>;
-
-    /// The purpose of unchecked functions is to read the internal memory representation
-    /// of a type from disk as quickly as possible. No sanitization checks are performed
-    /// to ensure the bytes represent a valid object. This function should only be used
-    /// internally when some machine state cannot be kept in memory (e.g., between runs)
-    /// and needs to be reloaded as quickly as possible.
-    fn read_raw_unchecked<R: Read>(reader: &mut R) -> Self;
-    fn read_raw<R: Read>(reader: &mut R) -> io::Result<Self>;
-
-    fn write_raw<W: Write>(&self, writer: &mut W) -> io::Result<()>;
 }
 
 pub mod endian {
@@ -212,20 +185,20 @@ impl Flag {
 pub(crate) trait Compressed<C: crate::CurveAffine>:
     Debug + Copy + Default + AsRef<[u8]> + AsMut<[u8]> + Send + Sync + 'static
 where
-    C::Base: crate::serde::endian::EndianRepr,
+    C::Base: crate::encoding::endian::EndianRepr,
 {
     const CONFIG: CompressedFlagConfig;
 
     fn flag_byte(&mut self) -> &mut u8 {
-        use crate::serde::endian::EndianRepr;
+        use crate::encoding::endian::EndianRepr;
         match Self::CONFIG {
             // Most sig byte is always the flag byte when extra byte flag is used
             CompressedFlagConfig::Extra => self.as_mut().first_mut().unwrap(),
             _ => match C::Base::ENDIAN {
                 // Least sig byte is the flag byte
-                crate::serde::endian::Endian::LE => self.as_mut().last_mut().unwrap(),
+                crate::encoding::endian::Endian::LE => self.as_mut().last_mut().unwrap(),
                 // Most sig byte is the flag byte
-                crate::serde::endian::Endian::BE => self.as_mut().first_mut().unwrap(),
+                crate::encoding::endian::Endian::BE => self.as_mut().first_mut().unwrap(),
             },
         }
     }
@@ -294,7 +267,7 @@ where
     }
 
     fn encode(c: &C) -> Self {
-        use crate::serde::endian::EndianRepr;
+        use crate::encoding::endian::EndianRepr;
         let mut this = Self::default();
         let coordinates = c.coordinates().unwrap();
         let x = coordinates.x();
@@ -332,9 +305,9 @@ where
         let x = match Self::CONFIG {
             CompressedFlagConfig::Extra => {
                 // Most sig byte is always the flag byte when extra byte flag is used
-                <C::Base as crate::serde::endian::EndianRepr>::from_bytes(&self.as_ref()[1..])
+                <C::Base as crate::encoding::endian::EndianRepr>::from_bytes(&self.as_ref()[1..])
             }
-            _ => <C::Base as crate::serde::endian::EndianRepr>::from_bytes(self.as_ref()),
+            _ => <C::Base as crate::encoding::endian::EndianRepr>::from_bytes(self.as_ref()),
         };
 
         x.and_then(|x| -> subtle::CtOption<C> {

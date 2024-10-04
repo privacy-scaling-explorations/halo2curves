@@ -43,7 +43,7 @@ new_curve_impl!(
     SECQ_B,
     "secq256k1",
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, Secq256k1::default_hash_to_curve_suite()),
-    crate::serde::CompressedFlagConfig::Extra,
+    crate::encoding::CompressedFlagConfig::Extra,
     standard_sign
 );
 

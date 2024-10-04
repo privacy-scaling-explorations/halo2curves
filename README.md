@@ -60,3 +60,20 @@ The library's top-level directories are organized as follows:
 * `benches`: Contains benchmarking tests.
 * `script`: Contains utility scripts.
 * `src`: Contains the source code of the library, further subdivided into modules for each supported curve (`bn256`, `grumpkin`, `secp256k1`, `secp256r1`, `secq256k1`, `pasta`, `pluto`, `eris`) and additional functionalities (`derive`, `tests`).
+
+## Notes on serialization
+
+**Field Encodings**
+
+- `from_bytes`/`to_bytes`: They use an industry-standard format that is consistent with how curves are encoded. This format is what will be used internally by the Serde library to ensure interoperability. Provides a unified format for both field and curve serialization. Ensures a consistent, industry-standard serialization, using big or little endian depending on the curve
+- `from_mont`/`to_mont`: These methods convert elements to and from the Montgomery form, which is an internal representation that is commonly used for efficient field arithmetic. Use these when working specifically with Montgomery-reduced values, especially in cryptographic computations.
+- `from_raw`: Creates a field element from a raw integer (typically limbs or u64s). Use this method when directly converting an integer value into a field element.
+- `from_uniform_bytes`:  Converts a uniform random byte array into a valid field element. This is particularly useful in scenarios requiring a random element in the field, such as in cryptographic protocols or when hashing to the field.
+
+**Curve Encodings**
+
+- `GroupEncoding` trait methods: Implements the serialization and deserialization of curve points in a compressed format. Compression is slower but generates standardized encodings that are smaller in size. Suitable for storing and transmitting curve points efficiently. Serde will use this.
+- `UncompressedEncoding` trait methods: Provides faster serialization/deserialization of curve points in an uncompressed format. The output is larger than that of GroupEncoding, but it's quicker to generate. When speed is prioritized over size.
+
+*Notes*: 
+- `from_bytes`, `to_bytes` from `EndianRepr` trait is only intended for internal use only. Do not use.

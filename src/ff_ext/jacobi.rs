@@ -325,9 +325,9 @@ fn jacobinary(mut n: u64, mut d: u64, mut t: u64) -> i64 {
 /// and some original optimizations. Only these differences have been commented;
 /// the aforesaid Pornin's method and the used ideas of M. Hamburg were given here:
 /// - T. Pornin, "Optimized Binary GCD for Modular Inversion",
-/// https://eprint.iacr.org/2020/972.pdf
+/// <https://eprint.iacr.org/2020/972.pdf>
 /// - M. Hamburg, "Computing the Jacobi symbol using Bernstein-Yang",
-/// https://eprint.iacr.org/2021/1271.pdf
+/// <https://eprint.iacr.org/2021/1271.pdf>
 pub fn jacobi<const L: usize>(n: &[u64], d: &[u64]) -> i64 {
     // Instead of the variable "j" taking the values from {-1, 1} and satisfying
     // at the end of the outer loop iteration the equation J = "j" * ("n" / |"d"|)

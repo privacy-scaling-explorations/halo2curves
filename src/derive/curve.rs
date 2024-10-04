@@ -66,8 +66,8 @@ macro_rules! new_curve_impl {
     ) => {
 
         paste::paste! {
-            impl $crate::serde::Compressed<$name_affine> for [<$name:upper Compressed >] {
-                const CONFIG: $crate::serde::CompressedFlagConfig = $flag_config;
+            impl $crate::encoding::Compressed<$name_affine> for [<$name:upper Compressed >] {
+                const CONFIG: $crate::encoding::CompressedFlagConfig = $flag_config;
                 fn sign(c: &$name_affine) -> subtle::Choice {
                     Choice::from(c.y.to_repr()[0] as u8 & 1) & !c.is_identity()
                 }
@@ -101,22 +101,22 @@ macro_rules! new_curve_impl {
         paste::paste! {
             const [< $name:upper _COMPRESSED_SIZE >]: usize = $base::SIZE + if $flag_config.has_extra_byte() { 1 } else { 0 };
 
-            pub type [<$name:upper Compressed >] = $crate::serde::Repr<[< $name:upper _COMPRESSED_SIZE >]>;
-            pub type [<$name Uncompressed >] = $crate::serde::Repr<{ 2*$base::SIZE }>;
+            pub type [<$name:upper Compressed >] = $crate::encoding::Repr<[< $name:upper _COMPRESSED_SIZE >]>;
+            pub type [<$name Uncompressed >] = $crate::encoding::Repr<{ 2*$base::SIZE }>;
 
             impl GroupEncoding for $name_affine {
                 type Repr = [<$name:upper Compressed >];
 
                 fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
-                    <Self::Repr as $crate::serde::Compressed<$name_affine>>::decode(bytes.clone())
+                    <Self::Repr as $crate::encoding::Compressed<$name_affine>>::decode(bytes.clone())
                 }
 
                 fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
-                    <Self::Repr as $crate::serde::Compressed<$name_affine>>::decode(bytes.clone())
+                    <Self::Repr as $crate::encoding::Compressed<$name_affine>>::decode(bytes.clone())
                 }
 
                 fn to_bytes(&self) -> Self::Repr {
-                    <Self::Repr as $crate::serde::Compressed<$name_affine>>::encode(&self)
+                    <Self::Repr as $crate::encoding::Compressed<$name_affine>>::encode(&self)
                 }
             }
 
@@ -124,15 +124,15 @@ macro_rules! new_curve_impl {
                 type Repr = [<$name:upper Compressed >];
 
                 fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
-                    <Self::Repr as $crate::serde::Compressed<$name_affine>>::decode(bytes.clone()).map(Self::from)
+                    <Self::Repr as $crate::encoding::Compressed<$name_affine>>::decode(bytes.clone()).map(Self::from)
                 }
 
                 fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
-                    <Self::Repr as $crate::serde::Compressed<$name_affine>>::decode(bytes.clone()).map(Self::from)
+                    <Self::Repr as $crate::encoding::Compressed<$name_affine>>::decode(bytes.clone()).map(Self::from)
                 }
 
                 fn to_bytes(&self) -> Self::Repr {
-                    <Self::Repr as $crate::serde::Compressed<$name_affine>>::encode(&self.to_affine())
+                    <Self::Repr as $crate::encoding::Compressed<$name_affine>>::encode(&self.to_affine())
                 }
             }
 
@@ -613,47 +613,6 @@ macro_rules! new_curve_impl {
             }
         }
 
-        impl $crate::serde::SerdeObject for $name {
-            fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
-                debug_assert_eq!(bytes.len(), 3 * $base::SIZE);
-                let [x, y, z] = [0, 1, 2]
-                    .map(|i| $base::from_raw_bytes_unchecked(&bytes[i * $base::SIZE..(i + 1) * $base::SIZE]));
-                Self { x, y, z }
-            }
-            fn from_raw_bytes(bytes: &[u8]) -> Option<Self> {
-                if bytes.len() != 3 * $base::SIZE {
-                    return None;
-                }
-                let [x, y, z] =
-                    [0, 1, 2].map(|i| $base::from_raw_bytes(&bytes[i * $base::SIZE..(i + 1) * $base::SIZE]));
-                x.zip(y).zip(z).and_then(|((x, y), z)| {
-                    let res = Self { x, y, z };
-                    // Check that the point is on the curve.
-                    bool::from(res.is_on_curve()).then(|| res)
-                })
-            }
-            fn to_raw_bytes(&self) -> Vec<u8> {
-                let mut res = Vec::with_capacity(3 * $base::SIZE);
-                Self::write_raw(self, &mut res).unwrap();
-                res
-            }
-            fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
-                let [x, y, z] = [(); 3].map(|_| $base::read_raw_unchecked(reader));
-                Self { x, y, z }
-            }
-            fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
-                let x = $base::read_raw(reader)?;
-                let y = $base::read_raw(reader)?;
-                let z = $base::read_raw(reader)?;
-                Ok(Self { x, y, z })
-            }
-            fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-                self.x.write_raw(writer)?;
-                self.y.write_raw(writer)?;
-                self.z.write_raw(writer)
-            }
-        }
-
         impl group::prime::PrimeGroup for $name {}
 
         impl group::prime::PrimeCurve for $name {
@@ -713,45 +672,6 @@ macro_rules! new_curve_impl {
         }
 
         impl cmp::Eq for $name_affine {}
-
-
-        impl $crate::serde::SerdeObject for $name_affine {
-            fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
-                debug_assert_eq!(bytes.len(), 2 * $base::SIZE);
-                let [x, y] =
-                    [0, $base::SIZE].map(|i| $base::from_raw_bytes_unchecked(&bytes[i..i + $base::SIZE]));
-                Self { x, y }
-            }
-            fn from_raw_bytes(bytes: &[u8]) -> Option<Self> {
-                if bytes.len() != 2 * $base::SIZE {
-                    return None;
-                }
-                let [x, y] = [0, $base::SIZE].map(|i| $base::from_raw_bytes(&bytes[i..i + $base::SIZE]));
-                x.zip(y).and_then(|(x, y)| {
-                    let res = Self { x, y };
-                    // Check that the point is on the curve.
-                    bool::from(res.is_on_curve()).then(|| res)
-                })
-            }
-            fn to_raw_bytes(&self) -> Vec<u8> {
-                let mut res = Vec::with_capacity(2 * $base::SIZE);
-                Self::write_raw(self, &mut res).unwrap();
-                res
-            }
-            fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
-                let [x, y] = [(); 2].map(|_| $base::read_raw_unchecked(reader));
-                Self { x, y }
-            }
-            fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
-                let x = $base::read_raw(reader)?;
-                let y = $base::read_raw(reader)?;
-                Ok(Self { x, y })
-            }
-            fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-                self.x.write_raw(writer)?;
-                self.y.write_raw(writer)
-            }
-        }
 
         impl group::prime::PrimeCurveAffine for $name_affine {
             type Curve = $name;

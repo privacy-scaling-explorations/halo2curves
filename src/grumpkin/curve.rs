@@ -31,7 +31,7 @@ new_curve_impl!(
     G1_B,
     "grumpkin_g1",
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, G1::default_hash_to_curve_suite()),
-    crate::serde::CompressedFlagConfig::TwoSpare,
+    crate::encoding::CompressedFlagConfig::TwoSpare,
     standard_sign
 );
 

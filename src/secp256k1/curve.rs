@@ -60,7 +60,7 @@ new_curve_impl!(
     SECP_B,
     "secp256k1",
     |domain_prefix| hash_to_curve(domain_prefix, hash_to_curve_suite(b"secp256k1_XMD:SHA-256_SSWU_RO_")),
-    crate::serde::CompressedFlagConfig::Extra,
+    crate::encoding::CompressedFlagConfig::Extra,
     standard_sign
 );
 

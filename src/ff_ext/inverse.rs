@@ -239,9 +239,9 @@ impl<const B: usize, const L: usize> Mul<CInt<B, L>> for i64 {
 ///
 /// For better understanding the implementation, the following resources are recommended:
 /// - D. Bernstein, B.-Y. Yang, "Fast constant-time gcd computation and modular inversion",
-/// https://gcd.cr.yp.to/safegcd-20190413.pdf
+/// <https://gcd.cr.yp.to/safegcd-20190413.pdf>
 /// - P. Wuille, "The safegcd implementation in libsecp256k1 explained",
-/// https://github.com/bitcoin-core/secp256k1/blob/master/doc/safegcd_implementation.md
+/// <https://github.com/bitcoin-core/secp256k1/blob/master/doc/safegcd_implementation.md>
 pub struct BYInverter<const L: usize> {
     /// Modulus
     modulus: CInt<62, L>,

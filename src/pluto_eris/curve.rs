@@ -126,7 +126,7 @@ new_curve_impl!(
     PLUTO_B,
     "pluto",
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, G1::default_hash_to_curve_suite()),
-    crate::serde::CompressedFlagConfig::TwoSpare,
+    crate::encoding::CompressedFlagConfig::TwoSpare,
     standard_sign
 );
 
@@ -171,7 +171,7 @@ new_curve_impl!(
     ERIS_B,
     "eris",
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, Eris::default_hash_to_curve_suite()),
-    crate::serde::CompressedFlagConfig::TwoSpare,
+    crate::encoding::CompressedFlagConfig::TwoSpare,
     standard_sign
 );
 
@@ -242,8 +242,8 @@ impl Eris {
     }
 }
 
-impl crate::serde::endian::EndianRepr for Fp2 {
-    const ENDIAN: crate::serde::endian::Endian = Fq::ENDIAN;
+impl crate::encoding::endian::EndianRepr for Fp2 {
+    const ENDIAN: crate::encoding::endian::Endian = Fq::ENDIAN;
 
     fn to_bytes(&self) -> Vec<u8> {
         self.to_bytes().to_vec()
@@ -265,7 +265,7 @@ new_curve_impl!(
     TRITON_B,
     "triton",
     |_| unimplemented!(),
-    crate::serde::CompressedFlagConfig::TwoSpare,
+    crate::encoding::CompressedFlagConfig::TwoSpare,
     standard_sign
 );
 
