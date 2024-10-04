@@ -1,6 +1,6 @@
 use super::fq::Fq;
 use super::Fr;
-use crate::serde::{Compressed, CompressedFlagConfig};
+use crate::encoding::{Compressed, CompressedFlagConfig};
 use crate::{
     impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
     impl_binops_multiplicative_mixed, new_curve_impl,
@@ -27,7 +27,7 @@ new_curve_impl!(
     B,
     "bls12381_g1",
     |domain_prefix| hash_to_curve(domain_prefix, hash_to_curve_suite(b"BLS12381G1_XMD:SHA-256_SSWU_RO_")),
-    crate::serde::CompressedFlagConfig::ThreeSpare
+    crate::encoding::CompressedFlagConfig::ThreeSpare
 );
 
 impl Compressed<G1Affine> for G1Compressed {

@@ -6,7 +6,7 @@ use crate::ff::{Field, PrimeField};
 use crate::ff_ext::ExtField;
 use crate::group::Curve;
 use crate::group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
-use crate::serde::{Compressed, CompressedFlagConfig};
+use crate::encoding::{Compressed, CompressedFlagConfig};
 use crate::{
     impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
     impl_binops_multiplicative_mixed, new_curve_impl,
@@ -75,12 +75,12 @@ new_curve_impl!(
     G2_B,
     "bls12381_g2",
     |domain_prefix| hash_to_curve(domain_prefix, hash_to_curve_suite(b"BLS12381G2_XMD:SHA-256_SSWU_RO_")),
-    crate::serde::CompressedFlagConfig::ThreeSpare
+    crate::encoding::CompressedFlagConfig::ThreeSpare
 
 );
 
-impl crate::serde::endian::EndianRepr for Fq2 {
-    const ENDIAN: crate::serde::endian::Endian = Fq::ENDIAN;
+impl crate::encoding::endian::EndianRepr for Fq2 {
+    const ENDIAN: crate::encoding::endian::Endian = Fq::ENDIAN;
 
     fn to_bytes(&self) -> Vec<u8> {
         self.to_bytes().to_vec()

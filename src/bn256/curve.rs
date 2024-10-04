@@ -23,8 +23,8 @@ use rand::RngCore;
 use std::convert::TryInto;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-impl crate::serde::endian::EndianRepr for Fq2 {
-    const ENDIAN: crate::serde::endian::Endian = Fq::ENDIAN;
+impl crate::encoding::endian::EndianRepr for Fq2 {
+    const ENDIAN: crate::encoding::endian::Endian = Fq::ENDIAN;
 
     fn to_bytes(&self) -> Vec<u8> {
         self.to_bytes().to_vec()
@@ -46,7 +46,7 @@ new_curve_impl!(
     G1_B,
     "bn256_g1",
     |domain_prefix| crate::hash_to_curve::hash_to_curve(domain_prefix, G1::default_hash_to_curve_suite()),
-    crate::serde::CompressedFlagConfig::TwoSpare,
+    crate::encoding::CompressedFlagConfig::TwoSpare,
     standard_sign
 );
 
@@ -61,7 +61,7 @@ new_curve_impl!(
     G2_B,
     "bn256_g2",
     |domain_prefix| hash_to_curve_g2(domain_prefix),
-    crate::serde::CompressedFlagConfig::TwoSpare,
+    crate::encoding::CompressedFlagConfig::TwoSpare,
     standard_sign
 );
 

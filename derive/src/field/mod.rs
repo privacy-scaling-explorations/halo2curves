@@ -284,8 +284,8 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
             }
         }
 
-        impl crate::serde::endian::EndianRepr for #field {
-            const ENDIAN: crate::serde::endian::Endian = crate::serde::endian::Endian::#endian;
+        impl crate::encoding::endian::EndianRepr for #field {
+            const ENDIAN: crate::encoding::endian::Endian = crate::encoding::endian::Endian::#endian;
 
             fn to_bytes(&self) -> Vec<u8> {
                 self.to_bytes().to_vec()
@@ -326,7 +326,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
             /// Attempts to convert a <#endian>-endian byte representation of
             /// a scalar into a `$field`, failing if the input is not canonical.
             pub fn from_bytes(bytes: &[u8; Self::SIZE]) -> subtle::CtOption<Self> {
-                use crate::serde::endian::EndianRepr;
+                use crate::encoding::endian::EndianRepr;
                 let mut el = #field::default();
                 #field::ENDIAN.from_bytes(bytes, &mut el.0);
                 subtle::CtOption::new(el * Self::R2, subtle::Choice::from(Self::is_less_than_modulus(&el.0) as u8))
@@ -336,7 +336,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
             /// Converts an element of `$field` into a byte representation in
             /// <#endian>-endian byte order.
             pub fn to_bytes(&self) -> [u8; Self::SIZE] {
-                use crate::serde::endian::EndianRepr;
+                use crate::encoding::endian::EndianRepr;
                 let el = self.from_mont();
                 let mut res = [0; Self::SIZE];
                 #field::ENDIAN.to_bytes(&mut res, &el);
@@ -422,15 +422,15 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
     let impl_prime_field = quote! {
 
         // TODO use ::core::borrow::Borrow or AsRef
-        impl From<#field> for crate::serde::Repr<{ #field::SIZE }> {
-            fn from(value: #field) -> crate::serde::Repr<{ #field::SIZE }> {
+        impl From<#field> for crate::encoding::Repr<{ #field::SIZE }> {
+            fn from(value: #field) -> crate::encoding::Repr<{ #field::SIZE }> {
                 use ff::PrimeField;
                 value.to_repr()
             }
         }
 
-        impl<'a> From<&'a #field> for crate::serde::Repr<{ #field::SIZE }> {
-            fn from(value: &'a #field) -> crate::serde::Repr<{ #field::SIZE }> {
+        impl<'a> From<&'a #field> for crate::encoding::Repr<{ #field::SIZE }> {
+            fn from(value: &'a #field) -> crate::encoding::Repr<{ #field::SIZE }> {
                 use ff::PrimeField;
                 value.to_repr()
             }
@@ -447,7 +447,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
             const DELTA: Self = Self(#delta);
             const MODULUS: &'static str = #modulus_str;
 
-            type Repr = crate::serde::Repr<{ #field::SIZE }>;
+            type Repr = crate::encoding::Repr<{ #field::SIZE }>;
 
             fn from_u128(v: u128) -> Self {
                 Self::R2 * Self(
@@ -463,84 +463,20 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
 
             fn from_repr(repr: Self::Repr) -> subtle::CtOption<Self> {
                 let mut el = #field::default();
-                crate::serde::endian::Endian::LE.from_bytes(repr.as_ref(), &mut el.0);
+                crate::encoding::endian::Endian::LE.from_bytes(repr.as_ref(), &mut el.0);
                 subtle::CtOption::new(el * Self::R2, subtle::Choice::from(Self::is_less_than_modulus(&el.0) as u8))
             }
 
             fn to_repr(&self) -> Self::Repr {
-                use crate::serde::endian::Endian;
+                use crate::encoding::endian::Endian;
                 let el = self.from_mont();
                 let mut res = [0; #size];
-                crate::serde::endian::Endian::LE.to_bytes(&mut res, &el);
+                crate::encoding::endian::Endian::LE.to_bytes(&mut res, &el);
                 res.into()
             }
 
             fn is_odd(&self) -> Choice {
                 Choice::from(self.to_repr()[0] & 1)
-            }
-        }
-    };
-
-    let impl_serde_object = quote! {
-        impl crate::serde::SerdeObject for #field {
-            fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
-                debug_assert_eq!(bytes.len(), #size);
-
-                let inner = (0..#num_limbs)
-                    .map(|off| {
-                        u64::from_le_bytes(bytes[off * 8..(off + 1) * 8].try_into().unwrap())
-                    })
-                    .collect::<Vec<_>>();
-                Self(inner.try_into().unwrap())
-            }
-
-            fn from_raw_bytes(bytes: &[u8]) -> Option<Self> {
-                if bytes.len() != #size {
-                    return None;
-                }
-                let elt = Self::from_raw_bytes_unchecked(bytes);
-                Self::is_less_than_modulus(&elt.0).then(|| elt)
-            }
-
-            fn to_raw_bytes(&self) -> Vec<u8> {
-                let mut res = Vec::with_capacity(#num_limbs * 4);
-                for limb in self.0.iter() {
-                    res.extend_from_slice(&limb.to_le_bytes());
-                }
-                res
-            }
-
-            fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
-                let inner = [(); #num_limbs].map(|_| {
-                    let mut buf = [0; 8];
-                    reader.read_exact(&mut buf).unwrap();
-                    u64::from_le_bytes(buf)
-                });
-                Self(inner)
-            }
-
-            fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
-                let mut inner = [0u64; #num_limbs];
-                for limb in inner.iter_mut() {
-                    let mut buf = [0; 8];
-                    reader.read_exact(&mut buf)?;
-                    *limb = u64::from_le_bytes(buf);
-                }
-                let elt = Self(inner);
-                Self::is_less_than_modulus(&elt.0)
-                    .then(|| elt)
-                    .ok_or_else(|| {
-                        std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "input number is not less than field modulus",
-                        )
-                    })
-            }
-            fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-                for limb in self.0.iter() {
-                    writer.write_all(&limb.to_le_bytes())?;
-                }
-                Ok(())
             }
         }
     };
@@ -605,7 +541,6 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
         #impl_arith_always_const
         #impl_field
         #impl_prime_field
-        #impl_serde_object
         #impl_from_uniform_bytes
         #impl_zeta
     };

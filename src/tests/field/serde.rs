@@ -1,7 +1,5 @@
-use ff::{Field, FromUniformBytes, PrimeField};
+use ff::{FromUniformBytes, PrimeField};
 use rand::RngCore;
-
-use crate::serde::SerdeObject;
 
 // Tests to_repr/ from_repr
 pub(crate) fn from_to_repr_test<F: PrimeField>(mut rng: impl RngCore, n: usize) {
@@ -10,21 +8,6 @@ pub(crate) fn from_to_repr_test<F: PrimeField>(mut rng: impl RngCore, n: usize) 
         let a = F::random(&mut rng);
         let bytes = a.to_repr();
         let b = F::from_repr(bytes).unwrap();
-        assert_eq!(a, b);
-    }
-}
-
-// Tests to_raw_bytes / from_raw_bytes + read_raw /write_raw
-pub(crate) fn from_to_raw_bytes_test<F: Field + SerdeObject>(mut rng: impl RngCore, n: usize) {
-    for _ in 0..n {
-        let a = F::random(&mut rng);
-        let bytes = a.to_raw_bytes();
-        let b = F::from_raw_bytes(&bytes).unwrap();
-        assert_eq!(a, b);
-
-        let mut buf = Vec::new();
-        a.write_raw(&mut buf).unwrap();
-        let b = F::read_raw(&mut &buf[..]).unwrap();
         assert_eq!(a, b);
     }
 }
@@ -67,7 +50,6 @@ pub(crate) fn test_bits<F: ff::PrimeFieldBits>(mut rng: impl RngCore, n: usize) 
 macro_rules! serde_test {
     ($field:ident) => {
         test!(serde, $field, from_to_repr_test, 100_000);
-        test!(serde, $field, from_to_raw_bytes_test, 100_000);
         #[cfg(feature = "derive_serde")]
         test!(serde, $field, derive_serde_test, 100_000);
     };
