@@ -164,7 +164,7 @@ impl group::cofactor::CofactorGroup for G1 {
 fn exp_by_x(g2: &G2) -> G2 {
     let x = super::BN_X;
 
-    (0..62).rev().fold(g2.clone(), |mut acc, i| {
+    (0..62).rev().fold(*g2, |mut acc, i| {
         println!("{}", ((x >> i) & 1) == 1);
 
         acc = acc.double();
