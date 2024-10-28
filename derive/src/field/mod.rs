@@ -296,6 +296,16 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
             }
         }
 
+        // Internal utility function to convert a slice of bytes representing a field
+        // element in LE into its limbs (or u64s) representation.
+        fn u64s_from_bytes(bytes: &[u8; #num_limbs * 8]) -> [u64; #num_limbs] {
+            (0..#num_limbs)
+            .map(|off| u64::from_le_bytes(bytes[off * 8..(off + 1) * 8].try_into().unwrap()))
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap()
+        }
+
         impl #field {
             pub const SIZE: usize = #num_limbs * 8;
             pub const NUM_LIMBS: usize = #num_limbs;
