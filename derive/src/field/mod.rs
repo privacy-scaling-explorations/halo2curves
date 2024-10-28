@@ -563,7 +563,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
         .iter()
         .map(|input_size| {
             assert!(*input_size >= size);
-            assert!(*input_size <= size*2);
+            assert!(*input_size <= size * 2);
             quote! {
                 impl ff::FromUniformBytes<#input_size> for #field {
                     fn from_uniform_bytes(bytes: &[u8; #input_size]) -> Self {
@@ -571,19 +571,8 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                         wide[..#input_size].copy_from_slice(bytes);
                         let (a0, a1) = wide.split_at(Self::SIZE);
 
-                        let a0: [u64; Self::NUM_LIMBS] = (0..Self::NUM_LIMBS)
-                            .map(|off| u64::from_le_bytes(a0[off * 8..(off + 1) * 8].try_into().unwrap()))
-                            .collect::<Vec<_>>()
-                            .try_into()
-                            .unwrap();
-                        let a0 = #field(a0);
-
-                        let a1: [u64; Self::NUM_LIMBS] = (0..Self::NUM_LIMBS)
-                            .map(|off| u64::from_le_bytes(a1[off * 8..(off + 1) * 8].try_into().unwrap()))
-                            .collect::<Vec<_>>()
-                            .try_into()
-                            .unwrap();
-                        let a1 = #field(a1);
+                        let a0 = #field(u64s_from_bytes(a0.try_into().unwrap()));
+                        let a1 = #field(u64s_from_bytes(a1.try_into().unwrap()));
 
                         // enforce non assembly impl since asm is likely to be optimized for sparse fields
                         a0.mul_const(&Self::R2) + a1.mul_const(&Self::R3)
