@@ -1,4 +1,5 @@
 mod arithmetic;
+mod curve;
 pub mod ff_ext;
 pub mod fft;
 pub mod hash_to_curve;
@@ -18,10 +19,10 @@ pub mod secq256k1;
 mod derive;
 
 // Re-export to simplify downstream dependencies.
+pub use curve::{Coordinates, CurveAffine, CurveExt};
 pub use ff;
 pub use group;
 pub use pairing;
-pub use pasta_curves::arithmetic::{Coordinates, CurveAffine, CurveExt};
 
 #[cfg(test)]
 pub mod tests;

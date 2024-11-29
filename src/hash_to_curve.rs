@@ -1,9 +1,9 @@
 #![allow(clippy::op_ref)]
 
 use crate::ff_ext::Legendre;
+use crate::CurveExt;
 use digest::{core_api::BlockSizeUser, Digest};
 use ff::{Field, FromUniformBytes, PrimeField};
-use pasta_curves::arithmetic::CurveExt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 pub enum Method<C: CurveExt> {

@@ -537,10 +537,10 @@ mod test {
     use std::ops::Neg;
 
     use crate::bn256::{Fr, G1Affine, G1};
+    use crate::CurveAffine;
     use ark_std::{end_timer, start_timer};
     use ff::{Field, PrimeField};
     use group::{Curve, Group};
-    use pasta_curves::arithmetic::CurveAffine;
     use rand_core::OsRng;
 
     #[test]

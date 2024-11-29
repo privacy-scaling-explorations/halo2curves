@@ -5,11 +5,11 @@
 //!
 //!     cargo bench --bench curve
 
+use crate::CurveExt;
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use ff::Field;
 use group::prime::PrimeCurveAffine;
 use halo2curves::bn256::G1;
-use pasta_curves::arithmetic::CurveExt;
 use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
 

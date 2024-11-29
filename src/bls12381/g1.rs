@@ -5,6 +5,7 @@ use crate::{
     impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
     impl_binops_multiplicative_mixed, new_curve_impl,
 };
+use crate::{Coordinates, CurveAffine, CurveExt};
 use core::cmp;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
@@ -12,7 +13,6 @@ use ff::PrimeField;
 use ff::WithSmallOrderMulGroup;
 use group::cofactor::CofactorGroup;
 use group::{ff::Field, prime::PrimeCurveAffine, Curve, Group, GroupEncoding};
-use pasta_curves::arithmetic::{Coordinates, CurveAffine, CurveExt};
 use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
