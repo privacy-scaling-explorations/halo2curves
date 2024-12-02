@@ -1,11 +1,10 @@
-use super::fp::Fp;
-use super::fp2::Fp2;
-use super::fp6::Fp6;
+use ff::Field;
+
+use super::{fp::Fp, fp2::Fp2, fp6::Fp6};
 use crate::ff_ext::{
     quadratic::{QuadExtField, QuadExtFieldArith, QuadSparseMul},
     ExtField,
 };
-use ff::Field;
 
 /// -GAMMA is a quadratic non-residue in Fp6. Fp12 = Fp6[X]/(X^2 + GAMMA)
 /// We introduce the variable w such that w^2 = -GAMMA
@@ -267,10 +266,11 @@ mod test {
             }
         };
     }
-    use super::*;
-    use crate::{arith_test, frobenius_test, setup_f12_test_funcs, test};
     use ff::Field;
     use rand::RngCore;
+
+    use super::*;
+    use crate::{arith_test, frobenius_test, setup_f12_test_funcs, test};
 
     arith_test!(Fp12);
 

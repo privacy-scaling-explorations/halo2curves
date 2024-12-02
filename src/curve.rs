@@ -1,10 +1,10 @@
 //! This module contains the `Curve`/`CurveAffine` abstractions that allow us to
 //! write code that generalizes over a pair of groups.
 
+use core::ops::{Add, Mul, Sub};
+
 use group::prime::{PrimeCurve, PrimeCurveAffine};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-use core::ops::{Add, Mul, Sub};
 
 /// This trait is a common interface for dealing with elements of an elliptic
 /// curve group in a "projective" form, where that arithmetic is usually more
@@ -42,7 +42,6 @@ pub trait CurveExt:
     /// distributed elements in the group, given domain prefix `domain_prefix`.
     ///
     /// This method is suitable for use as a random oracle.
-    ///
     fn hash_to_curve<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a>;
 
     /// Returns whether or not this element is on the curve; should
@@ -62,7 +61,8 @@ pub trait CurveExt:
 /// This trait is the affine counterpart to `Curve` and is used for
 /// serialization, storage in memory, and inspection of $x$ and $y$ coordinates.
 ///
-/// Requires the `alloc` feature flag because of `hash_to_curve` on [`CurveExt`].
+/// Requires the `alloc` feature flag because of `hash_to_curve` on
+/// [`CurveExt`].
 pub trait CurveAffine:
     PrimeCurveAffine<
         Scalar = <Self as CurveAffine>::ScalarExt,
@@ -109,7 +109,8 @@ pub struct Coordinates<C: CurveAffine> {
 }
 
 impl<C: CurveAffine> Coordinates<C> {
-    /// Obtains a `Coordinates` value given $(x, y)$, failing if it is not on the curve.
+    /// Obtains a `Coordinates` value given $(x, y)$, failing if it is not on
+    /// the curve.
     pub fn from_xy(x: C::Base, y: C::Base) -> CtOption<Self> {
         // We use CurveAffine::from_xy to validate the coordinates.
         C::from_xy(x, y).map(|_| Coordinates { x, y })

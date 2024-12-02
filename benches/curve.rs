@@ -5,13 +5,14 @@
 //!
 //!     cargo bench --bench curve
 
-use crate::CurveExt;
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use ff::Field;
 use group::prime::PrimeCurveAffine;
 use halo2curves::bn256::G1;
 use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
+
+use halo2curves::CurveExt;
 
 fn bench_curve_ops<G: CurveExt>(c: &mut Criterion, name: &'static str) {
     {

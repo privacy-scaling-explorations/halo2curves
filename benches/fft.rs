@@ -13,14 +13,13 @@
 #[macro_use]
 extern crate criterion;
 
+use std::{ops::Range, time::SystemTime};
+
 use criterion::{BenchmarkId, Criterion};
 use group::ff::Field;
-use halo2curves::bn256::Fr as Scalar;
-use halo2curves::fft::best_fft;
+use halo2curves::{bn256::Fr as Scalar, fft::best_fft};
 use rand::{RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
-use std::ops::Range;
-use std::time::SystemTime;
 
 const RANGE: Range<u32> = 3..19;
 const SEED: [u8; 16] = [

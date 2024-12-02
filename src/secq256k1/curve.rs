@@ -1,19 +1,21 @@
-use crate::ff::WithSmallOrderMulGroup;
-use crate::ff::{Field, PrimeField};
-use crate::group::Curve;
-use crate::group::{prime::PrimeCurveAffine, Group, GroupEncoding};
-use crate::secp256k1::{Fp, Fq};
-use crate::{
-    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, new_curve_impl,
+use core::{
+    cmp,
+    fmt::Debug,
+    iter::Sum,
+    ops::{Add, Mul, Neg, Sub},
 };
-use crate::{Coordinates, CurveAffine, CurveExt};
-use core::cmp;
-use core::fmt::Debug;
-use core::iter::Sum;
-use core::ops::{Add, Mul, Neg, Sub};
+
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+use crate::{
+    ff::{Field, PrimeField, WithSmallOrderMulGroup},
+    group::{prime::PrimeCurveAffine, Curve, Group, GroupEncoding},
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, new_curve_impl,
+    secp256k1::{Fp, Fq},
+    Coordinates, CurveAffine, CurveExt,
+};
 
 const SECQ_GENERATOR_X: Fq = Fq::from_raw([
     0xA24288E37702EDA6,
@@ -77,8 +79,12 @@ impl Secq256k1 {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use group::UncompressedEncoding;
+    use rand_core::OsRng;
+
+    use super::*;
+    use crate::serde::SerdeObject;
+
     crate::curve_testing_suite!(Secq256k1);
     crate::curve_testing_suite!(Secq256k1, "endo_consistency");
     crate::curve_testing_suite!(

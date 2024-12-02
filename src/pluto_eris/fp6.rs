@@ -1,10 +1,10 @@
-use super::fp::Fp;
-use super::fp2::Fp2;
+use ff::Field;
+
+use super::{fp::Fp, fp2::Fp2};
 use crate::ff_ext::{
     cubic::{CubicExtField, CubicExtFieldArith, CubicSparseMul},
     ExtField,
 };
-use ff::Field;
 
 // -BETA is a cubic non-residue in Fp2. Fp6 = Fp2[X]/(X^3 + BETA)
 // We introduce the variable v such that v^3 = -BETA
@@ -42,7 +42,8 @@ impl ExtField for Fp6 {
     }
 }
 
-/// Fp2 coefficients for the efficient computation of Frobenius Endomorphism in Fp6.
+/// Fp2 coefficients for the efficient computation of Frobenius Endomorphism in
+/// Fp6.
 pub(crate) const FROBENIUS_COEFF_FP6_C1: [Fp2; 6] = [
     // Fp2(v^3)**(((p^0) - 1) / 3)
     Fp2::ONE,
@@ -145,7 +146,8 @@ pub(crate) const FROBENIUS_COEFF_FP6_C1: [Fp2; 6] = [
     },
 ];
 
-/// Fp2 coefficients for the efficient computation of Frobenius Endomorphism in Fp6.
+/// Fp2 coefficients for the efficient computation of Frobenius Endomorphism in
+/// Fp6.
 pub(crate) const FROBENIUS_COEFF_FP6_C2: [Fp2; 6] = [
     // Fp2(v^3)**(((2p^0) - 2) / 3)
     Fp2::ONE,
@@ -250,9 +252,10 @@ pub(crate) const FROBENIUS_COEFF_FP6_C2: [Fp2; 6] = [
 
 #[cfg(test)]
 mod test {
+    use rand_core::RngCore;
+
     use super::*;
     use crate::{arith_test, frobenius_test, setup_f6_test_funcs, test};
-    use rand_core::RngCore;
 
     macro_rules! test_fp6 {
         ($test:ident, $size: expr) => {

@@ -1,24 +1,23 @@
 #![allow(clippy::suspicious_arithmetic_impl)]
 
-use crate::ff::PrimeField;
-use crate::ff_ext::quadratic::QuadSparseMul;
-use crate::ff_ext::ExtField;
-use crate::group::cofactor::CofactorCurveAffine;
-use crate::group::Group;
-use crate::pluto_eris::curve::*;
-use crate::pluto_eris::fp::*;
-use crate::pluto_eris::fp12::*;
-use crate::pluto_eris::fp2::*;
-use crate::pluto_eris::fp6::FROBENIUS_COEFF_FP6_C1;
-use crate::pluto_eris::fq::Fq;
-use core::borrow::Borrow;
-use core::iter::Sum;
-use core::ops::{Add, Mul, Neg, Sub};
+use core::{
+    borrow::Borrow,
+    iter::Sum,
+    ops::{Add, Mul, Neg, Sub},
+};
+use std::ops::MulAssign;
+
 use ff::Field;
 use pairing::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use rand_core::RngCore;
-use std::ops::MulAssign;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+
+use crate::{
+    ff::PrimeField,
+    ff_ext::{quadratic::QuadSparseMul, ExtField},
+    group::{cofactor::CofactorCurveAffine, Group},
+    pluto_eris::{curve::*, fp::*, fp12::*, fp2::*, fp6::FROBENIUS_COEFF_FP6_C1, fq::Fq},
+};
 
 /// Adaptation of Algorithm 1, https://eprint.iacr.org/2013/722.pdf
 /// the parameter for the curve Pluto: u = -0x4000000000001000008780000000
@@ -230,11 +229,14 @@ fn ell(f: &mut Fp12, coeffs: &(Fp2, Fp2, Fp2), p: &G1Affine) {
 
 #[cfg(test)]
 mod test {
-    use super::super::{Fq, Pluto, G1, G2};
-    use super::{multi_miller_loop, Fp12, G1Affine, G2Affine, Gt};
     use ff::Field;
     use group::{prime::PrimeCurveAffine, Curve, Group};
     use pairing::{Engine, MillerLoopResult, PairingCurveAffine};
     use rand_core::OsRng;
+
+    use super::{
+        super::{Fq, Pluto, G1, G2},
+        multi_miller_loop, Fp12, G1Affine, G2Affine, Gt,
+    };
     crate::test_pairing!(Pluto, G1, G1Affine, G2, G2Affine, Fp12, Gt, Fq);
 }

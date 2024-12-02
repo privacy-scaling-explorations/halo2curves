@@ -1,6 +1,7 @@
-pub use crate::{CurveAffine, CurveExt};
 use ff::Field;
 use group::{GroupOpsOwned, ScalarMulOwned};
+
+pub use crate::{CurveAffine, CurveExt};
 
 /// This represents an element of a group with basic operations that can be
 /// performed. This allows an FFT implementation (for example) to operate

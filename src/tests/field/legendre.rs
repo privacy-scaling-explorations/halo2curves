@@ -1,6 +1,7 @@
-use crate::ff_ext::Legendre;
 use ff::PrimeField;
 use rand::RngCore;
+
+use crate::ff_ext::Legendre;
 
 pub(crate) fn legendre_symbol_test<F: PrimeField + Legendre>(mut rng: impl RngCore, n: usize) {
     assert_eq!(F::ZERO.legendre(), 0);

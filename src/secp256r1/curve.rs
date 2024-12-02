@@ -1,15 +1,19 @@
-use crate::ff::WithSmallOrderMulGroup;
-use crate::ff::{Field, PrimeField};
-use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
-use crate::secp256r1::Fp;
-use crate::secp256r1::Fq;
-use crate::{Coordinates, CurveAffine, CurveExt};
-use core::cmp;
-use core::fmt::Debug;
-use core::iter::Sum;
-use core::ops::{Add, Mul, Neg, Sub};
+use core::{
+    cmp,
+    fmt::Debug,
+    iter::Sum,
+    ops::{Add, Mul, Neg, Sub},
+};
+
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+use crate::{
+    ff::{Field, PrimeField, WithSmallOrderMulGroup},
+    group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding},
+    secp256r1::{Fp, Fq},
+    Coordinates, CurveAffine, CurveExt,
+};
 
 impl group::cofactor::CofactorGroup for Secp256r1 {
     type Subgroup = Secp256r1;
@@ -105,10 +109,11 @@ pub(crate) fn hash_to_curve<'a>(
 
 #[cfg(test)]
 mod test {
-    use crate::tests::curve::TestH2C;
+    use group::UncompressedEncoding;
+    use rand_core::OsRng;
 
     use super::*;
-    use group::UncompressedEncoding;
+    use crate::{serde::SerdeObject, tests::curve::TestH2C};
     crate::curve_testing_suite!(Secp256r1);
     crate::curve_testing_suite!(Secp256r1, "ecdsa_example");
     crate::curve_testing_suite!(

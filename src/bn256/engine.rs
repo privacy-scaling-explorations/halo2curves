@@ -1,21 +1,20 @@
-use crate::bn256::curve::*;
-use crate::bn256::fq::*;
-use crate::bn256::fq12::*;
-use crate::bn256::fq2::*;
-use crate::bn256::fq6::FROBENIUS_COEFF_FQ6_C1;
-use crate::bn256::fr::*;
-use crate::ff::PrimeField;
-use crate::ff_ext::quadratic::QuadSparseMul;
-use crate::ff_ext::ExtField;
-use crate::group::cofactor::CofactorCurveAffine;
-use crate::group::Group;
-use core::borrow::Borrow;
-use core::iter::Sum;
-use core::ops::{Add, Mul, Neg, Sub};
+use core::{
+    borrow::Borrow,
+    iter::Sum,
+    ops::{Add, Mul, Neg, Sub},
+};
+use std::ops::MulAssign;
+
 use pairing::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use rand_core::RngCore;
-use std::ops::MulAssign;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+
+use crate::{
+    bn256::{curve::*, fq::*, fq12::*, fq2::*, fq6::FROBENIUS_COEFF_FQ6_C1, fr::*},
+    ff::PrimeField,
+    ff_ext::{quadratic::QuadSparseMul, ExtField},
+    group::{cofactor::CofactorCurveAffine, Group},
+};
 
 crate::impl_gt!(Gt, Fq12, Fr);
 crate::impl_miller_loop_components!(Bn256, G1, G1Affine, G2, G2Affine, Fq12, Gt, Fr);
@@ -208,11 +207,14 @@ fn ell(f: &mut Fq12, coeffs: &(Fq2, Fq2, Fq2), p: &G1Affine) {
 
 #[cfg(test)]
 mod test {
-    use super::super::{Bn256, Fr, G1, G2};
-    use super::{multi_miller_loop, Fq12, G1Affine, G2Affine, Gt};
     use ff::Field;
     use group::{prime::PrimeCurveAffine, Curve, Group};
     use pairing::{Engine, MillerLoopResult, PairingCurveAffine};
     use rand_core::OsRng;
+
+    use super::{
+        super::{Bn256, Fr, G1, G2},
+        multi_miller_loop, Fq12, G1Affine, G2Affine, Gt,
+    };
     crate::test_pairing!(Bn256, G1, G1Affine, G2, G2Affine, Fq12, Gt, Fr);
 }

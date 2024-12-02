@@ -548,7 +548,6 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
     #[cfg(feature = "asm")]
     let impl_arith = {
         if num_limbs == 4 && num_bits < 256 {
-            println!("implementing asm, {}", identifier);
             asm::limb4::impl_arith(&field, inv64)
         } else {
             arith::impl_arith(&field, num_limbs, inv64)

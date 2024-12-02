@@ -84,9 +84,9 @@ macro_rules! impl_from_bool {
     };
 }
 
-/// A macro to help define serialization and deserialization for prime field implementations
-/// that use `$field::Repr`` representations. This assumes the concerned type implements PrimeField
-/// (for from_repr, to_repr).
+/// A macro to help define serialization and deserialization for prime field
+/// implementations that use `$field::Repr`` representations. This assumes the
+/// concerned type implements PrimeField (for from_repr, to_repr).
 #[macro_export]
 macro_rules! serialize_deserialize_primefield {
     ($field:ident) => {

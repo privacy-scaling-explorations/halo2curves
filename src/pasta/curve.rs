@@ -1,12 +1,12 @@
-use super::fp::Fp;
-use super::fq::Fq;
-use super::{Pallas, Vesta};
+use std::convert::TryInto;
+
+use ff::{PrimeField, WithSmallOrderMulGroup};
+
+use super::{fp::Fp, fq::Fq, Pallas, Vesta};
 use crate::{
     arithmetic::{mul_512, sbb, CurveEndo, EndoParameters},
     endo,
 };
-use ff::{PrimeField, WithSmallOrderMulGroup};
-use std::convert::TryInto;
 
 // Generated using https://github.com/ConsenSys/gnark-crypto/blob/master/ecc/utils.go
 // with `pasta_curves::Fp::ZETA`
@@ -39,8 +39,9 @@ endo!(Pallas, Fq, ENDO_PARAMS_EP);
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use rand_core::OsRng;
+
+    use super::*;
 
     #[test]
     fn test_endo() {

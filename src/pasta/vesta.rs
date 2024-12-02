@@ -1,18 +1,20 @@
-use super::fp::Fp;
-use super::fq::Fq;
-use crate::group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Curve, Group, GroupEncoding};
-use crate::{
-    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, new_curve_impl,
+use core::{
+    cmp,
+    fmt::Debug,
+    iter::Sum,
+    ops::{Add, Mul, Neg, Sub},
 };
-use crate::{Coordinates, CurveAffine, CurveExt};
-use core::cmp;
-use core::fmt::Debug;
-use core::iter::Sum;
-use core::ops::{Add, Mul, Neg, Sub};
+
 use ff::{Field, PrimeField, WithSmallOrderMulGroup};
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+use super::{fp::Fp, fq::Fq};
+use crate::{
+    group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Curve, Group, GroupEncoding},
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, new_curve_impl, Coordinates, CurveAffine, CurveExt,
+};
 
 new_curve_impl!(
     (pub),
@@ -66,11 +68,11 @@ impl Vesta {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::curve_testing_suite;
-    use crate::serde::SerdeObject;
     use group::UncompressedEncoding;
     use rand_core::OsRng;
+
+    use super::*;
+    use crate::{curve_testing_suite, serde::SerdeObject};
 
     curve_testing_suite!(
         Vesta,

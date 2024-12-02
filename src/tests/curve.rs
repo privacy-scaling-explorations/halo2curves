@@ -343,11 +343,6 @@ macro_rules! curve_testing_suite {
             }
         }
 
-        use $crate::ff::Field;
-        use $crate::group::prime::PrimeCurveAffine;
-        use $crate::{group::GroupEncoding, serde::SerdeObject};
-        use $crate::{CurveAffine, CurveExt};
-        use rand_core::OsRng;
 
 
         #[test]
@@ -540,8 +535,9 @@ macro_rules! curve_testing_suite {
     };
 }
 
-use crate::{CurveAffine, CurveExt};
 use group::Curve;
+
+use crate::{CurveAffine, CurveExt};
 
 pub(crate) struct TestH2C<C: CurveAffine> {
     msg: &'static [u8],

@@ -1,14 +1,13 @@
-use crate::extend_field_legendre;
-use crate::field_bits;
-use crate::impl_binops_calls;
-use crate::impl_from_bool;
-use crate::impl_from_u64;
-use crate::serialize_deserialize_primefield;
-use crate::{impl_binops_additive, impl_binops_multiplicative};
+use std::convert::TryInto;
+
 use halo2derive::impl_field;
 use rand::RngCore;
-use std::convert::TryInto;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+use crate::{
+    extend_field_legendre, field_bits, impl_binops_additive, impl_binops_calls,
+    impl_binops_multiplicative, impl_from_bool, impl_from_u64, serialize_deserialize_primefield,
+};
 
 // Fq: Vesta base field and Pasta scalar field.
 impl_field!(

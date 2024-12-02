@@ -219,26 +219,31 @@ impl<const B: usize, const L: usize> Mul<CInt<B, L>> for i64 {
     }
 }
 
-/// Type of the modular multiplicative inverter based on the Bernstein-Yang method.
-/// The inverter can be created for a specified modulus M and adjusting parameter A
-/// to compute the adjusted multiplicative inverses of positive integers, i.e. for
-/// computing (1 / x) * A (mod M) for a positive integer x.
+/// Type of the modular multiplicative inverter based on the Bernstein-Yang
+/// method. The inverter can be created for a specified modulus M and adjusting
+/// parameter A to compute the adjusted multiplicative inverses of positive
+/// integers, i.e. for computing (1 / x) * A (mod M) for a positive integer x.
 ///
-/// The adjusting parameter allows computing the multiplicative inverses in the case of
-/// using the Montgomery representation for the input or the expected output. If R is
-/// the Montgomery factor, the multiplicative inverses in the appropriate representation
-/// can be computed provided that the value of A is chosen as follows:
+/// The adjusting parameter allows computing the multiplicative inverses in the
+/// case of using the Montgomery representation for the input or the expected
+/// output. If R is the Montgomery factor, the multiplicative inverses in the
+/// appropriate representation can be computed provided that the value of A is
+/// chosen as follows:
 /// - A = 1, if both the input and the expected output are in the standard form
-/// - A = R^2 mod M, if both the input and the expected output are in the Montgomery form
-/// - A = R mod M, if either the input or the expected output is in the Montgomery form,
+/// - A = R^2 mod M, if both the input and the expected output are in the
+///   Montgomery form
+/// - A = R mod M, if either the input or the expected output is in the
+///   Montgomery form,
 /// but not both of them
 ///
-/// The public methods of this type receive and return unsigned big integers as arrays of
-/// 64-bit chunks, the ordering of which is little-endian. Both the modulus and the integer
-/// to be inverted should not exceed 2 ^ (62 * L - 64)
+/// The public methods of this type receive and return unsigned big integers as
+/// arrays of 64-bit chunks, the ordering of which is little-endian. Both the
+/// modulus and the integer to be inverted should not exceed 2 ^ (62 * L - 64)
 ///
-/// For better understanding the implementation, the following resources are recommended:
-/// - D. Bernstein, B.-Y. Yang, "Fast constant-time gcd computation and modular inversion",
+/// For better understanding the implementation, the following resources are
+/// recommended:
+/// - D. Bernstein, B.-Y. Yang, "Fast constant-time gcd computation and modular
+///   inversion",
 /// https://gcd.cr.yp.to/safegcd-20190413.pdf
 /// - P. Wuille, "The safegcd implementation in libsecp256k1 explained",
 /// https://github.com/bitcoin-core/secp256k1/blob/master/doc/safegcd_implementation.md
@@ -257,9 +262,10 @@ pub struct BYInverter<const L: usize> {
 type Matrix = [[i64; 2]; 2];
 
 impl<const L: usize> BYInverter<L> {
-    /// Returns the Bernstein-Yang transition matrix multiplied by 2^62 and the new value
-    /// of the delta variable for the 62 basic steps of the Bernstein-Yang method, which
-    /// are to be performed sequentially for specified initial values of f, g and delta
+    /// Returns the Bernstein-Yang transition matrix multiplied by 2^62 and the
+    /// new value of the delta variable for the 62 basic steps of the
+    /// Bernstein-Yang method, which are to be performed sequentially for
+    /// specified initial values of f, g and delta
     fn jump(f: &CInt<62, L>, g: &CInt<62, L>, mut delta: i64) -> (i64, Matrix) {
         let (mut steps, mut f, mut g) = (62, f.lowest() as i64, g.lowest() as i128);
         let mut t: Matrix = [[1, 0], [0, 1]];
@@ -290,8 +296,10 @@ impl<const L: usize> BYInverter<L> {
         (delta, t)
     }
 
-    /// Returns the updated values of the variables f and g for specified initial ones and Bernstein-Yang transition
-    /// matrix multiplied by 2^62. The returned vector is "matrix * (f, g)' / 2^62", where "'" is the transpose operator
+    /// Returns the updated values of the variables f and g for specified
+    /// initial ones and Bernstein-Yang transition matrix multiplied by
+    /// 2^62. The returned vector is "matrix * (f, g)' / 2^62", where "'" is the
+    /// transpose operator
     fn fg(f: CInt<62, L>, g: CInt<62, L>, t: Matrix) -> (CInt<62, L>, CInt<62, L>) {
         (
             (t[0][0] * &f + t[0][1] * &g).shift(),
@@ -299,10 +307,12 @@ impl<const L: usize> BYInverter<L> {
         )
     }
 
-    /// Returns the updated values of the variables d and e for specified initial ones and Bernstein-Yang transition
-    /// matrix multiplied by 2^62. The returned vector is congruent modulo M to "matrix * (d, e)' / 2^62 (mod M)",
-    /// where M is the modulus the inverter was created for and "'" stands for the transpose operator. Both the input
-    /// and output values lie in the interval (-2 * M, M)
+    /// Returns the updated values of the variables d and e for specified
+    /// initial ones and Bernstein-Yang transition matrix multiplied by
+    /// 2^62. The returned vector is congruent modulo M to "matrix * (d, e)' /
+    /// 2^62 (mod M)", where M is the modulus the inverter was created for
+    /// and "'" stands for the transpose operator. Both the input and output
+    /// values lie in the interval (-2 * M, M)
     fn de(&self, d: CInt<62, L>, e: CInt<62, L>, t: Matrix) -> (CInt<62, L>, CInt<62, L>) {
         let mask = CInt::<62, L>::MASK as i64;
         let mut md = t[0][0] * d.is_negative() as i64 + t[0][1] * e.is_negative() as i64;
@@ -326,9 +336,10 @@ impl<const L: usize> BYInverter<L> {
         (cd.shift(), ce.shift())
     }
 
-    /// Returns either "value (mod M)" or "-value (mod M)", where M is the modulus the
-    /// inverter was created for, depending on "negate", which determines the presence
-    /// of "-" in the used formula. The input integer lies in the interval (-2 * M, M)
+    /// Returns either "value (mod M)" or "-value (mod M)", where M is the
+    /// modulus the inverter was created for, depending on "negate", which
+    /// determines the presence of "-" in the used formula. The input
+    /// integer lies in the interval (-2 * M, M)
     fn norm(&self, mut value: CInt<62, L>, negate: bool) -> CInt<62, L> {
         if value.is_negative() {
             value = value + &self.modulus;
@@ -345,11 +356,13 @@ impl<const L: usize> BYInverter<L> {
         value
     }
 
-    /// Returns a big unsigned integer as an array of O-bit chunks, which is equal modulo
-    /// 2 ^ (O * S) to the input big unsigned integer stored as an array of I-bit chunks.
-    /// The ordering of the chunks in these arrays is little-endian
+    /// Returns a big unsigned integer as an array of O-bit chunks, which is
+    /// equal modulo 2 ^ (O * S) to the input big unsigned integer stored as
+    /// an array of I-bit chunks. The ordering of the chunks in these arrays
+    /// is little-endian
     const fn convert<const I: usize, const O: usize, const S: usize>(input: &[u64]) -> [u64; S] {
-        // This function is defined because the method "min" of the usize type is not constant
+        // This function is defined because the method "min" of the usize type is not
+        // constant
         const fn min(a: usize, b: usize) -> usize {
             if a > b {
                 b
@@ -377,9 +390,10 @@ impl<const L: usize> BYInverter<L> {
         output
     }
 
-    /// Returns the multiplicative inverse of the argument modulo 2^62. The implementation is based
-    /// on the Hurchalla's method for computing the multiplicative inverse modulo a power of two.
-    /// For better understanding the implementation, the following paper is recommended:
+    /// Returns the multiplicative inverse of the argument modulo 2^62. The
+    /// implementation is based on the Hurchalla's method for computing the
+    /// multiplicative inverse modulo a power of two. For better
+    /// understanding the implementation, the following paper is recommended:
     /// J. Hurchalla, "An Improved Integer Multiplicative Inverse (modulo 2^w)",
     /// https://arxiv.org/pdf/2204.04342.pdf
     const fn inv(value: u64) -> i64 {
@@ -400,8 +414,9 @@ impl<const L: usize> BYInverter<L> {
         }
     }
 
-    /// Returns either the adjusted modular multiplicative inverse for the argument or None
-    /// depending on invertibility of the argument, i.e. its coprimality with the modulus
+    /// Returns either the adjusted modular multiplicative inverse for the
+    /// argument or None depending on invertibility of the argument, i.e.
+    /// its coprimality with the modulus
     pub fn invert<const S: usize>(&self, value: &[u64]) -> Option<[u64; S]> {
         let (mut d, mut e) = (CInt::ZERO, self.adjuster.clone());
         let mut g = CInt::<62, L>(Self::convert::<64, 62, L>(value));

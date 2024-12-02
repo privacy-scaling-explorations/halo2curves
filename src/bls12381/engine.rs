@@ -1,19 +1,18 @@
-use super::fq12::Fq12;
-use super::fq2::Fq2;
-use super::{Fr, G1Affine, G2Affine, BLS_X, G1, G2};
-use crate::ff_ext::quadratic::QuadSparseMul;
-use crate::ff_ext::ExtField;
-use core::borrow::Borrow;
-use core::iter::Sum;
-use core::ops::{Add, Mul, Neg, Sub};
-use ff::Field;
-use ff::PrimeField;
-use group::prime::PrimeCurveAffine;
-use group::Group;
+use core::{
+    borrow::Borrow,
+    iter::Sum,
+    ops::{Add, Mul, Neg, Sub},
+};
+use std::ops::MulAssign;
+
+use ff::{Field, PrimeField};
+use group::{prime::PrimeCurveAffine, Group};
 use pairing::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use rand::RngCore;
-use std::ops::MulAssign;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+
+use super::{fq12::Fq12, fq2::Fq2, Fr, G1Affine, G2Affine, BLS_X, G1, G2};
+use crate::ff_ext::{quadratic::QuadSparseMul, ExtField};
 
 crate::impl_gt!(Gt, Fq12, Fr);
 crate::impl_miller_loop_components!(Bls12381, G1, G1Affine, G2, G2Affine, Fq12, Gt, Fr);
@@ -116,11 +115,14 @@ fn ell(f: &mut Fq12, coeffs: &(Fq2, Fq2, Fq2), p: &G1Affine) {
 
 #[cfg(test)]
 mod test {
-    use super::super::{Bls12381, Fr, G1, G2};
-    use super::{multi_miller_loop, Fq12, G1Affine, G2Affine, Gt};
     use ff::Field;
     use group::{prime::PrimeCurveAffine, Curve, Group};
     use pairing::{Engine as _, MillerLoopResult, PairingCurveAffine};
     use rand_core::OsRng;
+
+    use super::{
+        super::{Bls12381, Fr, G1, G2},
+        multi_miller_loop, Fq12, G1Affine, G2Affine, Gt,
+    };
     crate::test_pairing!(Bls12381, G1, G1Affine, G2, G2Affine, Fq12, Gt, Fr);
 }

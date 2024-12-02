@@ -1,27 +1,23 @@
-use crate::arithmetic::mul_512;
-use crate::arithmetic::sbb;
-use crate::arithmetic::CurveEndo;
-use crate::arithmetic::EndoParameters;
-use crate::bn256::Fq;
-use crate::bn256::Fq2;
-use crate::bn256::Fr;
-use crate::endo;
-use crate::ff::WithSmallOrderMulGroup;
-use crate::ff::{Field, PrimeField};
-use crate::group::Curve;
-use crate::group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
-use crate::{
-    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, new_curve_impl,
+use core::{
+    cmp,
+    fmt::Debug,
+    iter::Sum,
+    ops::{Add, Mul, Neg, Sub},
 };
-use crate::{Coordinates, CurveAffine, CurveExt};
-use core::cmp;
-use core::fmt::Debug;
-use core::iter::Sum;
-use core::ops::{Add, Mul, Neg, Sub};
-use rand::RngCore;
 use std::convert::TryInto;
+
+use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+use crate::{
+    arithmetic::{mul_512, sbb, CurveEndo, EndoParameters},
+    bn256::{Fq, Fq2, Fr},
+    endo,
+    ff::{Field, PrimeField, WithSmallOrderMulGroup},
+    group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Curve, Group, GroupEncoding},
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, new_curve_impl, Coordinates, CurveAffine, CurveExt,
+};
 
 impl crate::serde::endian::EndianRepr for Fq2 {
     const ENDIAN: crate::serde::endian::Endian = Fq::ENDIAN;
@@ -164,7 +160,7 @@ impl group::cofactor::CofactorGroup for G1 {
 fn exp_by_x(g2: &G2) -> G2 {
     let x = super::BN_X;
 
-    (0..62).rev().fold(g2.clone(), |mut acc, i| {
+    (0..62).rev().fold(*g2, |mut acc, i| {
         println!("{}", ((x >> i) & 1) == 1);
 
         acc = acc.double();
@@ -264,10 +260,11 @@ impl G2 {
 
 #[cfg(test)]
 mod test {
-    use crate::tests::curve::TestH2C;
+    use group::UncompressedEncoding;
+    use rand_core::OsRng;
 
     use super::*;
-    use group::UncompressedEncoding;
+    use crate::{serde::SerdeObject, tests::curve::TestH2C};
 
     crate::curve_testing_suite!(G2, "clear_cofactor");
     crate::curve_testing_suite!(G1, G2);

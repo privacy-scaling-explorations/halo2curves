@@ -187,7 +187,9 @@ where
 
 impl<F: ExtField> ff::Field for CubicExtField<F>
 where
-    CubicExtField<F>: CubicExtFieldArith<Base = F> + ExtField, // kind of cyclic being `ExtField: Field` but it seems alright
+    CubicExtField<F>: CubicExtFieldArith<Base = F> + ExtField, /* kind of cyclic being
+                                                                * `ExtField: Field` but it seems
+                                                                * alright */
 {
     const ZERO: Self = Self::zero();
     const ONE: Self = Self::one();

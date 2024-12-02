@@ -1,6 +1,7 @@
 //! # `Pluto\Eris half-pairing cycle`
 //!
-//! Implementation of the Pluto / Eris half-pairing cycle of prime order elliptic curves.
+//! Implementation of the Pluto / Eris half-pairing cycle of prime order
+//! elliptic curves.
 //!
 //! Supporting evidence: https://github.com/daira/pluto-eris
 //! Field constant derivation: https://github.com/davidnevadoc/ec-constants/tree/main/pluto_eris

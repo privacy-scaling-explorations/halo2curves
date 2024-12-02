@@ -1,23 +1,23 @@
-use crate::bls12381::fq::Fq;
-use crate::bls12381::fq2::Fq2;
-use crate::bls12381::fr::Fr;
-use crate::ff::WithSmallOrderMulGroup;
-use crate::ff::{Field, PrimeField};
-use crate::ff_ext::ExtField;
-use crate::group::Curve;
-use crate::group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Group, GroupEncoding};
-use crate::serde::{Compressed, CompressedFlagConfig};
-use crate::{
-    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, new_curve_impl,
+use core::{
+    cmp,
+    fmt::Debug,
+    iter::Sum,
+    ops::{Add, Mul, Neg, Sub},
 };
-use crate::{Coordinates, CurveAffine, CurveExt};
-use core::cmp;
-use core::fmt::Debug;
-use core::iter::Sum;
-use core::ops::{Add, Mul, Neg, Sub};
+
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+use crate::{
+    bls12381::{fq::Fq, fq2::Fq2, fr::Fr},
+    ff::{Field, PrimeField, WithSmallOrderMulGroup},
+    ff_ext::ExtField,
+    group::{cofactor::CofactorGroup, prime::PrimeCurveAffine, Curve, Group, GroupEncoding},
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, new_curve_impl,
+    serde::{Compressed, CompressedFlagConfig},
+    Coordinates, CurveAffine, CurveExt,
+};
 
 const G2_GENERATOR_X: Fq2 = Fq2 {
     c0: Fq([
@@ -126,9 +126,9 @@ impl group::cofactor::CofactorGroup for G2 {
         CtOption::new(self, 1.into())
     }
 
-    /// Returns true if this point is free of an $h$-torsion component, and so it
-    /// exists within the $q$-order subgroup $\mathbb{G}_2$. This should always return true
-    /// unless an "unchecked" API was used.
+    /// Returns true if this point is free of an $h$-torsion component, and so
+    /// it exists within the $q$-order subgroup $\mathbb{G}_2$. This should
+    /// always return true unless an "unchecked" API was used.
     fn is_torsion_free(&self) -> Choice {
         // Algorithm from Section 4 of https://eprint.iacr.org/2021/1130
         // Updated proof of correctness in https://eprint.iacr.org/2022/352
@@ -305,7 +305,8 @@ fn iso_map(x: Fq2, y: Fq2, z: Fq2) -> G2 {
         }
     }
 
-    // x denominator is order 1 less than x numerator, so we need an extra factor of z
+    // x denominator is order 1 less than x numerator, so we need an extra factor of
+    // z
     mapvals[1] *= z;
 
     // multiply result of Y map by the y-coord, y / z
@@ -329,9 +330,11 @@ pub(crate) fn hash_to_curve<'a>(
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::arithmetic::CurveEndo;
     use group::UncompressedEncoding;
+    use rand_core::OsRng;
+
+    use super::*;
+    use crate::{arithmetic::CurveEndo, serde::SerdeObject};
 
     crate::curve_testing_suite!(G2);
     crate::curve_testing_suite!(G2, "endo_consistency");

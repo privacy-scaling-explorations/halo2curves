@@ -1,12 +1,12 @@
 use std::ops::Neg;
 
-use crate::CurveAffine;
-use ff::Field;
-use ff::PrimeField;
+use ff::{Field, PrimeField};
 use group::Group;
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
 };
+
+use crate::CurveAffine;
 
 const BATCH_SIZE: usize = 64;
 
@@ -14,7 +14,8 @@ fn get_booth_index(window_index: usize, window_size: usize, el: &[u8]) -> i32 {
     // Booth encoding:
     // * step by `window` size
     // * slice by size of `window + 1``
-    // * each window overlap by 1 bit * append a zero bit to the least significant end
+    // * each window overlap by 1 bit * append a zero bit to the least significant
+    //   end
     // Indexing rule for example window size 3 where we slice by 4 bits:
     // `[0, +1, +1, +2, +2, +3, +3, +4, -4, -3, -3 -2, -2, -1, -1, 0]``
     // So we can reduce the bucket size without preprocessing scalars
@@ -344,8 +345,8 @@ pub fn msm_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C
     };
 
     let field_byte_size = C::Scalar::NUM_BITS.div_ceil(8u32) as usize;
-    // OR all coefficients in order to make a mask to figure out the maximum number of bytes used
-    // among all coefficients.
+    // OR all coefficients in order to make a mask to figure out the maximum number
+    // of bytes used among all coefficients.
     let mut acc_or = vec![0; field_byte_size];
     for coeff in &coeffs {
         for (acc_limb, limb) in acc_or.iter_mut().zip(coeff.as_ref().iter()) {
@@ -536,12 +537,15 @@ pub fn msm_best<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
 mod test {
     use std::ops::Neg;
 
-    use crate::bn256::{Fr, G1Affine, G1};
-    use crate::CurveAffine;
     use ark_std::{end_timer, start_timer};
     use ff::{Field, PrimeField};
     use group::{Curve, Group};
     use rand_core::OsRng;
+
+    use crate::{
+        bn256::{Fr, G1Affine, G1},
+        CurveAffine,
+    };
 
     #[test]
     fn test_booth_encoding() {
