@@ -12,16 +12,21 @@
 #[macro_use]
 extern crate criterion;
 
+use std::time::SystemTime;
+
 use criterion::{BenchmarkId, Criterion};
 use ff::{Field, PrimeField};
 use group::prime::PrimeCurveAffine;
-use halo2curves::bn256::{Fr as Scalar, G1Affine as Point};
-use halo2curves::msm::{msm_best, msm_serial};
+use halo2curves::{
+    bn256::{Fr as Scalar, G1Affine as Point},
+    msm::{msm_best, msm_serial},
+};
 use rand_core::{RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
-use rayon::current_thread_index;
-use rayon::prelude::{IntoParallelIterator, ParallelIterator};
-use std::time::SystemTime;
+use rayon::{
+    current_thread_index,
+    prelude::{IntoParallelIterator, ParallelIterator},
+};
 
 const SAMPLE_SIZE: usize = 10;
 const SINGLECORE_RANGE: [u8; 6] = [3, 8, 10, 12, 14, 16];

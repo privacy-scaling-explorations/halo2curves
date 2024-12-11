@@ -1,20 +1,23 @@
-use super::fq::Fq;
-use super::Fr;
-use crate::serde::{Compressed, CompressedFlagConfig};
+use core::{
+    cmp,
+    iter::Sum,
+    ops::{Add, Mul, Neg, Sub},
+};
+
+use ff::{PrimeField, WithSmallOrderMulGroup};
+use group::{
+    cofactor::CofactorGroup, ff::Field, prime::PrimeCurveAffine, Curve, Group, GroupEncoding,
+};
+use rand_core::RngCore;
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+use super::{fq::Fq, Fr};
 use crate::{
     impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
     impl_binops_multiplicative_mixed, new_curve_impl,
+    serde::{Compressed, CompressedFlagConfig},
+    Coordinates, CurveAffine, CurveExt,
 };
-use core::cmp;
-use core::iter::Sum;
-use core::ops::{Add, Mul, Neg, Sub};
-use ff::PrimeField;
-use ff::WithSmallOrderMulGroup;
-use group::cofactor::CofactorGroup;
-use group::{ff::Field, prime::PrimeCurveAffine, Curve, Group, GroupEncoding};
-use pasta_curves::arithmetic::{Coordinates, CurveAffine, CurveExt};
-use rand_core::RngCore;
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 new_curve_impl!(
     (pub),
@@ -148,7 +151,8 @@ fn iso_map(x: Fq, y: Fq, z: Fq) -> G1 {
         }
     }
 
-    // x denominator is order 1 less than x numerator, so we need an extra factor of z
+    // x denominator is order 1 less than x numerator, so we need an extra factor of
+    // z
     mapvals[1] *= z;
 
     // multiply result of Y map by the y-coord, y / z
@@ -172,11 +176,11 @@ pub(crate) fn hash_to_curve<'a>(
 
 #[cfg(test)]
 mod test {
-    use crate::arithmetic::CurveEndo;
-    use crate::tests::curve::TestH2C;
     use group::UncompressedEncoding;
+    use rand_core::OsRng;
 
     use super::*;
+    use crate::{arithmetic::CurveEndo, serde::SerdeObject, tests::curve::TestH2C};
     crate::curve_testing_suite!(G1);
     crate::curve_testing_suite!(G1, "endo_consistency");
     crate::curve_testing_suite!(G1, "endo");

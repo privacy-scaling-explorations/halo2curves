@@ -1,17 +1,18 @@
 #![allow(clippy::op_ref)]
 
-use crate::ff_ext::Legendre;
 use digest::{core_api::BlockSizeUser, Digest};
 use ff::{Field, FromUniformBytes, PrimeField};
-use pasta_curves::arithmetic::CurveExt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+use crate::{ff_ext::Legendre, CurveExt};
 
 pub enum Method<C: CurveExt> {
     SSWU(Iso<C>),
     SVDW,
 }
 
-/// Map the homogeneous coordinates of a point from the isogenous curve to a point in the original curve.
+/// Map the homogeneous coordinates of a point from the isogenous curve to a
+/// point in the original curve.
 #[allow(clippy::type_complexity)]
 pub struct Iso<C: CurveExt> {
     pub(crate) a: C::Base,
@@ -101,8 +102,8 @@ where
     C::Base: Legendre + FromUniformBytes<L>,
 {
     pub(crate) fn new(domain: &[u8], z: C::Base, method: Method<C>) -> Self {
-        // Check for the target bits of  security `k`. Currently, the target security is 128 bits.
-        // See: <https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#section-5.1>
+        // Check for the target bits of  security `k`. Currently, the target security is
+        // 128 bits. See: <https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#section-5.1>
         assert!((C::Base::NUM_BITS as usize + 128) / 8 <= L);
 
         let map_to_curve: Box<dyn Fn(C::Base) -> C> = match method {
@@ -202,8 +203,8 @@ where
 
         // Since z is non-square, a and b are either both zero (and both square), or
         // only one of them is square. We can therefore choose the square root to return
-        // based on whether a is square, but for the boolean output we need to handle the
-        // num != 0 && div == 0 case specifically.
+        // based on whether a is square, but for the boolean output we need to handle
+        // the num != 0 && div == 0 case specifically.
 
         let a = div.invert().unwrap_or(F::ZERO) * num;
         let b = a * z;
@@ -224,61 +225,62 @@ where
         )
     }
 
-    //1.  tv1 = u^2
+    // 1. tv1 = u^2
     let tv1 = u.square();
-    //2.  tv1 = Z * tv1
+    // 2. tv1 = Z * tv1
     let tv1 = z * tv1;
-    //3.  tv2 = tv1^2
+    // 3. tv2 = tv1^2
     let tv2 = tv1.square();
-    //4.  tv2 = tv2 + tv1
+    // 4. tv2 = tv2 + tv1
     let tv2 = tv2 + tv1;
-    //5.  tv3 = tv2 + 1
+    // 5. tv3 = tv2 + 1
     let tv3 = tv2 + C::Base::ONE;
-    //6.  tv3 = B * tv3
+    // 6. tv3 = B * tv3
     let tv3 = b * tv3;
-    //7.  tv4 = CMOV(Z, -tv2, tv2 != 0) # tv4 = z if tv2 is 0 else tv4 = -tv2
+    // 7. tv4 = CMOV(Z, -tv2, tv2 != 0) # tv4 = z if tv2 is 0 else tv4 = -tv2
     let tv2_is_not_zero = !tv2.ct_eq(&C::Base::ZERO);
     let tv4 = C::Base::conditional_select(&z, &-tv2, tv2_is_not_zero);
-    //8.  tv4 = A * tv4
+    // 8. tv4 = A * tv4
     let tv4 = a * tv4;
-    //9.  tv2 = tv3^2
+    // 9. tv2 = tv3^2
     let tv2 = tv3.square();
-    //10. tv6 = tv4^2
+    // 10. tv6 = tv4^2
     let tv6 = tv4.square();
-    //11. tv5 = A * tv6
+    // 11. tv5 = A * tv6
     let tv5 = a * tv6;
-    //12. tv2 = tv2 + tv5
+    // 12. tv2 = tv2 + tv5
     let tv2 = tv2 + tv5;
-    //13. tv2 = tv2 * tv3
+    // 13. tv2 = tv2 * tv3
     let tv2 = tv2 * tv3;
-    //14. tv6 = tv6 * tv4
+    // 14. tv6 = tv6 * tv4
     let tv6 = tv6 * tv4;
-    //15. tv5 = B * tv6
+    // 15. tv5 = B * tv6
     let tv5 = b * tv6;
-    //16. tv2 = tv2 + tv5
+    // 16. tv2 = tv2 + tv5
     let tv2 = tv2 + tv5;
-    //17.   x = tv1 * tv3
+    // 17. x = tv1 * tv3
     let x = tv1 * tv3;
-    //18. (is_gx1_square, y1) = sqrt_ratio(tv2, tv6)
+    // 18. (is_gx1_square, y1) = sqrt_ratio(tv2, tv6)
     let (is_gx1_square, y1) = sqrt_ratio(&tv2, &tv6, &z);
-    //19.   y = tv1 * u
+    // 19. y = tv1 * u
     let y = tv1 * u;
-    //20.   y = y * y1
+    // 20. y = y * y1
     let y = y * y1;
-    //21.   x = CMOV(x, tv3, is_gx1_square)
+    // 21. x = CMOV(x, tv3, is_gx1_square)
     let x = C::Base::conditional_select(&x, &tv3, is_gx1_square);
-    //22.   y = CMOV(y, y1, is_gx1_square)
+    // 22. y = CMOV(y, y1, is_gx1_square)
     let y = C::Base::conditional_select(&y, &y1, is_gx1_square);
-    //23.  e1 = sgn0(u) == sgn0(y)
+    // 23. e1 = sgn0(u) == sgn0(y)
     let e1 = u.is_odd().ct_eq(&y.is_odd());
-    //24.   y = CMOV(-y, y, e1) # Select correct sign of y
+    // 24. y = CMOV(-y, y, e1) # Select correct sign of y
     let y = C::Base::conditional_select(&-y, &y, e1);
 
     // In the original algorithm:
-    // 25.   x = x / tv4
+    // 25. x = x / tv4
     // 26. return (x, y)
     //
-    // we omit instruction 25. and return the result in homogeneous coordinates (instead of the previous jacobi).
+    // we omit instruction 25. and return the result in homogeneous coordinates
+    // (instead of the previous jacobi).
 
     (x, y * tv4, tv4)
 }
@@ -377,10 +379,11 @@ where
 #[cfg(test)]
 mod test {
 
-    use super::*;
-    use sha2::Sha256;
-    use sha2::Sha512;
     use std::marker::PhantomData;
+
+    use sha2::{Sha256, Sha512};
+
+    use super::*;
 
     #[test]
     fn test_expand_message() {

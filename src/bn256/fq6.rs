@@ -1,10 +1,10 @@
-use super::fq::Fq;
-use super::fq2::Fq2;
+use ff::Field;
+
+use super::{fq::Fq, fq2::Fq2};
 use crate::ff_ext::{
     cubic::{CubicExtField, CubicExtFieldArith, CubicSparseMul},
     ExtField,
 };
-use ff::Field;
 
 // -BETA is a cubic non-residue in Fp2. Fp6 = Fp2[X]/(X^3 + BETA)
 // We introduce the variable v such that v^3 = -BETA
@@ -203,9 +203,10 @@ pub const FROBENIUS_COEFF_FQ6_C2: [Fq2; 6] = [
 
 #[cfg(test)]
 mod test {
+    use rand_core::RngCore;
+
     use super::*;
     use crate::{arith_test, frobenius_test, setup_f6_test_funcs, test};
-    use rand_core::RngCore;
 
     macro_rules! test_fq6 {
         ($test:ident, $size: expr) => {

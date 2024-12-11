@@ -1,6 +1,4 @@
-use super::fq::Fq;
-use super::fq2::Fq2;
-use super::fq6::Fq6;
+use super::{fq::Fq, fq2::Fq2, fq6::Fq6};
 use crate::ff_ext::{
     quadratic::{QuadExtField, QuadExtFieldArith, QuadSparseMul},
     ExtField,
@@ -209,10 +207,11 @@ mod test {
             }
         };
     }
-    use super::*;
-    use crate::{arith_test, frobenius_test, setup_f12_test_funcs, test};
     use ff::Field;
     use rand::RngCore;
+
+    use super::*;
+    use crate::{arith_test, frobenius_test, setup_f12_test_funcs, test};
 
     arith_test!(Fq12);
 

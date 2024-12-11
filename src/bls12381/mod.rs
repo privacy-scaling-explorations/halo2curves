@@ -30,7 +30,8 @@ const ENDO_PARAMS: EndoParameters = EndoParameters {
     b2: [0x0000000100000000, 0xac45a4010001a402, 0x0, 0x0],
 };
 
-use crate::arithmetic::{mul_512, sbb, CurveEndo, EndoParameters};
 use ff::{PrimeField, WithSmallOrderMulGroup};
+
+use crate::arithmetic::{mul_512, sbb, CurveEndo, EndoParameters};
 crate::endo!(G1, Fr, ENDO_PARAMS);
 crate::endo!(G2, Fr, ENDO_PARAMS);

@@ -1,11 +1,16 @@
-use super::fp::Fp;
-use crate::ff::FromUniformBytes;
-use crate::ff::{Field, PrimeField, WithSmallOrderMulGroup};
-use crate::ff_ext::quadratic::{QuadExtField, QuadExtFieldArith, SQRT};
-use crate::ff_ext::{ExtField, Legendre};
 use core::convert::TryInto;
 use std::cmp::Ordering;
+
 use subtle::{Choice, CtOption};
+
+use super::fp::Fp;
+use crate::{
+    ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup},
+    ff_ext::{
+        quadratic::{QuadExtField, QuadExtFieldArith, SQRT},
+        ExtField, Legendre,
+    },
+};
 
 crate::impl_binops_additive!(Fp2, Fp2);
 crate::impl_binops_multiplicative!(Fp2, Fp2);
@@ -79,9 +84,10 @@ impl ExtField for Fp2 {
 #[cfg(test)]
 mod test {
 
+    use rand_core::RngCore;
+
     use super::*;
     use crate::{arith_test, constants_test, legendre_test, serde_test, test};
-    use rand_core::RngCore;
 
     constants_test!(Fp2);
 

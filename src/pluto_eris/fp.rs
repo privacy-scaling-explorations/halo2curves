@@ -1,8 +1,10 @@
-use crate::ff_ext::ExtField;
 use core::convert::TryInto;
+
 use halo2derive::impl_field;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+use crate::ff_ext::ExtField;
 
 impl_field!(
     pluto_eris_fp,

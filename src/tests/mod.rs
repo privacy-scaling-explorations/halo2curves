@@ -1,6 +1,7 @@
 use ff::PrimeField;
 use num_bigint::BigUint;
-use pasta_curves::arithmetic::CurveAffine;
+
+use crate::CurveAffine;
 
 pub mod curve;
 #[macro_use]

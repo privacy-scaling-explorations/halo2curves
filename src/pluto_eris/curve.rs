@@ -1,19 +1,20 @@
-use super::{fp::Fp, fp2::Fp2, fq::Fq};
-use crate::ff::WithSmallOrderMulGroup;
-use crate::ff::{Field, PrimeField};
-use crate::group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding};
-use crate::{Coordinates, CurveAffine, CurveExt};
-use core::cmp;
-use core::fmt::Debug;
-use core::iter::Sum;
-use core::ops::{Add, Mul, Neg, Sub};
+use core::{
+    cmp,
+    fmt::Debug,
+    iter::Sum,
+    ops::{Add, Mul, Neg, Sub},
+};
+
 use group::cofactor::CofactorGroup;
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
+use super::{fp::Fp, fp2::Fp2, fq::Fq};
 use crate::{
+    ff::{Field, PrimeField, WithSmallOrderMulGroup},
+    group::{prime::PrimeCurveAffine, Curve, Group as _, GroupEncoding},
     impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, new_curve_impl,
+    impl_binops_multiplicative_mixed, new_curve_impl, Coordinates, CurveAffine, CurveExt,
 };
 
 const G1_GENERATOR_X: Fp = Fp::from_raw([
@@ -271,8 +272,11 @@ new_curve_impl!(
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use group::UncompressedEncoding;
+    use rand_core::OsRng;
+
+    use super::*;
+    use crate::serde::SerdeObject;
 
     crate::curve_testing_suite!(G2, "clear_cofactor");
     crate::curve_testing_suite!(G1, Eris, G2);

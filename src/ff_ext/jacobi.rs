@@ -37,19 +37,21 @@ impl<const L: usize> LInt<L> {
         self.0[L - 1] > (u64::MAX >> 1)
     }
 
-    /// Returns a tuple representing the sum of the first two arguments and the bit
-    /// described by the third argument. The first element of the tuple is this sum
-    /// modulo 2^64, the second one indicates whether the sum is no less than 2^64
+    /// Returns a tuple representing the sum of the first two arguments and the
+    /// bit described by the third argument. The first element of the tuple
+    /// is this sum modulo 2^64, the second one indicates whether the sum is
+    /// no less than 2^64
     #[inline]
     fn sum(first: u64, second: u64, carry: bool) -> (u64, bool) {
-        // The implementation is inspired with the "carrying_add" function from this source:
-        // https://github.com/rust-lang/rust/blob/master/library/core/src/num/uint_macros.rs
+        // The implementation is inspired with the "carrying_add" function from this
+        // source: https://github.com/rust-lang/rust/blob/master/library/core/src/num/uint_macros.rs
         let (second, carry) = second.overflowing_add(carry as u64);
         let (first, high) = first.overflowing_add(second);
         (first, carry || high)
     }
 
-    /// Returns "(low, high)", where "high * 2^64 + low = first * second + carry + summand"
+    /// Returns "(low, high)", where "high * 2^64 + low = first * second + carry
+    /// + summand"
     #[inline]
     fn prodsum(first: u64, second: u64, summand: u64, carry: u64) -> (u64, u64) {
         let all = (first as u128) * (second as u128) + (carry as u128) + (summand as u128);
@@ -65,9 +67,10 @@ impl<const L: usize> PartialEq for LInt<L> {
 
 impl<const L: usize> Shr<u32> for &LInt<L> {
     type Output = LInt<L>;
-    /// Returns the result of applying the arithmetic right shift to the current number.
-    /// The specified bit quantity the number is shifted by must lie in {1, 2, ..., 63}.
-    /// For the quantities outside of the range, the behavior of the method is undefined
+    /// Returns the result of applying the arithmetic right shift to the current
+    /// number. The specified bit quantity the number is shifted by must lie
+    /// in {1, 2, ..., 63}. For the quantities outside of the range, the
+    /// behavior of the method is undefined
     fn shr(self, bits: u32) -> Self::Output {
         debug_assert!(
             (bits > 0) && (bits < 64),
@@ -248,18 +251,19 @@ impl<const L: usize> Mul<LInt<L>> for i64 {
     }
 }
 
-/// Returns the "approximations" of the arguments and the flag indicating whether
-/// both arguments are equal to their "approximations". Both the arguments must be
-/// non-negative, and at least one of them must be non-zero. For an incorrect input,
-/// the behavior of the function is undefined. These "approximations" are defined
-/// in the following way. Let n be the bit length of the largest argument without
-/// leading zeros. For n > 64 the "approximation" of the argument, which equals v,
-/// is (v div 2 ^ (n - 32)) * 2 ^ 32 + (v mod 2 ^ 32), i.e. it retains the high and
-/// low bits of the n-bit representation of v. If n does not exceed 64, an argument
-/// and its "approximation" are equal. These "approximations" are defined slightly
-/// differently from the ones in the Pornin's method for modular inversion: instead
-/// of taking the 33 high and 31 low bits of the n-bit representation of an argument,
-/// the 32 high and 32 low bits are taken
+/// Returns the "approximations" of the arguments and the flag indicating
+/// whether both arguments are equal to their "approximations". Both the
+/// arguments must be non-negative, and at least one of them must be non-zero.
+/// For an incorrect input, the behavior of the function is undefined. These
+/// "approximations" are defined in the following way. Let n be the bit length
+/// of the largest argument without leading zeros. For n > 64 the
+/// "approximation" of the argument, which equals v, is (v div 2 ^ (n - 32)) * 2
+/// ^ 32 + (v mod 2 ^ 32), i.e. it retains the high and low bits of the n-bit
+/// representation of v. If n does not exceed 64, an argument
+/// and its "approximation" are equal. These "approximations" are defined
+/// slightly differently from the ones in the Pornin's method for modular
+/// inversion: instead of taking the 33 high and 31 low bits of the n-bit
+/// representation of an argument, the 32 high and 32 low bits are taken
 fn approximate<const L: usize>(x: &LInt<L>, y: &LInt<L>) -> (u64, u64, bool) {
     debug_assert!(
         !(x.is_negative() || y.is_negative()),
@@ -317,13 +321,14 @@ fn jacobinary(mut n: u64, mut d: u64, mut t: u64) -> i64 {
 /// big integers in the form of arrays of 64-bit chunks, the ordering of which
 /// is little-endian. The value of "d" must be odd in accordance with the Jacobi
 /// symbol definition. Both the arguments must be less than 2 ^ (64 * L - 31).
-/// For an incorrect input, the behavior of the function is undefined. The method
-/// differs from the Pornin's method for modular inversion in absence of the parts,
-/// which are not necessary to compute the greatest common divisor of arguments,
-/// presence of the parts used to compute the Jacobi symbol, which are based on
-/// the properties of the modified Jacobi symbol (x / |y|) described by M. Hamburg,
-/// and some original optimizations. Only these differences have been commented;
-/// the aforesaid Pornin's method and the used ideas of M. Hamburg were given here:
+/// For an incorrect input, the behavior of the function is undefined. The
+/// method differs from the Pornin's method for modular inversion in absence of
+/// the parts, which are not necessary to compute the greatest common divisor of
+/// arguments, presence of the parts used to compute the Jacobi symbol, which
+/// are based on the properties of the modified Jacobi symbol (x / |y|)
+/// described by M. Hamburg, and some original optimizations. Only these
+/// differences have been commented; the aforesaid Pornin's method and the used
+/// ideas of M. Hamburg were given here:
 /// - T. Pornin, "Optimized Binary GCD for Modular Inversion",
 /// https://eprint.iacr.org/2020/972.pdf
 /// - M. Hamburg, "Computing the Jacobi symbol using Bernstein-Yang",
@@ -341,21 +346,24 @@ pub fn jacobi<const L: usize>(n: &[u64], d: &[u64]) -> i64 {
         "Both the arguments must be less than 2 ^ (64 * L - 31)!"
     );
     loop {
-        // The inner loop performs 30 iterations instead of 31 ones in the aforementioned
-        // Pornin's method, and the "approximations" of "n" and "d" retain 32 of the lowest
-        // bits instead of 31 in that method. These modifications allow the values of the
-        // "approximation" variables to be equal modulo 8 to the corresponding "precise"
-        // variables' values, which would have been computed, if the "precise" variables
-        // had been updated in the inner loop along with the "approximations". This equality
-        // modulo 8 is used to update the second-lowest bit of "t" in accordance with the
-        // properties of the modified Jacobi symbol (x / |y|). The admissibility of these
-        // modifications has been proven using the appropriately modified Pornin's theorems
+        // The inner loop performs 30 iterations instead of 31 ones in the
+        // aforementioned Pornin's method, and the "approximations" of "n" and
+        // "d" retain 32 of the lowest bits instead of 31 in that method. These
+        // modifications allow the values of the "approximation" variables to be
+        // equal modulo 8 to the corresponding "precise" variables' values,
+        // which would have been computed, if the "precise" variables
+        // had been updated in the inner loop along with the "approximations". This
+        // equality modulo 8 is used to update the second-lowest bit of "t" in
+        // accordance with the properties of the modified Jacobi symbol (x /
+        // |y|). The admissibility of these modifications has been proven using
+        // the appropriately modified Pornin's theorems
         let (mut u, mut v, mut i) = ((1i64, 0i64), (0i64, 1i64), 30);
         let (mut a, mut b, precise) = approximate(&n, &d);
-        // When each "approximation" variable has the same value as the corresponding "precise"
-        // one, the computation is accomplished using the short-arithmetic method of the Jacobi
-        // symbol calculation by means of the binary Euclidean algorithm. This approach aims at
-        // avoiding the parts of the final computations, which are related to long arithmetic
+        // When each "approximation" variable has the same value as the corresponding
+        // "precise" one, the computation is accomplished using the
+        // short-arithmetic method of the Jacobi symbol calculation by means of
+        // the binary Euclidean algorithm. This approach aims at avoiding the
+        // parts of the final computations, which are related to long arithmetic
         if precise {
             return jacobinary(a, b, t);
         }
@@ -395,21 +403,24 @@ pub fn jacobi<const L: usize>(n: &[u64], d: &[u64]) -> i64 {
         // This fragment is present to guarantee the correct behavior of the function
         // in the case of arguments, whose greatest common divisor is no less than 2^64
         if n == LInt::ZERO {
-            // In both the aforesaid Pornin's method and its modification the pair of the values
-            // of "n" and "d" after the divergence point contains a positive number and a negative
-            // one. Since the value of "n" is 0, the divergence point has not been reached by the
-            // inner loop this time, so there is no need to check whether "d" is equal to -1
+            // In both the aforesaid Pornin's method and its modification the pair of the
+            // values of "n" and "d" after the divergence point contains a
+            // positive number and a negative one. Since the value of "n" is 0,
+            // the divergence point has not been reached by the inner loop this
+            // time, so there is no need to check whether "d" is equal to -1
             return (d == LInt::ONE) as i64 * (1 - (t & 2) as i64);
         }
 
         if n.is_negative() {
-            // Since in both the aforesaid Pornin's method and its modification "d" is always odd
-            // and cannot become negative simultaneously with "n", the value of "d" is positive.
-            // The modified Jacobi symbol (-1 / |y|) for a positive y is -1, iff y mod 4 = 3
+            // Since in both the aforesaid Pornin's method and its modification "d" is
+            // always odd and cannot become negative simultaneously with "n",
+            // the value of "d" is positive. The modified Jacobi symbol (-1 /
+            // |y|) for a positive y is -1, iff y mod 4 = 3
             t ^= d.0[0];
             n = -n;
         } else if d.is_negative() {
-            // The modified Jacobi symbols (x / |y|) and (x / |-y|) are equal, so "t" is not updated
+            // The modified Jacobi symbols (x / |y|) and (x / |-y|) are equal, so "t" is not
+            // updated
             d = -d;
         }
     }

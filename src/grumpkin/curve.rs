@@ -1,24 +1,22 @@
-use crate::arithmetic::mul_512;
-use crate::arithmetic::sbb;
-use crate::arithmetic::CurveEndo;
-use crate::arithmetic::EndoParameters;
-use crate::ff::WithSmallOrderMulGroup;
-use crate::ff::{Field, PrimeField};
-use crate::group::Curve;
-use crate::group::{prime::PrimeCurveAffine, Group, GroupEncoding};
-use crate::grumpkin::Fq;
-use crate::grumpkin::Fr;
-use crate::{
-    endo, impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
-    impl_binops_multiplicative_mixed, new_curve_impl,
+use core::{
+    cmp,
+    fmt::Debug,
+    iter::Sum,
+    ops::{Add, Mul, Neg, Sub},
 };
-use crate::{Coordinates, CurveAffine, CurveExt};
-use core::cmp;
-use core::fmt::Debug;
-use core::iter::Sum;
-use core::ops::{Add, Mul, Neg, Sub};
+
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+use crate::{
+    arithmetic::{mul_512, sbb, CurveEndo, EndoParameters},
+    endo,
+    ff::{Field, PrimeField, WithSmallOrderMulGroup},
+    group::{prime::PrimeCurveAffine, Curve, Group, GroupEncoding},
+    grumpkin::{Fq, Fr},
+    impl_binops_additive, impl_binops_additive_specify_output, impl_binops_multiplicative,
+    impl_binops_multiplicative_mixed, new_curve_impl, Coordinates, CurveAffine, CurveExt,
+};
 
 new_curve_impl!(
     (pub),
@@ -95,8 +93,11 @@ impl G1 {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use group::UncompressedEncoding;
+    use rand_core::OsRng;
+
+    use super::*;
+    use crate::serde::SerdeObject;
     crate::curve_testing_suite!(G1);
     crate::curve_testing_suite!(G1, "endo_consistency");
     crate::curve_testing_suite!(G1, "endo");

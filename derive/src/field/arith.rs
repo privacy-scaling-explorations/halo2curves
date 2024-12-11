@@ -1,6 +1,5 @@
 use proc_macro2::TokenStream;
-use quote::format_ident as fmtid;
-use quote::quote;
+use quote::{format_ident as fmtid, quote};
 
 fn select(cond: bool, this: TokenStream, other: TokenStream) -> TokenStream {
     if cond {
