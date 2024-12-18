@@ -296,6 +296,16 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
             }
         }
 
+        // Internal utility function to convert a slice of bytes representing a field
+        // element in LE into its limbs (or u64s) representation.
+        fn u64s_from_bytes(bytes: &[u8; #num_limbs * 8]) -> [u64; #num_limbs] {
+            (0..#num_limbs)
+            .map(|off| u64::from_le_bytes(bytes[off * 8..(off + 1) * 8].try_into().unwrap()))
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap()
+        }
+
         impl #field {
             pub const SIZE: usize = #num_limbs * 8;
             pub const NUM_LIMBS: usize = #num_limbs;
@@ -485,21 +495,16 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
         impl crate::serde::SerdeObject for #field {
             fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self {
                 debug_assert_eq!(bytes.len(), #size);
-
-                let inner = (0..#num_limbs)
-                    .map(|off| {
-                        u64::from_le_bytes(bytes[off * 8..(off + 1) * 8].try_into().unwrap())
-                    })
-                    .collect::<Vec<_>>();
-                Self(inner.try_into().unwrap())
+                let bytes: [u8; #size] = bytes.try_into().unwrap();
+                let inner = u64s_from_bytes(&bytes);
+                Self(inner)
             }
 
             fn from_raw_bytes(bytes: &[u8]) -> Option<Self> {
                 if bytes.len() != #size {
                     return None;
                 }
-                let elt = Self::from_raw_bytes_unchecked(bytes);
-                Self::is_less_than_modulus(&elt.0).then(|| elt)
+                Some(Self::from_raw_bytes_unchecked(bytes))
             }
 
             fn to_raw_bytes(&self) -> Vec<u8> {
@@ -511,30 +516,25 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
             }
 
             fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
-                let inner = [(); #num_limbs].map(|_| {
-                    let mut buf = [0; 8];
-                    reader.read_exact(&mut buf).unwrap();
-                    u64::from_le_bytes(buf)
-                });
-                Self(inner)
+                let mut bytes = [0u8; #size];
+                reader
+                    .read_exact(&mut bytes)
+                    .expect(&format!("Expected {} bytes.", #size));
+                Self::from_raw_bytes_unchecked(&bytes)
             }
 
             fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
-                let mut inner = [0u64; #num_limbs];
-                for limb in inner.iter_mut() {
-                    let mut buf = [0; 8];
-                    reader.read_exact(&mut buf)?;
-                    *limb = u64::from_le_bytes(buf);
+                use std::io::{Error, ErrorKind};
+                let mut bytes = [0u8; #size];
+                reader
+                    .read_exact(&mut bytes)
+                    .expect(&format!("Expected {} bytes.", #size));
+                let out = Self::from_raw_bytes(&bytes);
+                if out.is_none().into() {
+                    Err(Error::new(ErrorKind::InvalidData, "Invalid field element."))
+                } else {
+                    Ok(out.unwrap())
                 }
-                let elt = Self(inner);
-                Self::is_less_than_modulus(&elt.0)
-                    .then(|| elt)
-                    .ok_or_else(|| {
-                        std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "input number is not less than field modulus",
-                        )
-                    })
             }
             fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
                 for limb in self.0.iter() {
@@ -562,7 +562,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
         .iter()
         .map(|input_size| {
             assert!(*input_size >= size);
-            assert!(*input_size <= size*2);
+            assert!(*input_size <= size * 2);
             quote! {
                 impl ff::FromUniformBytes<#input_size> for #field {
                     fn from_uniform_bytes(bytes: &[u8; #input_size]) -> Self {
@@ -570,19 +570,8 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                         wide[..#input_size].copy_from_slice(bytes);
                         let (a0, a1) = wide.split_at(Self::SIZE);
 
-                        let a0: [u64; Self::NUM_LIMBS] = (0..Self::NUM_LIMBS)
-                            .map(|off| u64::from_le_bytes(a0[off * 8..(off + 1) * 8].try_into().unwrap()))
-                            .collect::<Vec<_>>()
-                            .try_into()
-                            .unwrap();
-                        let a0 = #field(a0);
-
-                        let a1: [u64; Self::NUM_LIMBS] = (0..Self::NUM_LIMBS)
-                            .map(|off| u64::from_le_bytes(a1[off * 8..(off + 1) * 8].try_into().unwrap()))
-                            .collect::<Vec<_>>()
-                            .try_into()
-                            .unwrap();
-                        let a1 = #field(a1);
+                        let a0 = #field(u64s_from_bytes(a0.try_into().unwrap()));
+                        let a1 = #field(u64s_from_bytes(a1.try_into().unwrap()));
 
                         // enforce non assembly impl since asm is likely to be optimized for sparse fields
                         a0.mul_const(&Self::R2) + a1.mul_const(&Self::R3)
