@@ -28,3 +28,19 @@ impl_from_u64!(Fp);
 impl_from_bool!(Fp);
 field_bits!(Fp);
 serialize_deserialize_primefield!(Fp);
+
+#[cfg(test)]
+mod test {
+
+    use super::Fp;
+    use crate::{
+        arith_test, constants_test, from_uniform_bytes_test, legendre_test, serde_test, test,
+    };
+
+    constants_test!(Fp);
+    arith_test!(Fp);
+    legendre_test!(Fp);
+    test!(arith, Fp, sqrt_test, 1000);
+    serde_test!(Fp PrimeFieldBits);
+    from_uniform_bytes_test!(Fp, 1000, L 64, L 48);
+}
