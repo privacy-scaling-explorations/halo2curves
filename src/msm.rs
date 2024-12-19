@@ -464,7 +464,7 @@ pub fn msm_parallel<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Cur
 pub fn msm_best<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
     assert_eq!(coeffs.len(), bases.len());
 
-    // TODO: consider adjusting it with emprical data?
+    // TODO: consider adjusting it with empirical data?
     let c = if bases.len() < 4 {
         1
     } else if bases.len() < 32 {
