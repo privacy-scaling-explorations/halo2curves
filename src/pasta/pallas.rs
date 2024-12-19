@@ -19,7 +19,7 @@ use crate::{
 new_curve_impl!(
     (pub),
     Pallas,
-    PastaAffine,
+    PallasAffine,
     Fp,
     Fq,
     (- Fp::ONE, Fp::from_raw([2,0,0,0])),
