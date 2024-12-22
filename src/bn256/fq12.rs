@@ -4,9 +4,9 @@ use crate::ff_ext::{
     ExtField,
 };
 
-/// -GAMMA is a quadratic non-residue in Fp6. Fp12 = Fp6[X]/(X^2 + GAMMA)
-/// We introduce the variable w such that w^2 = -GAMMA
-// GAMMA = - v
+// -GAMMA is a quadratic non-residue in Fp6. Fp12 = Fp6[X] / (X^2 + GAMMA)
+// We introduce the variable w such that w^2 = -GAMMA
+// GAMMA = -v
 /// An element of Fq12, represented by c0 + c1 * w.
 pub type Fq12 = QuadExtField<Fq6>;
 

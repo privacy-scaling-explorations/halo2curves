@@ -44,7 +44,7 @@ impl<const L: usize> LInt<L> {
     #[inline]
     fn sum(first: u64, second: u64, carry: bool) -> (u64, bool) {
         // The implementation is inspired with the "carrying_add" function from this
-        // source: https://github.com/rust-lang/rust/blob/master/library/core/src/num/uint_macros.rs
+        // source: <https://github.com/rust-lang/rust/blob/master/library/core/src/num/uint_macros.rs>
         let (second, carry) = second.overflowing_add(carry as u64);
         let (first, high) = first.overflowing_add(second);
         (first, carry || high)
@@ -330,9 +330,9 @@ fn jacobinary(mut n: u64, mut d: u64, mut t: u64) -> i64 {
 /// differences have been commented; the aforesaid Pornin's method and the used
 /// ideas of M. Hamburg were given here:
 /// - T. Pornin, "Optimized Binary GCD for Modular Inversion",
-/// https://eprint.iacr.org/2020/972.pdf
+/// <https://eprint.iacr.org/2020/972.pdf>
 /// - M. Hamburg, "Computing the Jacobi symbol using Bernstein-Yang",
-/// https://eprint.iacr.org/2021/1271.pdf
+/// <https://eprint.iacr.org/2021/1271.pdf>
 pub fn jacobi<const L: usize>(n: &[u64], d: &[u64]) -> i64 {
     // Instead of the variable "j" taking the values from {-1, 1} and satisfying
     // at the end of the outer loop iteration the equation J = "j" * ("n" / |"d"|)
