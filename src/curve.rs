@@ -42,6 +42,7 @@ pub trait CurveExt:
     /// distributed elements in the group, given domain prefix `domain_prefix`.
     ///
     /// This method is suitable for use as a random oracle.
+    #[allow(clippy::type_complexity)]
     fn hash_to_curve<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a>;
 
     /// Returns whether or not this element is on the curve; should
