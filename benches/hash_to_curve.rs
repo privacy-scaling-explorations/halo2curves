@@ -8,8 +8,7 @@
 use std::iter;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
-use halo2curves::bn256::G1;
-use halo2curves::CurveExt;
+use halo2curves::{bn256::G1, CurveExt};
 use rand::SeedableRng;
 use rand_core::RngCore;
 use rand_xorshift::XorShiftRng;
