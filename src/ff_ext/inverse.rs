@@ -41,7 +41,7 @@ impl<const B: usize, const L: usize> CInt<B, L> {
         self.0[0]
     }
 
-    /// Returns "true" iff the current number is negative
+    /// Returns "true" if the current number is negative
     pub fn is_negative(&self) -> bool {
         self.0[L - 1] > (Self::MASK >> 1)
     }
@@ -286,7 +286,7 @@ impl<const L: usize> BYInverter<L> {
             // The formula (3 * x) xor 28 = -1 / x (mod 32) for an odd integer x
             // in the two's complement code has been derived from the formula
             // (3 * x) xor 2 = 1 / x (mod 32) attributed to Peter Montgomery
-            let mask = (1 << steps.min(1 - delta).min(5)) - 1;
+            let mask = (1 << steps.min((1 - delta).max(0)).min(5)) - 1;
             let w = (g as i64).wrapping_mul(f.wrapping_mul(3) ^ 28) & mask;
 
             t[1] = [t[0][0] * w + t[1][0], t[0][1] * w + t[1][1]];
