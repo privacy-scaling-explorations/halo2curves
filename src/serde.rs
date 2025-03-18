@@ -1,7 +1,8 @@
-use std::{
-    fmt::Debug,
-    io::{self, Read, Write},
-};
+#[cfg(feature = "std")]
+use std::io::{self, Read, Write};
+extern crate alloc;
+use alloc::vec::Vec;
+use core::fmt::Debug;
 
 #[cfg(feature = "derive_serde")]
 use serde::{Deserialize, Serialize};
@@ -54,15 +55,15 @@ impl<const T: usize> AsRef<[u8]> for Repr<T> {
     }
 }
 
-impl<const T: usize> std::ops::Index<std::ops::Range<usize>> for Repr<T> {
+impl<const T: usize> core::ops::Index<core::ops::Range<usize>> for Repr<T> {
     type Output = [u8];
 
-    fn index(&self, range: std::ops::Range<usize>) -> &Self::Output {
+    fn index(&self, range: core::ops::Range<usize>) -> &Self::Output {
         &self.0[range]
     }
 }
 
-impl<const T: usize> std::ops::Index<usize> for Repr<T> {
+impl<const T: usize> core::ops::Index<usize> for Repr<T> {
     type Output = u8;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -70,24 +71,24 @@ impl<const T: usize> std::ops::Index<usize> for Repr<T> {
     }
 }
 
-impl<const T: usize> std::ops::Index<std::ops::RangeTo<usize>> for Repr<T> {
+impl<const T: usize> core::ops::Index<core::ops::RangeTo<usize>> for Repr<T> {
     type Output = [u8];
 
-    fn index(&self, range: std::ops::RangeTo<usize>) -> &Self::Output {
+    fn index(&self, range: core::ops::RangeTo<usize>) -> &Self::Output {
         &self.0[range]
     }
 }
 
-impl<const T: usize> std::ops::Index<std::ops::RangeFrom<usize>> for Repr<T> {
+impl<const T: usize> core::ops::Index<core::ops::RangeFrom<usize>> for Repr<T> {
     type Output = [u8];
 
-    fn index(&self, range: std::ops::RangeFrom<usize>) -> &Self::Output {
+    fn index(&self, range: core::ops::RangeFrom<usize>) -> &Self::Output {
         &self.0[range]
     }
 }
 
-impl<const T: usize> std::ops::IndexMut<std::ops::Range<usize>> for Repr<T> {
-    fn index_mut(&mut self, range: std::ops::Range<usize>) -> &mut Self::Output {
+impl<const T: usize> core::ops::IndexMut<core::ops::Range<usize>> for Repr<T> {
+    fn index_mut(&mut self, range: core::ops::Range<usize>) -> &mut Self::Output {
         &mut self.0[range]
     }
 }
@@ -113,13 +114,18 @@ pub trait SerdeObject: Sized {
     /// valid object. This function should only be used internally when some
     /// machine state cannot be kept in memory (e.g., between runs)
     /// and needs to be reloaded as quickly as possible.
+    #[cfg(feature = "std")]
     fn read_raw_unchecked<R: Read>(reader: &mut R) -> Self;
-    fn read_raw<R: Read>(reader: &mut R) -> io::Result<Self>;
+    #[cfg(feature = "std")]
+    fn read_raw<R: Read>(reader: &mut R) -> alloc::io::Result<Self>;
 
+    #[cfg(feature = "std")]
     fn write_raw<W: Write>(&self, writer: &mut W) -> io::Result<()>;
 }
 
 pub mod endian {
+    extern crate alloc;
+    use alloc::vec::Vec;
 
     pub trait EndianRepr: Sized {
         const ENDIAN: Endian;
