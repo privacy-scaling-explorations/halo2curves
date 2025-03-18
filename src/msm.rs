@@ -1,13 +1,16 @@
-use crate::CurveAffine;
-use core::ops::Neg;
-use ff::{Field, PrimeField};
-use group::Group;
-// TODO -> Dont use *
-use plonky2_maybe_rayon::*;
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
+
+use crate::CurveAffine;
+use core::ops::Neg;
+use ff::{Field, PrimeField};
+use group::Group;
+#[cfg(feature = "std")]
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
+};
 
 const BATCH_SIZE: usize = 64;
 
@@ -430,13 +433,11 @@ pub fn msm_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C
 /// This function will panic if coeffs and bases have a different length.
 ///
 /// This will use multithreading if beneficial.
+#[cfg(feature = "std")]
 pub fn msm_parallel<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
     assert_eq!(coeffs.len(), bases.len());
 
-    #[cfg(feature = "std")]
     let num_threads = rayon::current_num_threads();
-    #[cfg(not(feature = "std"))]
-    let num_threads = 1;
 
     if coeffs.len() > num_threads {
         let chunk = coeffs.len() / num_threads;
@@ -478,8 +479,15 @@ pub fn msm_best<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
         (f64::from(bases.len() as u32)).ln().ceil() as usize
     };
 
+    #[cfg(feature = "std")]
     if c < 10 {
         return msm_parallel(coeffs, bases);
+    }
+    #[cfg(not(feature = "std"))]
+    if c < 10 {
+        let mut acc = C::Curve::identity();
+        msm_serial(coeffs, bases, &mut acc);
+        return acc;
     }
 
     // coeffs to byte representation

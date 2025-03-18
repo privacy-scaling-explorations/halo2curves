@@ -115,10 +115,15 @@ pub fn recursive_butterfly_arithmetic<Scalar: Field, G: FftGroup<Scalar>>(
         a[1] -= &t;
     } else {
         let (left, right) = a.split_at_mut(n / 2);
+        #[cfg(feature = "std")]
         rayon::join(
             || recursive_butterfly_arithmetic(left, n / 2, twiddle_chunk * 2, twiddles),
             || recursive_butterfly_arithmetic(right, n / 2, twiddle_chunk * 2, twiddles),
         );
+        #[cfg(not(feature = "std"))]
+        recursive_butterfly_arithmetic(left, n / 2, twiddle_chunk * 2, twiddles);
+        #[cfg(not(feature = "std"))]
+        recursive_butterfly_arithmetic(right, n / 2, twiddle_chunk * 2, twiddles);
 
         // case when twiddle factor is one
         let (a, left) = left.split_at_mut(1);

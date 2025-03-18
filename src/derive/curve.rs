@@ -1,10 +1,3 @@
-#[cfg(not(feature = "std"))]
-extern crate alloc;
-#[cfg(not(feature = "std"))]
-use alloc::boxed::Box;
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
-
 #[macro_export]
 macro_rules! endo {
     ($name:ident, $field:ident, $params:expr) => {
