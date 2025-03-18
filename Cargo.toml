@@ -54,15 +54,17 @@ unroll = { version = "0.1.5", default-features = false }
 blake2 = { version = "0.10.6", default-features = false }
 sha2 = { version = "0.10.8", default-features = false }
 digest = { version = "0.10.7", default-features = false }
+plonky2_maybe_rayon = { version = "1.0.0", default-features = false }
 
 
 [features]
-default = ["bits", "rayon"]
+default = ["bits", "std"]
 asm = ["halo2derive/asm"]
 bits = ["ff/bits"]
 bn256-table = []
 derive_serde = ["serde/derive", "serde_arrays", "hex"]
 print-trace = ["ark-std/print-trace"]
+std = ["rayon"]
 
 [profile.bench]
 opt-level = 3

@@ -1,6 +1,8 @@
 #[cfg(feature = "std")]
 use std::io::{self, Read, Write};
+#[cfg(not(feature = "std"))]
 extern crate alloc;
+#[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 use core::fmt::Debug;
 
@@ -117,7 +119,7 @@ pub trait SerdeObject: Sized {
     #[cfg(feature = "std")]
     fn read_raw_unchecked<R: Read>(reader: &mut R) -> Self;
     #[cfg(feature = "std")]
-    fn read_raw<R: Read>(reader: &mut R) -> alloc::io::Result<Self>;
+    fn read_raw<R: Read>(reader: &mut R) -> io::Result<Self>;
 
     #[cfg(feature = "std")]
     fn write_raw<W: Write>(&self, writer: &mut W) -> io::Result<()>;

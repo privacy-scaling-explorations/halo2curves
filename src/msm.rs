@@ -1,12 +1,13 @@
-use std::ops::Neg;
-
+use crate::CurveAffine;
+use core::ops::Neg;
 use ff::{Field, PrimeField};
 use group::Group;
-use rayon::iter::{
-    IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
-};
-
-use crate::CurveAffine;
+// TODO -> Dont use *
+use plonky2_maybe_rayon::*;
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::{vec, vec::Vec};
 
 const BATCH_SIZE: usize = 64;
 
@@ -432,7 +433,11 @@ pub fn msm_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C
 pub fn msm_parallel<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
     assert_eq!(coeffs.len(), bases.len());
 
+    #[cfg(feature = "std")]
     let num_threads = rayon::current_num_threads();
+    #[cfg(not(feature = "std"))]
+    let num_threads = 1;
+
     if coeffs.len() > num_threads {
         let chunk = coeffs.len() / num_threads;
         let num_chunks = coeffs.chunks(chunk).len();
