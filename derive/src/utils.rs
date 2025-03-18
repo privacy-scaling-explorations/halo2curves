@@ -1,5 +1,9 @@
-use core::ops::Shl;
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
 
+use core::ops::Shl;
 use num_bigint::BigUint;
 use num_traits::{One, ToPrimitive};
 

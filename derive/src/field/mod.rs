@@ -2,6 +2,15 @@ mod arith;
 #[cfg(feature = "asm")]
 mod asm;
 
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
+
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{Num, One};
@@ -510,7 +519,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                 res
             }
 
-            #[cfg(features="std")]
+            // #[cfg(features="std")]
             fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
                 let inner = [(); #num_limbs].map(|_| {
                     let mut buf = [0; 8];
@@ -520,7 +529,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                 Self(inner)
             }
 
-            #[cfg(features="std")]
+            // #[cfg(features="std")]
             fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
                 let mut inner = [0u64; #num_limbs];
                 for limb in inner.iter_mut() {
@@ -539,7 +548,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                     })
             }
 
-            #[cfg(features="std")]
+            // #[cfg(features="std")]
             fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
                 for limb in self.0.iter() {
                     writer.write_all(&limb.to_le_bytes())?;

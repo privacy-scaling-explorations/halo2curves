@@ -3,9 +3,7 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 #[cfg(not(feature = "std"))]
-use alloc::boxed::Box;
-#[cfg(not(feature = "std"))]
-use alloc::{vec, vec::Vec};
+use alloc::{boxed::Box, vec, vec::Vec};
 use digest::{core_api::BlockSizeUser, Digest};
 use ff::{Field, FromUniformBytes, PrimeField};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};

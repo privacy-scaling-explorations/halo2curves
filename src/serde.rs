@@ -4,6 +4,7 @@ use std::io::{self, Read, Write};
 extern crate alloc;
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
+
 use core::fmt::Debug;
 
 #[cfg(feature = "derive_serde")]
