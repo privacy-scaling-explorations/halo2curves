@@ -1,3 +1,10 @@
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+
 #[macro_export]
 macro_rules! endo {
     ($name:ident, $field:ident, $params:expr) => {
@@ -637,16 +644,19 @@ macro_rules! new_curve_impl {
                 Self::write_raw(self, &mut res).unwrap();
                 res
             }
+            #[cfg(feature="std")]
             fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
                 let [x, y, z] = [(); 3].map(|_| $base::read_raw_unchecked(reader));
                 Self { x, y, z }
             }
+            #[cfg(feature="std")]
             fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
                 let x = $base::read_raw(reader)?;
                 let y = $base::read_raw(reader)?;
                 let z = $base::read_raw(reader)?;
                 Ok(Self { x, y, z })
             }
+            #[cfg(feature="std")]
             fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
                 self.x.write_raw(writer)?;
                 self.y.write_raw(writer)?;
@@ -666,8 +676,8 @@ macro_rules! new_curve_impl {
 
         // Affine implementations
 
-        impl std::fmt::Debug for $name_affine {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        impl core::fmt::Debug for $name_affine {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), core::fmt::Error> {
                 if self.is_identity().into() {
                     write!(f, "Infinity")
                 } else {
@@ -738,15 +748,18 @@ macro_rules! new_curve_impl {
                 Self::write_raw(self, &mut res).unwrap();
                 res
             }
+            #[cfg(feature="std")]
             fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
                 let [x, y] = [(); 2].map(|_| $base::read_raw_unchecked(reader));
                 Self { x, y }
             }
+            #[cfg(feature="std")]
             fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
                 let x = $base::read_raw(reader)?;
                 let y = $base::read_raw(reader)?;
                 Ok(Self { x, y })
             }
+            #[cfg(feature="std")]
             fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
                 self.x.write_raw(writer)?;
                 self.y.write_raw(writer)

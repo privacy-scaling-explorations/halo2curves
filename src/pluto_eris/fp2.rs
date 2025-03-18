@@ -1,5 +1,4 @@
-use core::convert::TryInto;
-use std::cmp::Ordering;
+use core::{cmp::Ordering, convert::TryInto};
 
 use subtle::{Choice, CtOption};
 

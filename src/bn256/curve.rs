@@ -1,11 +1,17 @@
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+
 use core::{
     cmp,
+    convert::TryInto,
     fmt::Debug,
     iter::Sum,
     ops::{Add, Mul, Neg, Sub},
 };
-use std::convert::TryInto;
-
 use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -161,6 +167,7 @@ fn exp_by_x(g2: &G2) -> G2 {
     let x = super::BN_X;
 
     (0..62).rev().fold(*g2, |mut acc, i| {
+        #[cfg(feature = "std")]
         println!("{}", ((x >> i) & 1) == 1);
 
         acc = acc.double();
