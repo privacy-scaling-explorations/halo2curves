@@ -7,10 +7,7 @@ use crate::CurveAffine;
 use core::ops::Neg;
 use ff::{Field, PrimeField};
 use group::Group;
-#[cfg(feature = "std")]
-use rayon::iter::{
-    IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
-};
+use plonky2_maybe_rayon::*;
 
 const BATCH_SIZE: usize = 64;
 

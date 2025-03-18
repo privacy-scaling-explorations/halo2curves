@@ -66,7 +66,7 @@ bits = ["ff/bits"]
 bn256-table = []
 derive_serde = ["serde/derive", "serde_arrays", "hex"]
 print-trace = ["ark-std/print-trace"]
-std = ["rayon", "halo2derive/std"]
+std = ["rayon", "halo2derive/std", "plonky2_maybe_rayon/parallel"]
 
 
 [profile.bench]
