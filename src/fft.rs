@@ -45,7 +45,7 @@ pub fn best_fft<Scalar: Field, G: FftGroup<Scalar>>(a: &mut [G], omega: Scalar, 
     #[cfg(feature = "std")]
     let threads = rayon::current_num_threads();
     #[cfg(not(feature = "std"))]
-    let threads = 1;
+    let threads: usize = 1;
 
     let log_threads = threads.ilog2();
     let n = a.len();

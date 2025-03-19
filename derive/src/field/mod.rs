@@ -511,6 +511,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                 Self::is_less_than_modulus(&elt.0).then(|| elt)
             }
 
+            #[cfg(feature = "std")]
             fn to_raw_bytes(&self) -> Vec<u8> {
                 let mut res = Vec::with_capacity(#num_limbs * 4);
                 for limb in self.0.iter() {

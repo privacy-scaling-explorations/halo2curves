@@ -1,9 +1,5 @@
 #[cfg(feature = "std")]
 use std::io::{self, Read, Write};
-#[cfg(not(feature = "std"))]
-extern crate alloc;
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
 
 use core::fmt::Debug;
 
@@ -109,6 +105,7 @@ pub trait SerdeObject: Sized {
     fn from_raw_bytes_unchecked(bytes: &[u8]) -> Self;
     fn from_raw_bytes(bytes: &[u8]) -> Option<Self>;
 
+    #[cfg(feature = "std")]
     fn to_raw_bytes(&self) -> Vec<u8>;
 
     /// The purpose of unchecked functions is to read the internal memory

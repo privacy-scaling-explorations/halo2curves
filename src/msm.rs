@@ -2,6 +2,8 @@
 extern crate alloc;
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
+use libm::log;
+pub use num_traits::float::FloatCore;
 
 use crate::CurveAffine;
 use core::ops::Neg;
@@ -342,7 +344,7 @@ pub fn msm_serial<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C
     } else if bases.len() < 32 {
         3
     } else {
-        (f64::from(bases.len() as u32)).ln().ceil() as usize
+        log(f64::from(bases.len() as u32)).ceil() as usize
     };
 
     let field_byte_size = C::Scalar::NUM_BITS.div_ceil(8u32) as usize;
@@ -473,7 +475,7 @@ pub fn msm_best<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
     } else if bases.len() < 32 {
         3
     } else {
-        (f64::from(bases.len() as u32)).ln().ceil() as usize
+        log(f64::from(bases.len() as u32)).ceil() as usize
     };
 
     #[cfg(feature = "std")]

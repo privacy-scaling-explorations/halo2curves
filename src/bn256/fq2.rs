@@ -1,8 +1,3 @@
-#[cfg(not(feature = "std"))]
-extern crate alloc;
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
-
 use core::{cmp::Ordering, convert::TryInto};
 use subtle::{Choice, CtOption};
 
