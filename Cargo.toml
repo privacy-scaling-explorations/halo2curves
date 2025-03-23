@@ -55,7 +55,7 @@ plonky2_maybe_rayon = { version = "1.0.0", default-features = false }
 libm = { version = "0.2.11", default-features = false }
 
 serde = { version = "1.0", default-features = false, optional = true }
-serde_arrays = { version = "0.1.0", optional = true }
+serde_arrays = { version = "0.2.0", optional = true }
 rayon = { version = "1.8", default-features = false, optional = true }
 
 [features]
