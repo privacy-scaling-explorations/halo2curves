@@ -107,7 +107,7 @@ impl Compressed<G2Affine> for G2Compressed {
 impl group::cofactor::CofactorGroup for G2 {
     type Subgroup = G2;
 
-    /// Clears the cofactor, using [Budroni-Pintore](https://ia.cr/2017/419).
+    /// Clears the cofactor, using [Budroni-Pintore](https://eprint.iacr.org/2017/419).
     /// This is equivalent to multiplying by $h\_\textrm{eff} = 3(z^2 - 1) \cdot
     /// h_2$, where $h_2$ is the cofactor of $\mathbb{G}\_2$ and $z$ is the
     /// parameter of BLS12-381.
