@@ -11,7 +11,7 @@ use core::{
 };
 
 use ff::{Field, PrimeField, WithSmallOrderMulGroup};
-use rand::RngCore;
+use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use super::{fp::Fp, fq::Fq};

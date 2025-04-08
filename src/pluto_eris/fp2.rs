@@ -135,7 +135,7 @@ mod test {
 
     #[test]
     fn test_fp2_mul_nonresidue() {
-        use rand::SeedableRng;
+        use rand_core::SeedableRng;
         use rand_xorshift::XorShiftRng;
         let mut rng = XorShiftRng::from_seed(crate::tests::SEED);
         for _ in 0..1000 {

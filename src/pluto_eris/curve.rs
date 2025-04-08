@@ -11,7 +11,7 @@ use core::{
 };
 
 use group::cofactor::CofactorGroup;
-use rand::RngCore;
+use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use super::{fp::Fp, fp2::Fp2, fq::Fq};
