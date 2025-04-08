@@ -60,7 +60,7 @@ rayon = { version = "1.8", default-features = false, optional = true }
 
 [features]
 default = ["bits", "std"]
-asm = ["halo2derive/asm"]
+asm = ["halo2derive/asm", "std"]
 bits = ["ff/bits"]
 bn256-table = []
 derive_serde = ["serde/derive", "serde_arrays", "hex"]
