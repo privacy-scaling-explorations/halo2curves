@@ -4,7 +4,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use ff::{Field, FromUniformBytes, PrimeField};
-use rand::RngCore;
+use rand_core::RngCore;
 
 use crate::serde::SerdeObject;
 
@@ -116,7 +116,7 @@ macro_rules! from_uniform_bytes_test {
         paste::paste! {
         #[test]
         fn [< from_uniform_bytes_test_ $L>]() {
-            use rand::SeedableRng;
+            use rand_core::SeedableRng;
             use rand_xorshift::XorShiftRng;
             let mut rng = XorShiftRng::from_seed($crate::tests::SEED);
             $crate::tests::field::serde::from_uniform_bytes_test::<$field, $L>(&mut rng, $size);

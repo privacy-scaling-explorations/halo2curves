@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 
 use core::convert::TryInto;
 use halo2derive::impl_field;
-use rand::RngCore;
+use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::ff_ext::ExtField;

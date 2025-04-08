@@ -10,7 +10,7 @@ use core::{
     iter::Sum,
     ops::{Add, Mul, Neg, Sub},
 };
-use rand::RngCore;
+use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::{

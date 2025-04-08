@@ -283,6 +283,7 @@ macro_rules! curve_testing_suite {
         }
 
         // TODO Change name
+        #[cfg(feature = "std")]
         macro_rules! random_serialization_test {
             ($c: ident) => {
                 for _ in 0..100 {
@@ -359,6 +360,7 @@ macro_rules! curve_testing_suite {
             )*
         }
 
+        #[cfg(feature = "std")]
         #[test]
         fn test_serialization() {
             $(
