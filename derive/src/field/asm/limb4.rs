@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 
 pub(crate) fn impl_arith(field: &syn::Ident, inv: u64) -> TokenStream {
     quote::quote! {
-        use std::arch::asm;
+        use core::arch::asm;
         impl #field {
             /// Doubles this field element.
             #[inline]
