@@ -214,7 +214,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
 
     let impl_field = quote! {
         #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
-        pub struct #field(pub(crate) [u64; #num_limbs]);
+        pub struct #field(#[doc(hidden)] pub [u64; #num_limbs]);
 
         impl core::fmt::Debug for #field {
             fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
