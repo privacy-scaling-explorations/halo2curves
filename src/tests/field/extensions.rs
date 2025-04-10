@@ -197,7 +197,7 @@ macro_rules! frobenius_test {
 
         #[test]
         fn frobenius_test() {
-            use rand::SeedableRng;
+            use rand_core::SeedableRng;
             use rand_xorshift::XorShiftRng;
             let mut rng = XorShiftRng::from_seed($crate::tests::SEED);
             test_frobenius(&mut rng, $size);

@@ -1,5 +1,5 @@
 use ff::PrimeField;
-use rand::RngCore;
+use rand_core::RngCore;
 
 use crate::ff_ext::Legendre;
 

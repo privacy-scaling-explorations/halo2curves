@@ -1,7 +1,11 @@
-use ff::Field;
-use group::{GroupOpsOwned, ScalarMulOwned};
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
 
 pub use crate::{CurveAffine, CurveExt};
+use ff::Field;
+use group::{GroupOpsOwned, ScalarMulOwned};
 
 /// This represents an element of a group with basic operations that can be
 /// performed. This allows an FFT implementation (for example) to operate
@@ -38,7 +42,11 @@ pub fn best_fft<Scalar: Field, G: FftGroup<Scalar>>(a: &mut [G], omega: Scalar, 
         r
     }
 
+    #[cfg(feature = "std")]
     let threads = rayon::current_num_threads();
+    #[cfg(not(feature = "std"))]
+    let threads: usize = 1;
+
     let log_threads = threads.ilog2();
     let n = a.len();
     assert_eq!(n, 1 << log_n);
@@ -107,7 +115,7 @@ pub fn recursive_butterfly_arithmetic<Scalar: Field, G: FftGroup<Scalar>>(
         a[1] -= &t;
     } else {
         let (left, right) = a.split_at_mut(n / 2);
-        rayon::join(
+        plonky2_maybe_rayon::join(
             || recursive_butterfly_arithmetic(left, n / 2, twiddle_chunk * 2, twiddles),
             || recursive_butterfly_arithmetic(right, n / 2, twiddle_chunk * 2, twiddles),
         );

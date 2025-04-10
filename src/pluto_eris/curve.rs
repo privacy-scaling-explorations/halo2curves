@@ -1,3 +1,8 @@
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::{boxed::Box, vec::Vec};
+
 use core::{
     cmp,
     fmt::Debug,
@@ -6,7 +11,7 @@ use core::{
 };
 
 use group::cofactor::CofactorGroup;
-use rand::RngCore;
+use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use super::{fp::Fp, fp2::Fp2, fq::Fq};

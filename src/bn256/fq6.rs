@@ -213,7 +213,7 @@ mod test {
             paste::paste! {
             #[test]
             fn [< $test test >]() {
-                use rand::SeedableRng;
+                use rand_core::SeedableRng;
                 use rand_xorshift::XorShiftRng;
                 let mut rng = XorShiftRng::from_seed(crate::tests::SEED);
                 crate::bn256::fq6::test::$test(&mut rng, $size);

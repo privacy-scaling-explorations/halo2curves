@@ -1,10 +1,13 @@
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+
 use core::{
     borrow::Borrow,
     iter::Sum,
-    ops::{Add, Mul, Neg, Sub},
+    ops::{Add, Mul, MulAssign, Neg, Sub},
 };
-use std::ops::MulAssign;
-
 use pairing::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};

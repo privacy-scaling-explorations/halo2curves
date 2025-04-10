@@ -2,6 +2,15 @@ mod arith;
 #[cfg(feature = "asm")]
 mod asm;
 
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
+
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{Num, One};
@@ -453,7 +462,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                 Self::R2 * Self(
                     [v as u64, (v >> 64) as u64]
                         .into_iter()
-                        .chain(std::iter::repeat(0))
+                        .chain(core::iter::repeat(0))
                         .take(Self::NUM_LIMBS)
                         .collect::<Vec<_>>()
                         .try_into()
@@ -502,6 +511,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                 Self::is_less_than_modulus(&elt.0).then(|| elt)
             }
 
+            #[cfg(feature = "std")]
             fn to_raw_bytes(&self) -> Vec<u8> {
                 let mut res = Vec::with_capacity(#num_limbs * 4);
                 for limb in self.0.iter() {
@@ -510,6 +520,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                 res
             }
 
+            #[cfg(feature = "std")]
             fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
                 let inner = [(); #num_limbs].map(|_| {
                     let mut buf = [0; 8];
@@ -519,6 +530,7 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                 Self(inner)
             }
 
+            #[cfg(feature = "std")]
             fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
                 let mut inner = [0u64; #num_limbs];
                 for limb in inner.iter_mut() {
@@ -536,6 +548,8 @@ pub(crate) fn impl_field(input: TokenStream) -> TokenStream {
                         )
                     })
             }
+
+            #[cfg(feature = "std")]
             fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
                 for limb in self.0.iter() {
                     writer.write_all(&limb.to_le_bytes())?;

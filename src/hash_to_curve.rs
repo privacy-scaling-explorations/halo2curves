@@ -1,5 +1,9 @@
 #![allow(clippy::op_ref)]
 
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::{boxed::Box, vec, vec::Vec};
 use digest::{core_api::BlockSizeUser, Digest};
 use ff::{Field, FromUniformBytes, PrimeField};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -23,7 +27,7 @@ pub struct Iso<C: CurveExt> {
 pub struct Suite<C: CurveExt, D: Digest + BlockSizeUser, const L: usize> {
     domain: Vec<u8>,
     map_to_curve: Box<dyn Fn(C::Base) -> C>,
-    _marker: std::marker::PhantomData<D>,
+    _marker: core::marker::PhantomData<D>,
 }
 
 pub(crate) fn expand_message<D: Digest + BlockSizeUser>(
@@ -124,7 +128,7 @@ where
         Self {
             map_to_curve,
             domain: domain.to_vec(),
-            _marker: std::marker::PhantomData,
+            _marker: core::marker::PhantomData,
         }
     }
 
@@ -379,7 +383,7 @@ where
 #[cfg(test)]
 mod test {
 
-    use std::marker::PhantomData;
+    use core::marker::PhantomData;
 
     use sha2::{Sha256, Sha512};
 
