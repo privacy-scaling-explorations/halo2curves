@@ -60,7 +60,7 @@ serde_arrays = { version = "0.2.0", optional = true }
 default = ["bits", "std"]
 asm = ["halo2derive/asm", "std"]
 bits = ["ff/bits"]
-bn256-table = []
+bn256-table = ["std"]
 derive_serde = ["serde/derive", "serde_arrays", "hex"]
 print-trace = ["ark-std/print-trace"]
 std = ["rayon", "halo2derive/std", "plonky2_maybe_rayon/parallel"]
