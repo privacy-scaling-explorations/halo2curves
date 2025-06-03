@@ -27,7 +27,7 @@ def decompose_field_element(a):
 #          a = a3 * 2^192 + a2 * 2^128 + a1 * 2^64 + a0
 def format_field_element(a):
     [a0, a1, a2, a3] = decompose_field_element(a);
-    return "Fr([" + hex(a0) + "," + hex(a1) + "," + hex(a2) + "," + hex(a3) + "]),\n"
+    return f"Fr([{hex(a0)},{hex(a1)},{hex(a2)},{hex(a3)}]),\n"
 
 
 f = open("src/bn256/fr/table.rs", "w")
