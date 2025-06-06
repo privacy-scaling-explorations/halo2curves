@@ -1,6 +1,11 @@
 //! This module contains the `Curve`/`CurveAffine` abstractions that allow us to
 //! write code that generalizes over a pair of groups.
 
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 use core::ops::{Add, Mul, Sub};
 
 use group::prime::{PrimeCurve, PrimeCurveAffine};

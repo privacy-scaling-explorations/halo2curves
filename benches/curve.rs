@@ -9,7 +9,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughpu
 use ff::Field;
 use group::prime::PrimeCurveAffine;
 use halo2curves::{bn256::G1, CurveExt};
-use rand::SeedableRng;
+use rand_core::SeedableRng;
 use rand_xorshift::XorShiftRng;
 
 fn bench_curve_ops<G: CurveExt>(c: &mut Criterion, name: &'static str) {

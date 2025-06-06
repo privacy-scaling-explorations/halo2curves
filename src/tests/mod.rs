@@ -1,3 +1,8 @@
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+
 use ff::PrimeField;
 use num_bigint::BigUint;
 
@@ -18,7 +23,7 @@ pub(crate) fn hex_to_bytes(hex: &str) -> Vec<u8> {
     let bytes = hex.as_bytes().to_vec();
     bytes
         .chunks(2)
-        .map(|chunk| u8::from_str_radix(std::str::from_utf8(chunk).unwrap(), 16).unwrap())
+        .map(|chunk| u8::from_str_radix(core::str::from_utf8(chunk).unwrap(), 16).unwrap())
         .collect()
 }
 

@@ -1,5 +1,7 @@
-use core::cmp::PartialEq;
-use std::ops::{Add, Mul, Neg, Sub};
+use core::{
+    cmp::PartialEq,
+    ops::{Add, Mul, Neg, Sub},
+};
 
 /// Big signed (B * L)-bit integer type, whose variables store
 /// numbers in the two's complement code as arrays of B-bit chunks.

@@ -10,7 +10,7 @@ use ff::Field;
 use group::prime::PrimeCurveAffine;
 use halo2curves::bn256::Bn256;
 use pairing::Engine;
-use rand::SeedableRng;
+use rand_core::SeedableRng;
 use rand_xorshift::XorShiftRng;
 
 const SEED: [u8; 16] = [

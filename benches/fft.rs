@@ -18,7 +18,7 @@ use std::{ops::Range, time::SystemTime};
 use criterion::{BenchmarkId, Criterion};
 use group::ff::Field;
 use halo2curves::{bn256::Fr as Scalar, fft::best_fft};
-use rand::{RngCore, SeedableRng};
+use rand_core::{RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
 
 const RANGE: Range<u32> = 3..19;

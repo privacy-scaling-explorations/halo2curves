@@ -1,12 +1,16 @@
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::{boxed::Box, vec::Vec};
+
 use core::{
     cmp,
+    convert::TryInto,
     fmt::Debug,
     iter::Sum,
     ops::{Add, Mul, Neg, Sub},
 };
-use std::convert::TryInto;
-
-use rand::RngCore;
+use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::{
@@ -161,6 +165,7 @@ fn exp_by_x(g2: &G2) -> G2 {
     let x = super::BN_X;
 
     (0..62).rev().fold(*g2, |mut acc, i| {
+        #[cfg(feature = "std")]
         println!("{}", ((x >> i) & 1) == 1);
 
         acc = acc.double();
@@ -264,7 +269,9 @@ mod test {
     use rand_core::OsRng;
 
     use super::*;
-    use crate::{serde::SerdeObject, tests::curve::TestH2C};
+    #[cfg(feature = "std")]
+    use crate::serde::SerdeObject;
+    use crate::tests::curve::TestH2C;
 
     crate::curve_testing_suite!(G2, "clear_cofactor");
     crate::curve_testing_suite!(G1, G2);

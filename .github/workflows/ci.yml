@@ -34,6 +34,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  no_std:
+    if: github.event.pull_request.draft == false
+    name: no_std-compatibility
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        feature: [default, bn256-table, derive_serde, ""]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+
+      - name: Download no_std target
+        run: rustup target add thumbv7em-none-eabi
+
+      #  Check if build passes on `thumbv7em-none-eabi` no_std target with and without specific features (default, bn256-table and derive_serde)
+      - name: Build
+        # Script that checks if feature is empty or script should be ran with feature
+        run: |
+          if [ -z "${{ matrix.feature }}" ]; then
+            cargo build --release --target thumbv7em-none-eabi --no-default-features
+          else
+            cargo build --release --target thumbv7em-none-eabi --no-default-features --features ${{ matrix.feature }}
+          fi
   compat:
     if: github.event.pull_request.draft == false
     name: Wasm-compatibility
@@ -119,7 +142,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Use typos with config file
         uses: crate-ci/typos@master
-        with: 
+        with:
           config: .config/typos.toml
 
   bench:

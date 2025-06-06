@@ -53,8 +53,8 @@ macro_rules! impl_from_u64 {
     ($field:ident) => {
         impl From<u64> for $field {
             fn from(val: u64) -> $field {
-                let limbs = std::iter::once(val)
-                    .chain(std::iter::repeat(0))
+                let limbs = core::iter::once(val)
+                    .chain(core::iter::repeat(0))
                     .take(Self::NUM_LIMBS)
                     .collect::<Vec<_>>()
                     .try_into()
@@ -71,8 +71,8 @@ macro_rules! impl_from_bool {
     ($field:ident) => {
         impl From<bool> for $field {
             fn from(val: bool) -> $field {
-                let limbs = std::iter::once(u64::from(val))
-                    .chain(std::iter::repeat(0))
+                let limbs = core::iter::once(u64::from(val))
+                    .chain(core::iter::repeat(0))
                     .take(Self::NUM_LIMBS)
                     .collect::<Vec<_>>()
                     .try_into()

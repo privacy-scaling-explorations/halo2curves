@@ -1,5 +1,5 @@
 use ff::Field;
-use rand::RngCore;
+use rand_core::RngCore;
 
 pub(crate) fn mul_test<F: Field>(mut rng: impl RngCore, n: usize) {
     for _ in 0..n {

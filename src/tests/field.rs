@@ -19,7 +19,7 @@ macro_rules! test {
     ($mod: ident, $field:ident, $test:ident, $size:expr) => {
         #[test]
         fn $test() {
-            use rand::SeedableRng;
+            use rand_core::SeedableRng;
             use rand_xorshift::XorShiftRng;
 
             use super::*;
@@ -30,7 +30,7 @@ macro_rules! test {
     ($mod: ident, $field:ident, $test:ident) => {
         #[test]
         fn $test() {
-            use rand::SeedableRng;
+            use rand_core::SeedableRng;
             use rand_xorshift::XorShiftRng;
             let mut rng = XorShiftRng::from_seed($crate::tests::SEED);
             $crate::tests::field::$mod::$test::<$field>(&mut rng);

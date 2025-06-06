@@ -11,7 +11,7 @@ use halo2curves::{
     ff::Field,
     ff_ext::Legendre,
 };
-use rand::{RngCore, SeedableRng};
+use rand_core::{RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
 
 const SEED: [u8; 16] = [

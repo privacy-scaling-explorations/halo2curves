@@ -164,6 +164,8 @@ macro_rules! impl_tower2 {
                     [0, $base::SIZE].map(|i| $base::from_raw_bytes(&bytes[i..i + $base::SIZE]));
                 c0.zip(c1).map(|(c0, c1)| Self { c0, c1 })
             }
+
+            #[cfg(feature = "std")]
             fn to_raw_bytes(&self) -> Vec<u8> {
                 let mut res = Vec::with_capacity($base::SIZE * 2);
                 for limb in self.c0.0.iter().chain(self.c1.0.iter()) {
@@ -171,15 +173,18 @@ macro_rules! impl_tower2 {
                 }
                 res
             }
+            #[cfg(feature = "std")]
             fn read_raw_unchecked<R: std::io::Read>(reader: &mut R) -> Self {
                 let [c0, c1] = [(); 2].map(|_| $base::read_raw_unchecked(reader));
                 Self { c0, c1 }
             }
+            #[cfg(feature = "std")]
             fn read_raw<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
                 let c0 = $base::read_raw(reader)?;
                 let c1 = $base::read_raw(reader)?;
                 Ok(Self { c0, c1 })
             }
+            #[cfg(feature = "std")]
             fn write_raw<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
                 self.c0.write_raw(writer)?;
                 self.c1.write_raw(writer)

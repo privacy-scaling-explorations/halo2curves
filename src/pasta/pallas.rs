@@ -1,3 +1,8 @@
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 use core::{
     cmp,
     fmt::Debug,
@@ -6,7 +11,7 @@ use core::{
 };
 
 use ff::{Field, PrimeField, WithSmallOrderMulGroup};
-use rand::RngCore;
+use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use super::{fp::Fp, fq::Fq};
@@ -72,7 +77,9 @@ mod test {
     use rand_core::OsRng;
 
     use super::*;
-    use crate::{curve_testing_suite, serde::SerdeObject};
+    use crate::curve_testing_suite;
+    #[cfg(feature = "std")]
+    use crate::serde::SerdeObject;
 
     curve_testing_suite!(
         Pallas,
