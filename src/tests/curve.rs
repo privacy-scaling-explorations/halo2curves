@@ -282,9 +282,8 @@ macro_rules! curve_testing_suite {
             }
         }
 
-        // TODO Change name
         #[cfg(feature = "std")]
-        macro_rules! random_serialization_test {
+        macro_rules! raw_serialization_roundtrip_test {
             ($c: ident) => {
                 for _ in 0..100 {
                     let projective_point = $c::random(OsRng);
@@ -364,7 +363,7 @@ macro_rules! curve_testing_suite {
         #[test]
         fn test_serialization() {
             $(
-                random_serialization_test!($curve);
+                raw_serialization_roundtrip_test!($curve);
                 #[cfg(feature = "derive_serde")]
                 random_serde_test!($curve);
             )*

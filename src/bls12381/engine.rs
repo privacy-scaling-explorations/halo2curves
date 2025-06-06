@@ -24,7 +24,14 @@ crate::impl_miller_loop_components!(Bls12381, G1, G1Affine, G2, G2Affine, Fq12, 
 impl MillerLoopResult for Fq12 {
     type Gt = Gt;
 
+    /// Computes the exponentiation to an Fq element to d,
+    /// where d = (p¹²-1)/r = (p¹²-1)/Φ₁₂(p) ⋅ Φ₁₂(p)/r =
+    ///         = (p⁶-1)(p²+1)(p⁴ - p² +1)/r
+    /// we use instead
+    ///       d = s ⋅ (p⁶-1)(p²+1)(p⁴ - p² +1)/r
+    /// where s is the cofactor 3. https://eprint.iacr.org/2020/875.pdf
     fn final_exponentiation(&self) -> Gt {
+        // Reference: [https://github.com/Consensys/gnark-crypto/blob/97d69dcde082a20847e16ba29bce35e9bfde0261/ecc/bls12-381/pairing.go#L52]
         #[must_use]
         fn exp_by_x(f: Fq12) -> Fq12 {
             let mut acc = Fq12::one();
