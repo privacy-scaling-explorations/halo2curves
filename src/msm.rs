@@ -547,17 +547,20 @@ pub fn msm_best<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C]) -> C::Curve {
 
 #[cfg(test)]
 mod test {
-    use std::ops::Neg;
-
-    use ark_std::{end_timer, start_timer};
+    #[cfg(not(feature = "std"))]
+    extern crate alloc;
+    #[cfg(not(feature = "std"))]
+    use alloc::vec::Vec;
+    use core::ops::Neg;
     use ff::{Field, PrimeField};
     use group::{Curve, Group};
     use rand_core::OsRng;
 
-    use crate::{
-        bn256::{Fr, G1Affine, G1},
-        CurveAffine,
-    };
+    use crate::bn256::{Fr, G1Affine, G1};
+    #[cfg(feature = "std")]
+    use crate::CurveAffine;
+    #[cfg(feature = "std")]
+    use ark_std::{end_timer, start_timer};
 
     #[test]
     fn test_booth_encoding() {
@@ -605,8 +608,9 @@ mod test {
         }
     }
 
+    #[cfg(feature = "std")]
     fn run_msm_cross<C: CurveAffine>(min_k: usize, max_k: usize) {
-        use rayon::iter::{IntoParallelIterator, ParallelIterator};
+        use plonky2_maybe_rayon::*;
 
         let points = (0..1 << max_k)
             .into_par_iter()
@@ -637,6 +641,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "std")]
     fn test_msm_cross() {
         run_msm_cross::<G1Affine>(14, 18);
     }

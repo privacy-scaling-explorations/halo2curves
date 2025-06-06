@@ -102,6 +102,7 @@ mod test {
     use rand_core::OsRng;
 
     use super::*;
+    #[cfg(feature = "std")]
     use crate::serde::SerdeObject;
     crate::curve_testing_suite!(G1);
     crate::curve_testing_suite!(G1, "endo_consistency");

@@ -118,7 +118,9 @@ mod test {
     use rand_core::OsRng;
 
     use super::*;
-    use crate::{serde::SerdeObject, tests::curve::TestH2C};
+    #[cfg(feature = "std")]
+    use crate::serde::SerdeObject;
+    use crate::tests::curve::TestH2C;
     crate::curve_testing_suite!(Secp256r1);
     crate::curve_testing_suite!(Secp256r1, "ecdsa_example");
     crate::curve_testing_suite!(

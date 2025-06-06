@@ -84,11 +84,14 @@ impl Secq256k1 {
 
 #[cfg(test)]
 mod test {
+
+    #[cfg(feature = "std")]
+    use crate::serde::SerdeObject;
+
     use group::UncompressedEncoding;
     use rand_core::OsRng;
 
     use super::*;
-    use crate::serde::SerdeObject;
 
     crate::curve_testing_suite!(Secq256k1);
     crate::curve_testing_suite!(Secq256k1, "endo_consistency");

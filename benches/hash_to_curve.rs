@@ -5,7 +5,7 @@
 //!
 //!     cargo bench --bench hash_to_curve
 
-use std::iter;
+use core::iter;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use halo2curves::{bn256::G1, CurveExt};

@@ -269,7 +269,9 @@ mod test {
     use rand_core::OsRng;
 
     use super::*;
-    use crate::{serde::SerdeObject, tests::curve::TestH2C};
+    #[cfg(feature = "std")]
+    use crate::serde::SerdeObject;
+    use crate::tests::curve::TestH2C;
 
     crate::curve_testing_suite!(G2, "clear_cofactor");
     crate::curve_testing_suite!(G1, G2);

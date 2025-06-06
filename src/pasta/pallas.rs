@@ -77,7 +77,9 @@ mod test {
     use rand_core::OsRng;
 
     use super::*;
-    use crate::{curve_testing_suite, serde::SerdeObject};
+    use crate::curve_testing_suite;
+    #[cfg(feature = "std")]
+    use crate::serde::SerdeObject;
 
     curve_testing_suite!(
         Pallas,

@@ -339,7 +339,9 @@ mod test {
     use rand_core::OsRng;
 
     use super::*;
-    use crate::{arithmetic::CurveEndo, serde::SerdeObject};
+    use crate::arithmetic::CurveEndo;
+    #[cfg(feature = "std")]
+    use crate::serde::SerdeObject;
 
     crate::curve_testing_suite!(G2);
     crate::curve_testing_suite!(G2, "endo_consistency");
