@@ -1,3 +1,8 @@
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 use core::{
     cmp,
     iter::Sum,
@@ -180,7 +185,9 @@ mod test {
     use rand_core::OsRng;
 
     use super::*;
-    use crate::{arithmetic::CurveEndo, serde::SerdeObject, tests::curve::TestH2C};
+    #[cfg(feature = "std")]
+    use crate::serde::SerdeObject;
+    use crate::{arithmetic::CurveEndo, tests::curve::TestH2C};
     crate::curve_testing_suite!(G1);
     crate::curve_testing_suite!(G1, "endo_consistency");
     crate::curve_testing_suite!(G1, "endo");

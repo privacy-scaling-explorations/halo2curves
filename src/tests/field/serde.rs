@@ -1,7 +1,9 @@
-use ff::{Field, FromUniformBytes, PrimeField};
-use rand::RngCore;
-
+#[cfg(feature = "std")]
 use crate::serde::SerdeObject;
+#[cfg(any(feature = "std", feature = "derive_serde"))]
+use ff::Field;
+use ff::{FromUniformBytes, PrimeField};
+use rand_core::RngCore;
 
 // Tests to_repr/ from_repr
 pub(crate) fn from_to_repr_test<F: PrimeField>(mut rng: impl RngCore, n: usize) {
@@ -15,6 +17,7 @@ pub(crate) fn from_to_repr_test<F: PrimeField>(mut rng: impl RngCore, n: usize) 
 }
 
 // Tests to_raw_bytes / from_raw_bytes + read_raw /write_raw
+#[cfg(feature = "std")]
 pub(crate) fn from_to_raw_bytes_test<F: Field + SerdeObject>(mut rng: impl RngCore, n: usize) {
     for _ in 0..n {
         let a = F::random(&mut rng);
@@ -36,18 +39,38 @@ where
     for<'de> F: Field + serde::Serialize + serde::Deserialize<'de>,
 {
     for _ in 0..n {
-        // byte serialization
         let a = F::random(&mut rng);
-        let bytes = bincode::serialize(&a).unwrap();
-        let reader = std::io::Cursor::new(bytes);
-        let b = bincode::deserialize_from(reader).unwrap();
-        assert_eq!(a, b);
 
-        // json serialization
+        // Byte serialization
+        let bytes = bincode::serialize(&a).unwrap();
+
+        #[cfg(feature = "std")]
+        {
+            // std version uses Cursor
+            let reader = std::io::Cursor::new(bytes);
+            let b = bincode::deserialize_from(reader).unwrap();
+            assert_eq!(a, b);
+        }
+        #[cfg(not(feature = "std"))]
+        {
+            // no_std version uses slice directly
+            let b = bincode::deserialize(&bytes).unwrap();
+            assert_eq!(a, b);
+        }
+
+        // JSON serialization
         let json = serde_json::to_string(&a).unwrap();
-        let reader = std::io::Cursor::new(json);
-        let b: F = serde_json::from_reader(reader).unwrap();
-        assert_eq!(a, b);
+        #[cfg(feature = "std")]
+        {
+            let reader = std::io::Cursor::new(json);
+            let b: F = serde_json::from_reader(reader).unwrap();
+            assert_eq!(a, b);
+        }
+        #[cfg(not(feature = "std"))]
+        {
+            let b: F = serde_json::from_str(&json).unwrap();
+            assert_eq!(a, b);
+        }
     }
 }
 
@@ -67,6 +90,7 @@ pub(crate) fn test_bits<F: ff::PrimeFieldBits>(mut rng: impl RngCore, n: usize) 
 macro_rules! serde_test {
     ($field:ident) => {
         test!(serde, $field, from_to_repr_test, 100_000);
+        #[cfg(feature = "std")]
         test!(serde, $field, from_to_raw_bytes_test, 100_000);
         #[cfg(feature = "derive_serde")]
         test!(serde, $field, derive_serde_test, 100_000);
@@ -111,7 +135,7 @@ macro_rules! from_uniform_bytes_test {
         paste::paste! {
         #[test]
         fn [< from_uniform_bytes_test_ $L>]() {
-            use rand::SeedableRng;
+            use rand_core::SeedableRng;
             use rand_xorshift::XorShiftRng;
             let mut rng = XorShiftRng::from_seed($crate::tests::SEED);
             $crate::tests::field::serde::from_uniform_bytes_test::<$field, $L>(&mut rng, $size);

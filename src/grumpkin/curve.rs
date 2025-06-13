@@ -1,3 +1,8 @@
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 use core::{
     cmp,
     fmt::Debug,
@@ -5,7 +10,7 @@ use core::{
     ops::{Add, Mul, Neg, Sub},
 };
 
-use rand::RngCore;
+use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::{
@@ -97,6 +102,7 @@ mod test {
     use rand_core::OsRng;
 
     use super::*;
+    #[cfg(feature = "std")]
     use crate::serde::SerdeObject;
     crate::curve_testing_suite!(G1);
     crate::curve_testing_suite!(G1, "endo_consistency");
