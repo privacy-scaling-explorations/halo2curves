@@ -116,6 +116,11 @@ macro_rules! test_pairing {
 
         #[test]
         fn test_pairing_check() {
+            #[cfg(not(feature = "std"))]
+            extern crate alloc;
+            #[cfg(not(feature = "std"))]
+            use alloc::vec::Vec;
+
             let n = 10;
             let g1 = $g1::generator().to_affine();
             let g2 = $g2::generator().to_affine();

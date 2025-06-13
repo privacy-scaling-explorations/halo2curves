@@ -1,3 +1,8 @@
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+
 use proc_macro2::TokenStream;
 use quote::{format_ident as fmtid, quote};
 

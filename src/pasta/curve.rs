@@ -1,5 +1,4 @@
-use std::convert::TryInto;
-
+use core::convert::TryInto;
 use ff::{PrimeField, WithSmallOrderMulGroup};
 
 use super::{fp::Fp, fq::Fq, Pallas, Vesta};

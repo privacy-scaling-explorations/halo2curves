@@ -1,14 +1,18 @@
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+
 use core::{
     borrow::Borrow,
     iter::Sum,
-    ops::{Add, Mul, Neg, Sub},
+    ops::{Add, Mul, MulAssign, Neg, Sub},
 };
-use std::ops::MulAssign;
 
 use ff::{Field, PrimeField};
 use group::{prime::PrimeCurveAffine, Group};
 use pairing::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
-use rand::RngCore;
+use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 use super::{fq12::Fq12, fq2::Fq2, Fr, G1Affine, G2Affine, BLS_X, G1, G2};
