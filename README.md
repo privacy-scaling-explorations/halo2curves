@@ -12,7 +12,7 @@ This library provides efficient and flexible implementations of various halo2-fr
 
 The implementations were originally ported from [matterlabs/pairing](https://github.com/matter-labs/pairing/tree/master/src/bn256) and [zkcrypto/bls12-381](https://github.com/zkcrypto/bls12_381), but have been extended and optimized to cover a broader set of curves and use cases. Since its initial release, the library has expanded to include additional curves, along with the following features:
 
-* `secp256k1`, `secp256r1`, `pluto`, `eris` and `grumpkin` curves, enhancing its usability across a range of cryptographic protocols.
+* `secp256k1`, `secp256r1`, `pluto`, `eris`, `T-256`, and `grumpkin` curves, enhancing its usability across a range of cryptographic protocols.
 * Assembly optimizations leading to significantly improved performance.
 * Various features related to serialization and deserialization of curve points and field elements.
 * Curve-specific optimizations and benchmarking capabilities.
@@ -59,4 +59,4 @@ The library's top-level directories are organized as follows:
 
 * `benches`: Contains benchmarking tests.
 * `script`: Contains utility scripts.
-* `src`: Contains the source code of the library, further subdivided into modules for each supported curve (`bn256`, `grumpkin`, `secp256k1`, `secp256r1`, `secq256k1`, `pasta`, `pluto`, `eris`) and additional functionalities (`derive`, `tests`).
+* `src`: Contains the source code of the library, further subdivided into modules for each supported curve (`bn256`, `grumpkin`, `secp256k1`, `secp256r1`, `secq256k1`, `pasta`, `pluto`, `eris`, `t256`) and additional functionalities (`derive`, `tests`).
