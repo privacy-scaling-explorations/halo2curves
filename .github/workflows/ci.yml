@@ -42,7 +42,7 @@ jobs:
       matrix:
         feature: [default, bn256-table, derive_serde, ""]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
 
       - name: Download no_std target
@@ -67,7 +67,7 @@ jobs:
           - wasm32-unknown-unknown
           - wasm32-wasi
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
 
       - name: Download WASM targets
@@ -88,7 +88,7 @@ jobs:
           - feature: derive_serde
           - feature: asm
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
       # use the more efficient nextest
       - uses: taiki-e/install-action@nextest
@@ -110,7 +110,7 @@ jobs:
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
       - uses: Swatinem/rust-cache@v2
       - run: rustup component add rustfmt
@@ -124,7 +124,7 @@ jobs:
     name: Clippy lint checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
         with:
           components: clippy
@@ -156,7 +156,7 @@ jobs:
           - feature: asm
           - feature: bn256-table
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
       - uses: Swatinem/rust-cache@v2
       - name: Bench arithmetic
