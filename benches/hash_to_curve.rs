@@ -1,4 +1,4 @@
-//! This benchmarks basic the hash-to-curve algorithm.
+//! This benchmarks the basic hash-to-curve algorithm.
 //! It measures `G1` from the BN256 curve.
 //!
 //! To run this benchmark:
