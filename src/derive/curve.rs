@@ -183,7 +183,7 @@ macro_rules! new_curve_impl {
         }
 
         /// A macro to help define point serialization using the [`group::GroupEncoding`] trait
-        /// This assumes both point types ($name, $nameaffine) implement [`group::GroupEncoding`].
+        /// This assumes both point types ($name, $name_affine) implement [`group::GroupEncoding`].
         #[cfg(feature = "derive_serde")]
         macro_rules! serialize_deserialize_to_from_bytes {
             () => {
