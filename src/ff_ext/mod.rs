@@ -14,7 +14,7 @@ pub trait Legendre {
 
     #[inline(always)]
     fn ct_quadratic_residue(&self) -> Choice {
-        // The legendre symbol returns 0 for 0
+        // The Legendre symbol returns 0 for 0
         // and 1 for quadratic residues,
         // we consider 0 a square hence quadratic residue.
         self.legendre().ct_ne(&-1)
